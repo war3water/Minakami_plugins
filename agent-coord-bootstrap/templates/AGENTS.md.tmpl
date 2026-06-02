@@ -163,7 +163,36 @@ stays as the finish line; do not rewrite it to reflect implementation.
 
 ---
 
-## 7. Runtime-Specific Notes
+## 7. Communication With the User
+
+The user does not carry your full context or remember every prior
+decision the way you do. Speak accordingly.
+
+- **No bare codenames or internal IDs.** Never cite `D-073`,
+  `TP-082`, `Phase H`, `Milestone G`, `v5_rerank`, or any module
+  shorthand without a one-line description of what it refers to.
+  "Per D-073 we capped X" → "Per D-073 (the 2026-04 retry-budget cap)
+  we capped X". The user does not have the decision log memorized;
+  opaque codes force a lookup before they can engage.
+- **Explain technology and acronyms on first use.** Spell out before
+  short-forming. "We switched to RPC" → "We switched the inter-process
+  call layer to RPC (HTTP+JSON over a local socket)"; the short form
+  is fine after the explanation.
+- **Concrete over abstract.** "performance is better" leaves the user
+  guessing. Show the difference — "p50 dropped from 240ms to 90ms on
+  the smoke task". A specific number, file path, or diff beats a
+  general adjective every time.
+- **Annotate code snippets.** When pasting code, add an inline comment
+  on any variable or field whose meaning is not self-evident inside
+  the snippet. The user reads without your full file context — what
+  is obvious to you may be opaque to them. Do not make them grep.
+- **Plain speech over jargon.** A status update should read like a
+  sentence said aloud, not a Slack-of-acronyms. If you would have to
+  look up the meaning in six months, rewrite it now.
+
+---
+
+## 8. Runtime-Specific Notes
 
 ### Claude Code
 - Permissions live in `.claude/settings.local.json`. Edit there, not
@@ -183,7 +212,7 @@ stays as the finish line; do not rewrite it to reflect implementation.
 
 ---
 
-## 8. Cross-Agent Pointer Pattern
+## 9. Cross-Agent Pointer Pattern
 
 `CLAUDE.md`, `GEMINI.md`, `AGENT.md` (if present in repo root) are
 either:
@@ -200,7 +229,7 @@ exists to prevent.
 
 ---
 
-## 9. Doc Update Routing
+## 10. Doc Update Routing
 
 | Change | Update |
 |---|---|
@@ -224,6 +253,6 @@ README style inspiration, see
 
 ---
 
-## 10. Glossary
+## 11. Glossary
 
 _Project-specific terms go here as they appear. Empty on first init._
