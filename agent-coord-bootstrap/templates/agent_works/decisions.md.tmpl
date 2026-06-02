@@ -1,0 +1,15 @@
+# Decisions
+
+> Append-only architecture decisions. ADR shape: date, context, decision,
+> consequences. Never rewrite history; archive to an appendix when full.
+
+---
+
+## D-001 — _example_ (delete or replace)
+
+**Date:** {{date}}
+**Context:** Project initialized via `agent-coord-bootstrap`.
+**Decision:** Use the `AGENTS.md` + `agent_works/` pattern for agent coordination.
+**Consequences:** Every agent reads `AGENTS.md` on entry. Doc updates land in the same commit as code changes.
+
+---
