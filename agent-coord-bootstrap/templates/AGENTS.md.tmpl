@@ -1,25 +1,32 @@
 # Agent Coordination — {{project_name}}
 
-> Canonical agent-routing doc. `CLAUDE.md`, `GEMINI.md`, and `AGENT.md` are
-> aliases that resolve here. Edit this file; the aliases follow.
+> Canonical agent-routing doc. `CLAUDE.md`, `GEMINI.md`, and `AGENT.md`
+> are aliases that resolve here. Edit this file; the aliases follow.
 
 ---
 
 ## 1. Hard Rules (non-negotiable)
 
-1. **Secrets stay out of git.** Never commit `.env`, `credentials.json`,
-   API keys, or any file matching `*secret*`. If you spot one already
-   committed, stop and ask before touching anything else.
+1. **Secrets stay out of git.** Never commit `.env`,
+   `credentials.json`, API keys, or any file matching `*secret*`. If
+   you spot one already committed, stop and ask before touching
+   anything else.
 2. **Destructive git ops require explicit instruction.** Never run
    `git reset --hard`, `git push --force`, `git branch -D`, or
    `git clean -f` unless the user named the command in this session.
 3. **Paths in agent-authored docs are relative.** No drive letters
-   (`D:\`), no `~`, no absolute `/Users/` or `/home/`. Use repo-relative
-   paths or `${PROJECT_ROOT}` indirection.
-4. **Durable agent state lives in `agent_works/`.** Ephemeral scratch
-   goes to `.local/` (gitignored). Never put durable state in `.local/`,
-   never put session scratch in `agent_works/`.
-5. **Stop and ask when blocked** by permissions, missing credentials,
+   (`D:\`), no `~`, no absolute `/Users/` or `/home/`. Use
+   repo-relative paths or `${PROJECT_ROOT}` indirection.
+4. **Durable agent state lives in `.agent_works/`.** Ephemeral scratch
+   goes to `.local/` (gitignored). Never put durable state in
+   `.local/`; never put session scratch in `.agent_works/`. The
+   dot-prefix on `.agent_works/` signals "this is meta, not code" —
+   IDE file trees hide it by default, but it is committed to git.
+5. **Describe the system as it is today.** Never write "previously",
+   "no longer", "now uses", or "is still" in docs — that is
+   version-history rot; the next reader has no way to date the claim.
+   Git history is the archive.
+6. **Stop and ask when blocked** by permissions, missing credentials,
    or a heavy setup step. Do not invent product decisions silently.
 
 ---
@@ -28,11 +35,11 @@
 
 | Intent | File |
 |---|---|
-| Architectural decision (append-only) | `agent_works/decisions.md` |
-| Multi-step plan | `agent_works/plans.md` |
-| Requirements / scope / north star | `agent_works/project_requirements.md` |
-| Handoff to next session (replace each session) | `agent_works/handoff/current_handoff.md` |
-| Work tickets | `agent_works/coordination/work_queue.md` |
+| Architectural decision (append-only) | `.agent_works/decisions.md` |
+| Multi-step plan | `.agent_works/plans.md` |
+| Requirements / scope / north star | `.agent_works/project_requirements.md` |
+| Handoff to next session (replace each session) | `.agent_works/handoff/current_handoff.md` |
+| Work tickets | `.agent_works/coordination/work_queue.md` |
 | Ephemeral scratch | `.local/<topic>/` |
 | User-facing onboarding | `README.md` |
 | Permission tweaks (Claude Code) | `.claude/settings.local.json` |
@@ -46,22 +53,25 @@
 ## 3. Session Protocol
 
 ### Session start
-1. Read `agent_works/handoff/current_handoff.md` — that's the active
-   state. If it says "fresh", you're at the beginning.
-2. Skim `agent_works/coordination/work_queue.md` for open tickets.
-3. Only load `decisions.md` / `plans.md` if the task needs them.
+1. Read `.agent_works/handoff/current_handoff.md` — that is the active
+   state. If it says "fresh", you are at the beginning.
+2. Skim `.agent_works/coordination/work_queue.md` for open tickets.
+3. **Progressive disclosure.** Only load `decisions.md` / `plans.md` /
+   `project_requirements.md` if the task needs them. Pre-loading the
+   whole tree on every session wastes context.
 
 ### During the session
 - Restate the goal in practical engineering terms before large changes.
 - Propose structure before generating big code outputs.
-- Keep diffs reviewable. Small, deliberate edits beat sweeping rewrites.
+- Keep diffs reviewable. Small, deliberate edits beat sweeping
+  rewrites.
 
 ### Session end
-- Update `current_handoff.md` with: what landed, what's next, open
-  questions. Replace the file entirely — it's not append-only.
+- Replace `current_handoff.md` with active state only — it is a
+  snapshot, not a journal. Git history is the archive.
 - Mark closed tickets in `work_queue.md` as one-line entries.
-- Append any settled architecture choices to `decisions.md` (ADR shape:
-  date, context, decision, consequences).
+- Append any settled architecture choices to `decisions.md` (ADR
+  shape: date, context, decision, consequences).
 
 ---
 
@@ -72,39 +82,70 @@
 | `AGENTS.md` (this file) | ~150 lines | Routing + rules only. No specs. |
 | `current_handoff.md` | ~80 lines | Replace each session. |
 | `project_requirements.md` | ~stable | North star; rarely grows. |
-| `decisions.md` | ~300 lines | Append-only; archive to appendix when full. |
+| `decisions.md` | ~300 lines | Append-only; archive when full. |
 | `plans.md` | ~400 lines | Trim landed milestones to a `## Done` subsection. |
 | `work_queue.md` | ~100 lines | Closed tickets collapse to a one-line index. |
 
 When a file hits its budget, prune or archive — do not just keep
 appending. Doc rot kills onboarding.
 
+**Code replaces status, not requirements.** When a feature lands, mark
+it done in `work_queue.md` / `plans.md`. `project_requirements.md`
+stays as the finish line; do not rewrite it to reflect implementation.
+
 ---
 
-## 5. Build & Decision Rules
+## 5. Working Principles
 
-- **First principles, Occam's Razor.** Quickest meaningful demo first;
-  deepen later.
-- **Real calls, not mocks** for the core verification path. Mocks are
-  fine for unit boundaries.
-- **Ask before**: major upgrades, migrations, autonomy/policy changes,
-  schema-breaking refactors.
+- **Incremental.** Smallest useful next step. Quickest meaningful demo
+  first; deepen later.
+- **MVP-first.** Advanced capabilities (multi-agent loops, critic
+  passes, image-gen, eval systems) are future upgrades, not first-demo
+  dependencies.
+- **Discussion before large code generation.** Clarity beats volume.
+  Propose structure, agree on shape, then write.
+- **Dependency discipline.** Justify each new dependency. Prefer
+  hosted APIs over local model weights for AI work; local weights go
+  in `models/` (gitignored) with a download script and README setup.
+- **Don't tightly couple future modules.** Preserve extension points.
+  Anything that smells like a framework should be optional.
+- **Real calls for core verification.** Mocks are fine at unit
+  boundaries; the integration path must hit the actual service at
+  least once before claiming done.
+- **First principles, Occam's Razor.** When two designs work, ship the
+  simpler one.
 - **Check `decisions.md`** before changing settled architecture. If
-  evidence supports a revisit, propose it; don't unilaterally flip.
+  evidence supports a revisit, propose it; do not unilaterally flip.
 
 ---
 
-## 6. Runtime-Specific Notes
+## 6. Code Conventions
+
+- **Default to no comments.** Add a comment only when the *why* is
+  non-obvious (a workaround, a hidden constraint, surprising behavior).
+  Well-named identifiers explain the *what*.
+- **No error handling for impossible scenarios.** Validate at system
+  boundaries (user input, external APIs); trust framework guarantees
+  inside. Do not catch exceptions you cannot act on.
+- **No features beyond what the task requires.** A bug fix does not
+  need surrounding cleanup. A one-shot operation does not need a
+  helper. No half-finished implementations.
+- **No backwards-compat shims for unreleased code.** If a name
+  changes, rename it. Do not re-export the old name "just in case".
+
+---
+
+## 7. Runtime-Specific Notes
 
 ### Claude Code
 - Permissions live in `.claude/settings.local.json`. Edit there, not
   here. Add to the `allow` list as friction surfaces.
-- Custom skills under `.claude/skills/`. The plugin marketplace handles
-  installed plugins separately.
+- Custom skills under `.claude/skills/`. The plugin marketplace
+  handles installed plugins separately.
 
 ### Codex CLI
-- Skills under `.agent/skills/`. Plugin manifests use
-  `${PLUGIN_ROOT}` (with `${CLAUDE_PLUGIN_ROOT}` as legacy alias).
+- Skills under `.agent/skills/`. Plugin manifests use `${PLUGIN_ROOT}`
+  (with `${CLAUDE_PLUGIN_ROOT}` as legacy alias).
 
 ### Other runtimes (Gemini, Aider, Cursor, Windsurf)
 - They each read their own file (`GEMINI.md`, `AGENT.md`,
@@ -114,23 +155,24 @@ appending. Doc rot kills onboarding.
 
 ---
 
-## 7. Cross-Agent Pointer Pattern
+## 8. Cross-Agent Pointer Pattern
 
 `CLAUDE.md`, `GEMINI.md`, `AGENT.md` (if present in repo root) are
 either:
 
-- **Symlinks** with the relative target `AGENTS.md` (same directory), or
+- **Symlinks** with the relative target `AGENTS.md` (same directory),
+  or
 - **One-line pointer files** containing the literal text `AGENTS.md`
   followed by a newline.
 
 Both forms are valid. Agents reading their own runtime file should
 resolve the pointer and load `AGENTS.md`. **Never duplicate content
-across the alias files** — that's the failure mode this pattern exists
-to prevent.
+across the alias files** — that is the failure mode this pattern
+exists to prevent.
 
 ---
 
-## 8. Doc Update Routing
+## 9. Doc Update Routing
 
 | Change | Update |
 |---|---|
@@ -146,6 +188,6 @@ doc update rots within two sessions.
 
 ---
 
-## 9. Glossary
+## 10. Glossary
 
 _Project-specific terms go here as they appear. Empty on first init._

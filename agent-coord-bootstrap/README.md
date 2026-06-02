@@ -15,7 +15,7 @@ One-shot scaffolding for the agent-coordination doc layer in a new project. Work
 ├── .claude/settings.local.json            ← permission allowlist (chosen profile)
 ├── .claude/skills/.gitkeep                ← skill pointer dir
 ├── .agent/skills/.gitkeep                 ← Codex skill pointer dir (if codex target)
-└── agent_works/
+└── .agent_works/
     ├── decisions.md
     ├── plans.md
     ├── project_requirements.md
@@ -31,7 +31,7 @@ In any fresh project root:
 /init-agent-coord
 ```
 
-You'll be asked five questions (project name, runtime targets, layout, permission profile, symlink strategy). All have sensible defaults. The plugin refuses to run if any of `AGENTS.md`, `agent_works/`, or `.claude/settings.local.json` already exist — your edits are never overwritten.
+You'll be asked five questions (project name, runtime targets, layout, permission profile, symlink strategy). All have sensible defaults. The plugin refuses to run if any of `AGENTS.md`, `.agent_works/`, or `.claude/settings.local.json` already exist — your edits are never overwritten.
 
 ## Design constraints
 
@@ -42,6 +42,6 @@ You'll be asked five questions (project name, runtime targets, layout, permissio
 
 ## After it runs
 
-1. Fill in `agent_works/project_requirements.md` with your product north star.
+1. Fill in `.agent_works/project_requirements.md` with your product north star.
 2. Read `AGENTS.md` once — it's the routing doc both you and any agent will consult.
-3. Add real tickets to `agent_works/coordination/work_queue.md` as work surfaces.
+3. Add real tickets to `.agent_works/coordination/work_queue.md` as work surfaces.

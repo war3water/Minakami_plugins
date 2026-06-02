@@ -1,6 +1,6 @@
 ---
 name: init-agent-coord
-description: Scaffold the agent-coordination doc layer (AGENTS.md + agent_works/ + cross-runtime aliases) in the current project. One-shot per project.
+description: Scaffold the agent-coordination doc layer (AGENTS.md + .agent_works/ + cross-runtime aliases) in the current project. One-shot per project.
 ---
 
 You are executing `/init-agent-coord` for the `agent-coord-bootstrap` plugin.
@@ -16,7 +16,7 @@ Follow the steps below **in order**. Do not skip steps. Do not invent additional
 Check whether any of these exist in the current working directory (NOT the plugin root):
 
 - `AGENTS.md`
-- `agent_works/` (directory)
+- `.agent_works/` (directory)
 - `.claude/settings.local.json`
 
 If **any** of these exist, STOP immediately. Print:
@@ -62,16 +62,16 @@ Substitutions: `{{project_name}}` → answer 1; `{{date}}` → today's ISO date.
 | Template source | Target path |
 |---|---|
 | `AGENTS.md.tmpl` | `AGENTS.md` |
-| `agent_works/decisions.md.tmpl` | `agent_works/decisions.md` |
-| `agent_works/handoff/current_handoff.md.tmpl` | `agent_works/handoff/current_handoff.md` |
-| `agent_works/coordination/work_queue.md.tmpl` | `agent_works/coordination/work_queue.md` |
+| `.agent_works/decisions.md.tmpl` | `.agent_works/decisions.md` |
+| `.agent_works/handoff/current_handoff.md.tmpl` | `.agent_works/handoff/current_handoff.md` |
+| `.agent_works/coordination/work_queue.md.tmpl` | `.agent_works/coordination/work_queue.md` |
 
 ### If `layout == full`, also create:
 
 | Template source | Target path |
 |---|---|
-| `agent_works/plans.md.tmpl` | `agent_works/plans.md` |
-| `agent_works/project_requirements.md.tmpl` | `agent_works/project_requirements.md` |
+| `.agent_works/plans.md.tmpl` | `.agent_works/plans.md` |
+| `.agent_works/project_requirements.md.tmpl` | `.agent_works/project_requirements.md` |
 
 ### Permission profile — pick exactly one:
 
@@ -133,7 +133,7 @@ Scan every file you created in Steps 3 and 4 for forbidden patterns:
 - POSIX home expansions: `/Users/`, `/home/`, `~/`
 - Windows home expansions: `%USERPROFILE%`, `$HOME`
 
-Files to scan: `AGENTS.md`, `README.md` (if created), everything under `agent_works/`, `.claude/settings.local.json`.
+Files to scan: `AGENTS.md`, `README.md` (if created), everything under `.agent_works/`, `.claude/settings.local.json`.
 
 If any match is found and it is NOT inside a clearly-marked "DO NOT do this" example block, STOP and report:
 
@@ -165,9 +165,9 @@ Permission profile: {{permission_profile}}
 Layout: {{layout}}
 
 Next steps:
-  1. Fill in agent_works/project_requirements.md with your product north star.
+  1. Fill in .agent_works/project_requirements.md with your product north star.
   2. Read AGENTS.md — it's the routing doc every agent will consult.
-  3. Add real tickets to agent_works/coordination/work_queue.md as work surfaces.
+  3. Add real tickets to .agent_works/coordination/work_queue.md as work surfaces.
 ```
 
 Done. Do not perform any additional actions. Do not commit anything to git — leave that to the user.

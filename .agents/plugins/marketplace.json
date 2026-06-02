@@ -10,7 +10,7 @@
     {
       "name": "agent-coord-bootstrap",
       "version": "0.1.0",
-      "description": "One-shot scaffold of an agent-coordination doc layer (AGENTS.md + agent_works/ + cross-runtime aliases).",
+      "description": "One-shot scaffold of an agent-coordination doc layer (AGENTS.md + .agent_works/ + cross-runtime aliases).",
       "category": "scaffolding",
       "source": {
         "source": "git-subdir",
