@@ -1,27 +1,91 @@
 # {{project_name}}
 
-> _One-sentence pitch goes here._
+> _One-sentence pitch — what this project does and who it is for._
+
+<!-- Optional badges — delete the line if not applicable.
+[![status](https://img.shields.io/badge/status-WIP-yellow)](#)
+[![license](https://img.shields.io/badge/license-MIT-blue)](LICENSE)
+-->
+
+<!-- Optional: screenshot, demo GIF, or asciinema embed. -->
+
+## Why
+
+_2–3 sentences. What problem does this solve, why does this exist, who
+should care?_
+
+---
 
 ## Quick start
 
+### Prerequisites
+
+- _Language / runtime version_ (e.g. Python 3.11+, Node 20+, etc.)
+- _External services_ (e.g. Docker, Postgres, an LLM API key)
+
+### Install
+
 ```bash
-# install / configure / first run go here
+git clone https://github.com/<your-org>/{{project_name}}.git
+cd {{project_name}}
+# language-specific install: pip install -e .  /  npm install  /  cargo build  /  go mod tidy
 ```
 
-## Architecture
+### Configure
 
-_90-second sketch goes here once concrete._
+Copy `.env.example` to `.env` and fill in:
 
-## Working with agents in this repo
+- `EXAMPLE_API_KEY` — _where to get it_
+- `EXAMPLE_HOST` — _default; only override if you know why_
 
-This project uses a shared agent-coordination doc layer.
+### Run
 
-- **`AGENTS.md`** — routing rules every coding agent (Claude Code,
-  Codex, Gemini, Aider, Cursor) reads on entry. `CLAUDE.md` /
-  `GEMINI.md` / `AGENT.md` are aliases that resolve to it.
-- **`.agent_works/`** — durable agent state (decisions, plans,
-  requirements, handoff, work queue).
-- **`.local/`** — gitignored scratch.
+```bash
+# the one canonical run command
+```
 
-If you're an agent reading this, start with `AGENTS.md` and
-`.agent_works/handoff/current_handoff.md`.
+You should see _what success looks like_ — e.g. a server listening on
+`http://localhost:PORT`, a CLI prompt, an output file.
+
+---
+
+## Debug
+
+| Component | Address | How to attach |
+|---|---|---|
+| _backend_ | `http://localhost:8000` | _VSCode `Run` → pick the matching profile in `.vscode/launch.json`_ |
+| _frontend_ | `http://localhost:5173` | _open DevTools (F12); breakpoints in source tab_ |
+| _tests_ | _n/a_ | _`pytest --pdb` / `npm test -- --inspect-brk` / etc._ |
+
+Per-component VSCode launch profiles live in `.vscode/launch.json`.
+Edit / add entries when you add a new entry point.
+
+---
+
+## Project structure
+
+```
+src/         Production code
+tests/       Test suite
+docs/        Long-form documentation (optional)
+.vscode/     Debug + task configurations
+```
+
+---
+
+## Roadmap
+
+_Briefly: where the project sits in its lifecycle. Link to a roadmap
+issue / project board if there is one._
+
+## Contributing
+
+_How can someone help? Open an issue, send a PR, join a discussion?_
+
+## License
+
+_e.g. MIT — see [LICENSE](LICENSE)._
+
+---
+
+_Coding agents: see [`AGENTS.md`](AGENTS.md)._
