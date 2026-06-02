@@ -22,12 +22,26 @@
    `.local/`; never put session scratch in `.agent_works/`. The
    dot-prefix on `.agent_works/` signals "this is meta, not code" —
    IDE file trees hide it by default, but it is committed to git.
-5. **Describe the system as it is today.** Never write "previously",
-   "no longer", "now uses", or "is still" in docs — that is
-   version-history rot; the next reader has no way to date the claim.
-   Git history is the archive.
+5. **Describe the system as it is today** — in user-facing docs
+   especially. In `README.md`, `AGENTS.md`, and anything else humans
+   or agents read to onboard, never write "previously", "no longer",
+   "now uses", or "is still" — that is version-history rot, and the
+   next reader has no way to date the claim. Git history is the
+   archive. (Internal session state like `current_handoff.md` can
+   still narrate recent transitions when useful.)
 6. **Stop and ask when blocked** by permissions, missing credentials,
    or a heavy setup step. Do not invent product decisions silently.
+7. **Never delete cross-agent pointer files** — `CLAUDE.md`,
+   `GEMINI.md`, `AGENT.md`, or any symlink / one-line pointer
+   resolving to `AGENTS.md` — unless the user explicitly asks. They
+   are the entry points other agents use; removing one silently
+   breaks that runtime's onboarding.
+8. **Environment isolation.** Never install packages or run
+   verifications in the base / global environment. Use a
+   project-dedicated env (`.venv`, conda env from `environment.yaml`,
+   project-local `node_modules`, etc.) — whatever the language uses.
+   On Windows, avoid the `C:` drive for large deps and model weights
+   to prevent disk pressure.
 
 ---
 
@@ -112,10 +126,24 @@ stays as the finish line; do not rewrite it to reflect implementation.
 - **Real calls for core verification.** Mocks are fine at unit
   boundaries; the integration path must hit the actual service at
   least once before claiming done.
-- **First principles, Occam's Razor.** When two designs work, ship the
-  simpler one.
+- **First principles, Occam's Razor.** When two designs work, ship
+  the simpler one.
 - **Check `decisions.md`** before changing settled architecture. If
   evidence supports a revisit, propose it; do not unilaterally flip.
+- **Debuggability is part of done.** When you add a new entry point
+  (CLI, server, test target, frontend page), wire its
+  `.vscode/launch.json` (or your IDE's equivalent) at the same time —
+  so the next debugger does not have to reverse-engineer it.
+- **Debug addresses live in `README.md`, not in agent memory.** Before
+  launching a debugger or hitting an endpoint, check the project
+  README for the canonical host, port, and env vars. If they are not
+  there, add them — do not guess and do not hardcode.
+- **Frontend file-system access during debug.** When local-file
+  access is needed (test fixtures, simulated uploads), expand
+  `vite.config.*` `server.fs.allow` (or the equivalent) temporarily
+  and drive uploads from JS in-page — native file dialogs break
+  headless / DevTools-driven debugging. Revoke the expanded
+  allow-list when the debug session ends.
 
 ---
 
@@ -185,6 +213,14 @@ exists to prevent.
 
 Update docs **in the same commit** as the change. A change without a
 doc update rots within two sessions.
+
+**`README.md` vs `AGENTS.md`.** `README.md` is the human's entry
+point: quickstart, install, run, debug addresses + ports, deploy
+steps — optimize for clone-and-run-in-5-minutes. `AGENTS.md` (this
+file) is the agent's entry point: routing, hard rules, working
+principles. Same project, two audiences, no content overlap. For
+README style inspiration, see
+<https://github.com/matiassingers/awesome-readme>.
 
 ---
 
