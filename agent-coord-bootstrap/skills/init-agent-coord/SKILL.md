@@ -1,12 +1,13 @@
 ---
 name: init-agent-coord
-description: Scaffold or upgrade a project's agent-coordination doc layer (AGENTS.md + .agent_works/ + cross-runtime aliases). USER-INVOKED ONLY — execute solely when the user explicitly names this skill ($/@ mention or /init-agent-coord); never auto-trigger from natural-language inference.
+description: Scaffold or upgrade a project's agent-coordination doc layer (AGENTS.md + .agent_works/ + cross-runtime aliases). USER-INVOKED ONLY — execute solely when the user explicitly names this skill ($agent-coord-bootstrap mention in Codex, /agent-coord-bootstrap:init-agent-coord in Claude Code); never auto-trigger from natural-language inference.
 disable-model-invocation: true
 ---
 
 This skill is a thin wrapper around the plugin's canonical runbook so that
 Codex CLI (which loads plugin skills, not plugin commands) can execute it.
-Claude Code users can equivalently run the `/init-agent-coord` slash command.
+Claude Code users can equivalently run the plugin-namespaced slash command
+`/agent-coord-bootstrap:init-agent-coord`.
 
 **Step 0 — invocation gate.** This action scaffolds or restructures the
 project's coordination docs; whether and when to run it is the user's

@@ -69,4 +69,6 @@ if [ "${#FAILURES[@]}" -gt 0 ]; then
 fi
 
 echo
-echo "Done. Try '/init-agent-coord' in any project root — fresh or existing."
+echo "Done. In any project root (fresh or existing):"
+echo "  Claude Code: /agent-coord-bootstrap:init-agent-coord"
+echo "  Codex CLI:   \$agent-coord-bootstrap"

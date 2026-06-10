@@ -67,4 +67,6 @@ if ($Failures.Count -gt 0) {
 }
 
 Write-Host ''
-Write-Host "Done. Try '/init-agent-coord' in any project root - fresh or existing."
+Write-Host 'Done. In any project root (fresh or existing):'
+Write-Host '  Claude Code: /agent-coord-bootstrap:init-agent-coord'
+Write-Host '  Codex CLI:   $agent-coord-bootstrap'

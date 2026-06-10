@@ -30,8 +30,8 @@ Scaffold or upgrade the agent-coordination doc layer — fresh init for new proj
 In any project root:
 
 ```
-/init-agent-coord          # Claude Code
-$init-agent-coord          # Codex CLI (explicit skill mention; also /skills)
+/agent-coord-bootstrap:init-agent-coord    # Claude Code (plugin-namespaced slash command)
+$agent-coord-bootstrap                     # Codex CLI (type $ and pick agent-coord-bootstrap; also /skills)
 ```
 
 You'll be asked five questions (project name, runtime targets, layout, permission profile, symlink strategy). All have sensible defaults.
