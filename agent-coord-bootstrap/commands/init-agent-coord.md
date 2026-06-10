@@ -1,6 +1,7 @@
 ---
 name: init-agent-coord
-description: Scaffold or upgrade the agent-coordination doc layer (AGENTS.md + .agent_works/ + cross-runtime aliases) in the current project. Fresh repos get a clean init; existing projects get a content-preserving migration.
+description: Scaffold or upgrade the agent-coordination doc layer (AGENTS.md + .agent_works/ + cross-runtime aliases) in the current project. Fresh repos get a clean init; existing projects get a content-preserving migration. User-invoked only.
+disable-model-invocation: true
 ---
 
 You are executing `/init-agent-coord` for the `agent-coord-bootstrap` plugin.

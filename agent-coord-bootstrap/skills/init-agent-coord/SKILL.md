@@ -1,13 +1,21 @@
 ---
 name: init-agent-coord
-description: Scaffold or upgrade a project's agent-coordination doc layer (AGENTS.md + .agent_works/ + cross-runtime aliases). Use when the user asks to initialize agent docs, set up AGENTS.md, bootstrap or upgrade agent coordination in a project.
+description: Scaffold or upgrade a project's agent-coordination doc layer (AGENTS.md + .agent_works/ + cross-runtime aliases). USER-INVOKED ONLY — execute solely when the user explicitly names this skill ($/@ mention or /init-agent-coord); never auto-trigger from natural-language inference.
+disable-model-invocation: true
 ---
 
 This skill is a thin wrapper around the plugin's canonical runbook so that
 Codex CLI (which loads plugin skills, not plugin commands) can execute it.
 Claude Code users can equivalently run the `/init-agent-coord` slash command.
 
-Read and execute, exactly and in order, the runbook at:
+**Step 0 — invocation gate.** This action scaffolds or restructures the
+project's coordination docs; whether and when to run it is the user's
+decision, not yours. Proceed only if the user explicitly invoked this
+skill by name in their message. If you arrived here by inferring intent
+from conversation, stop and ask: "Run init-agent-coord on this project?"
+— and proceed only on an explicit yes.
+
+Then read and execute, exactly and in order, the runbook at:
 
 - Codex CLI: `${PLUGIN_ROOT}/commands/init-agent-coord.md`
 - Claude Code: `${CLAUDE_PLUGIN_ROOT}/commands/init-agent-coord.md`

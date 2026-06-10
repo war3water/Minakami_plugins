@@ -1,0 +1,4 @@
+# Codex invocation policy: this skill must never auto-trigger from
+# natural-language inference. Explicit $/@ user invocation still works.
+policy:
+  allow_implicit_invocation: false

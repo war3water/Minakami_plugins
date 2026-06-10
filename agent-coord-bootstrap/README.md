@@ -25,10 +25,13 @@ Scaffold or upgrade the agent-coordination doc layer — fresh init for new proj
 
 ## Usage
 
-In any fresh project root:
+**User-invoked only.** Scaffolding or restructuring a project's coordination docs is the user's call — the model is never allowed to trigger this on its own (`disable-model-invocation: true` on the Claude Code command and skill; `policy.allow_implicit_invocation: false` in the Codex skill policy).
+
+In any project root:
 
 ```
-/init-agent-coord
+/init-agent-coord          # Claude Code
+$init-agent-coord          # Codex CLI (explicit skill mention; also /skills)
 ```
 
 You'll be asked five questions (project name, runtime targets, layout, permission profile, symlink strategy). All have sensible defaults.
