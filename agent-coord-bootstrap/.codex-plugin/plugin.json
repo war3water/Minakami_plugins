@@ -1,17 +1,18 @@
 {
   "name": "agent-coord-bootstrap",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "Scaffold or upgrade an agent-coordination doc layer (AGENTS.md + .agent_works/ + cross-runtime aliases). Fresh projects get a clean init; existing projects get a content-preserving migration.",
   "author": {
     "name": "war3water",
     "url": "https://github.com/war3water/Minakami_plugins"
   },
   "commands": "./commands",
+  "skills": "./skills",
   "interface": {
     "displayName": "Agent Coord Bootstrap",
     "category": "scaffolding",
     "defaultPrompt": [
-      "Run /init-agent-coord in the project root you want to initialize."
+      "Run /init-agent-coord in the project root you want to initialize or upgrade."
     ]
   }
 }

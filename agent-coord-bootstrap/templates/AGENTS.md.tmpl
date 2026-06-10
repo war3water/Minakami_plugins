@@ -14,9 +14,10 @@
 2. **Destructive git ops require explicit instruction.** Never run
    `git reset --hard`, `git push --force`, `git branch -D`, or
    `git clean -f` unless the user named the command in this session.
-3. **Paths in agent-authored docs are relative.** No drive letters
-   (`D:\`), no `~`, no absolute `/Users/` or `/home/`. Use
-   repo-relative paths or `${PROJECT_ROOT}` indirection.
+3. **Paths in agent-authored docs are relative.** No drive-letter
+   prefixes (a letter plus colon), no tilde home shortcuts, no
+   absolute user-home directories. Use repo-relative paths or
+   `${PROJECT_ROOT}` indirection.
 4. **Durable agent state lives in `.agent_works/`.** Ephemeral scratch
    goes to `.local/` (gitignored). Never put durable state in
    `.local/`; never put session scratch in `.agent_works/`. The
@@ -62,6 +63,9 @@
 `AGENTS.md` → `project_requirements.md` → `decisions.md` → `plans.md` →
 `current_handoff.md` → `README.md`.
 
+_If `plans.md` / `project_requirements.md` are absent (minimal
+layout), create them from this routing table on first need._
+
 ---
 
 ## 3. Session Protocol
@@ -93,7 +97,7 @@
 
 | File | Soft max | Note |
 |---|---|---|
-| `AGENTS.md` (this file) | ~150 lines | Routing + rules only. No specs. |
+| `AGENTS.md` (this file) | ~250 lines | Routing + rules only. No specs. |
 | `current_handoff.md` | ~80 lines | Replace each session. |
 | `project_requirements.md` | ~stable | North star; rarely grows. |
 | `decisions.md` | ~300 lines | Append-only; archive when full. |
@@ -201,8 +205,7 @@ decision the way you do. Speak accordingly.
   handles installed plugins separately.
 
 ### Codex CLI
-- Skills under `.agent/skills/`. Plugin manifests use `${PLUGIN_ROOT}`
-  (with `${CLAUDE_PLUGIN_ROOT}` as legacy alias).
+- Skills under `.agent/skills/`.
 
 ### Other runtimes (Gemini, Aider, Cursor, Windsurf)
 - They each read their own file (`GEMINI.md`, `AGENT.md`,
@@ -219,8 +222,10 @@ either:
 
 - **Symlinks** with the relative target `AGENTS.md` (same directory),
   or
-- **One-line pointer files** containing the literal text `AGENTS.md`
-  followed by a newline.
+- **One-line pointer files** containing the literal text `@AGENTS.md`
+  followed by a newline (the `@` prefix is the import syntax Claude
+  Code and Gemini CLI resolve mechanically; a legacy bare `AGENTS.md`
+  line is also treated as a pointer).
 
 Both forms are valid. Agents reading their own runtime file should
 resolve the pointer and load `AGENTS.md`. **Never duplicate content

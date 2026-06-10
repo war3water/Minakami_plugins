@@ -22,26 +22,31 @@ curl -fsSL https://raw.githubusercontent.com/war3water/Minakami_plugins/main/ins
 iwr -useb https://raw.githubusercontent.com/war3water/Minakami_plugins/main/install.ps1 | iex
 ```
 
-The script detects which of Claude Code / Codex CLI you have installed, registers this marketplace with each, and installs every plugin listed above.
+The script detects which of Claude Code / Codex CLI you have installed, registers this marketplace with each, installs every plugin listed above, and reports any step that failed.
 
-### Manual (4 commands, runtime-agnostic)
+### Manual (4 commands)
 
 ```bash
-claude plugin marketplace add github:war3water/Minakami_plugins
+claude plugin marketplace add war3water/Minakami_plugins
 claude plugin install agent-coord-bootstrap@minakami-plugins
 
-codex plugin marketplace add github:war3water/Minakami_plugins
-codex plugin install agent-coord-bootstrap
+codex plugin marketplace add war3water/Minakami_plugins
+codex plugin add agent-coord-bootstrap@minakami-plugins
 ```
+
+Note the asymmetry: Claude Code uses `plugin install`, Codex CLI uses `plugin add`. Both take the `<plugin>@<marketplace>` form. The marketplace source is the bare `owner/repo` GitHub shorthand — `github:`-prefixed forms are rejected by both CLIs.
 
 ## Update
 
 ```bash
-claude plugin marketplace upgrade
-codex plugin marketplace upgrade
-```
+# Claude Code: refresh the marketplace, then update the plugin
+claude plugin marketplace update minakami-plugins
+claude plugin update agent-coord-bootstrap@minakami-plugins
 
-Then reinstall plugins with `--upgrade` if needed.
+# Codex CLI: refresh the marketplace, then re-add the plugin
+codex plugin marketplace upgrade minakami-plugins
+codex plugin add agent-coord-bootstrap@minakami-plugins
+```
 
 ## Repository layout
 
@@ -49,11 +54,13 @@ Then reinstall plugins with `--upgrade` if needed.
 .agents/plugins/marketplace.json    Codex canonical
 .claude-plugin/marketplace.json     Claude + Codex legacy (duplicate)
 install.sh / install.ps1            One-command bootstrap
+scripts/sync-manifests.sh           Copy canonical manifests over mirrors + parity check
 agent-coord-bootstrap/              Plugin source
     .codex-plugin/plugin.json       Manifest (canonical)
     .claude-plugin/plugin.json      Manifest (duplicate)
-    commands/init-agent-coord.md    Slash command body
+    commands/init-agent-coord.md    Slash command runbook (Claude Code surface)
+    skills/init-agent-coord/        Skill wrapper (Codex surface; Codex loads plugin skills, not commands)
     templates/                      Files the command writes into the target project
 ```
 
-The two `marketplace.json` files and the two `plugin.json` files are **duplicated, not symlinked** — Windows + Git symlinks are unreliable. Edit `.agents/plugins/marketplace.json` and `.codex-plugin/plugin.json` as canonical; copy the other side before commit (or run `scripts/sync-manifests.sh` if it exists).
+The two `marketplace.json` files and the two `plugin.json` files are **duplicated, not symlinked** — Windows + Git symlinks are unreliable. Edit `.agents/plugins/marketplace.json` and `.codex-plugin/plugin.json` as canonical, then run `bash scripts/sync-manifests.sh` before committing.

@@ -1,7 +1,9 @@
 {
   "name": "minakami-plugins",
-  "version": "0.1.0",
-  "description": "Minakami's personal agent plugins for Claude Code and Codex CLI",
+  "metadata": {
+    "version": "0.3.0",
+    "description": "Minakami's personal agent plugins for Claude Code and Codex CLI"
+  },
   "owner": {
     "name": "war3water",
     "url": "https://github.com/war3water"
@@ -9,7 +11,7 @@
   "plugins": [
     {
       "name": "agent-coord-bootstrap",
-      "version": "0.2.0",
+      "version": "0.3.0",
       "description": "Scaffold or upgrade an agent-coordination doc layer (AGENTS.md + .agent_works/ + cross-runtime aliases). Fresh init for new projects; content-preserving migration for existing ones.",
       "category": "scaffolding",
       "source": {
