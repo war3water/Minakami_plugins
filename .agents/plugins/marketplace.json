@@ -9,8 +9,8 @@
   "plugins": [
     {
       "name": "agent-coord-bootstrap",
-      "version": "0.1.0",
-      "description": "One-shot scaffold of an agent-coordination doc layer (AGENTS.md + .agent_works/ + cross-runtime aliases).",
+      "version": "0.2.0",
+      "description": "Scaffold or upgrade an agent-coordination doc layer (AGENTS.md + .agent_works/ + cross-runtime aliases). Fresh init for new projects; content-preserving migration for existing ones.",
       "category": "scaffolding",
       "source": {
         "source": "git-subdir",

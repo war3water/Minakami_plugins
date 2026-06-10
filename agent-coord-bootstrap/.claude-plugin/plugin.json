@@ -1,7 +1,7 @@
 {
   "name": "agent-coord-bootstrap",
-  "version": "0.1.0",
-  "description": "One-shot scaffold of an agent-coordination doc layer (AGENTS.md + .agent_works/ + cross-runtime aliases) in a new project.",
+  "version": "0.2.0",
+  "description": "Scaffold or upgrade an agent-coordination doc layer (AGENTS.md + .agent_works/ + cross-runtime aliases). Fresh projects get a clean init; existing projects get a content-preserving migration.",
   "author": {
     "name": "war3water",
     "url": "https://github.com/war3water/Minakami_plugins"

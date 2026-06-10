@@ -6,7 +6,7 @@ Personal marketplace of cross-runtime plugins for [Claude Code](https://claude.c
 
 | Plugin | Purpose |
 |---|---|
-| `agent-coord-bootstrap` | One-shot scaffold of an agent-coordination doc layer (`AGENTS.md` + `.agent_works/` + cross-runtime aliases) in a new project. |
+| `agent-coord-bootstrap` | Scaffold or upgrade an agent-coordination doc layer (`AGENTS.md` + `.agent_works/` + cross-runtime aliases). Fresh init for new projects; content-preserving migration for existing ones. |
 
 ## Install on a new device
 

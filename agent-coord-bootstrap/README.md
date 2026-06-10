@@ -31,11 +31,20 @@ In any fresh project root:
 /init-agent-coord
 ```
 
-You'll be asked five questions (project name, runtime targets, layout, permission profile, symlink strategy). All have sensible defaults. The plugin refuses to run if any of `AGENTS.md`, `.agent_works/`, or `.claude/settings.local.json` already exist — your edits are never overwritten.
+You'll be asked five questions (project name, runtime targets, layout, permission profile, symlink strategy). All have sensible defaults.
+
+### Existing projects — upgrade mode
+
+If the project already has coordination files (`AGENTS.md`, `.agent_works/`, a content-bearing `CLAUDE.md`, etc.), the command does not refuse and does not silently overwrite. It inventories what exists and asks you to choose:
+
+1. **Upgrade (recommended)** — it classifies your existing docs (template-duplicate / unique / conflicting), proposes a migration plan as a source→destination table, and executes only after your approval. Unique rules merge into the new `AGENTS.md`; content with no obvious home is parked in `.agent_works/upgrade_parking.md` for your review — never dropped. A divergent `CLAUDE.md` becomes an alias only after its unique content is merged.
+2. **Pause** — nothing is written.
+
+So the plugin serves both ends: initializing a fresh repo, and refactoring an existing project into an agent-ready handoff structure.
 
 ## Design constraints
 
-- **One-shot.** Bootstrap is per-project, not per-session. No background hooks, no session-start checks.
+- **Run-once per project.** Bootstrap/upgrade is per-project, not per-session. No background hooks, no session-start checks.
 - **Prompt-only.** No Python engine, no install-time dependencies. The slash command is the entire plugin logic.
 - **Portable.** No drive letters, no `~`, no absolute paths in any scaffolded file. Aliases use relative symlink targets or bare-filename pointer files.
 - **Dual-runtime.** Identical behavior in Claude Code and Codex CLI.
