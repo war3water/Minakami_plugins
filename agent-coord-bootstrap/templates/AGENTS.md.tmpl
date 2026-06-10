@@ -14,10 +14,14 @@
 2. **Destructive git ops require explicit instruction.** Never run
    `git reset --hard`, `git push --force`, `git branch -D`, or
    `git clean -f` unless the user named the command in this session.
-3. **Paths in agent-authored docs are relative.** No drive-letter
-   prefixes (a letter plus colon), no tilde home shortcuts, no
-   absolute user-home directories. Use repo-relative paths or
-   `${PROJECT_ROOT}` indirection.
+3. **Project-internal references use relative paths.** Anything that
+   points inside this repo: no drive-letter prefixes (a letter plus
+   colon), no tilde home shortcuts, no absolute user-home directories
+   — use repo-relative paths or `${PROJECT_ROOT}` indirection, so the
+   docs survive a clone to any machine. Absolute paths ARE allowed
+   when the reference is genuinely environment-bound (another local
+   repo, a system service, a tool install location) — but mark the
+   line with a `(local-env)` tag so readers know it will not travel.
 4. **Durable agent state lives in `.agent_works/`.** Ephemeral scratch
    goes to `.local/` (gitignored). Never put durable state in
    `.local/`; never put session scratch in `.agent_works/`. The

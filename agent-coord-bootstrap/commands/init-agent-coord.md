@@ -128,7 +128,10 @@ Scan every file you created in Steps A3 and A4 for forbidden patterns:
 
 Files to scan: `AGENTS.md`, `README.md` (if created), everything under `.agent_works/`.
 
-**Known-clean exemption:** `AGENTS.md` §1 rule 3 (the path-discipline rule) is worded to avoid these patterns; if a match nevertheless points there or into any clearly-marked "DO NOT do this" example, skip it.
+**Exemptions — skip a match when any of these apply:**
+
+1. It sits in `AGENTS.md` §1 rule 3 (the path-discipline rule itself) or in a clearly-marked "DO NOT do this" example.
+2. The line carries a `(local-env)` tag — the documented marker for deliberately environment-bound references (another local repo, a system service, a tool install location). Those are allowed by rule 3; the scan only polices *undeclared* absolute paths.
 
 If any other match is found, STOP and report:
 
@@ -266,7 +269,7 @@ In this order:
 
 ## Step B6 — Verify and report
 
-Run the Step A5 portability scan **only over template-derived text** (the skeleton sections of the new `AGENTS.md`, files created from templates). For **migrated or parked user content** (folded-in unique blocks, `upgrade_parking.md`), matches are NOT a failure — collect them into a non-blocking warning list instead: these paths came from the user's own docs and may be legitimate.
+Run the Step A5 portability scan (including its exemptions) **only over template-derived text** (the skeleton sections of the new `AGENTS.md`, files created from templates). For **migrated or parked user content** (folded-in unique blocks, `upgrade_parking.md`), matches are NOT a failure — collect them into a non-blocking warning list instead: these paths came from the user's own docs and may be legitimate. The warning suggests two remedies per match: make the path repo-relative if it points inside the project, or add a `(local-env)` tag if it is genuinely environment-bound.
 
 Then report:
 
