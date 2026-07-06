@@ -20,8 +20,9 @@
 4. **No version control, no edits.** If the tree is not under git,
    `git init` + a baseline commit before the first change.
 5. **Check before deleting or renaming anything public-facing** — a
-   file, public symbol, shim, or re-export. Search `README*`, `docs/`,
-   and configs for it first; if it is mentioned, config-reachable, or
+   file, public symbol, shim, re-export, or registered capability.
+   Search `README*`, `docs/`, configs, and registries first; if it is
+   mentioned, registered anywhere (even if currently disabled), or
    possibly consumed outside this repo: keep it, flag it, and ask.
 6. **Durable agent state lives in `.agent_works/`** (committed).
    Ephemeral scratch goes to `.local/` (gitignored). Never swap them.
