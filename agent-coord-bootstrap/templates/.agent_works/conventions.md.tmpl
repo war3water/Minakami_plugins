@@ -1,0 +1,52 @@
+# Conventions — {{project_name}}
+
+> One hop from `AGENTS.md`, which wins on any conflict. Elaboration and
+> worked examples only — the binding rules live there.
+
+## Debugging
+
+- Every entry point (CLI, server, test target, frontend page) gets a
+  `.vscode/launch.json` profile (or your IDE's equivalent) when it is
+  created, so the next debugger doesn't reverse-engineer it.
+- Canonical hosts, ports, and env vars live in README §Debug. Check
+  there before attaching; add what's missing — don't guess or hardcode.
+- Frontend local-file access during debug: temporarily expand
+  `vite.config.*` `server.fs.allow` (or the equivalent) and drive
+  uploads from in-page JS — native file dialogs break headless and
+  DevTools-driven debugging. Revoke the expansion when the session ends.
+
+## Communication examples
+
+- "Per D-073 we capped X" → "Per D-073 (the retry-budget cap) we capped
+  X" — the reader doesn't have the decision log memorized.
+- "We switched to RPC" → "We switched the inter-process call layer to
+  RPC (HTTP+JSON over a local socket)"; the short form is fine after.
+- "Performance is better" → "p50 dropped from 240ms to 90ms on the smoke
+  task" — show the difference, don't adjective it.
+- When pasting code, inline-comment any variable whose meaning isn't
+  self-evident inside the snippet; the reader lacks your file context.
+- If you'd have to look a phrase up in six months, rewrite it now.
+
+## Alias mechanics
+
+`CLAUDE.md`, `GEMINI.md`, and `AGENT.md` in the repo root are either
+symlinks with the relative target `AGENTS.md` (same directory, never an
+absolute path) or one-line pointer files containing exactly `@AGENTS.md`
+— the import syntax Claude Code and Gemini CLI resolve mechanically. A
+legacy bare `AGENTS.md` line is also treated as a pointer. Agents
+reading their own runtime file resolve the pointer and load `AGENTS.md`.
+Duplicating content across alias files is the failure mode this pattern
+exists to prevent.
+
+## Paths and state
+
+- Repo-internal references stay relative so the docs survive a clone to
+  any machine; `${PROJECT_ROOT}` indirection also works.
+- Genuinely environment-bound references (another local repo, a system
+  service, a tool install location) carry a `(local-env)` tag so readers
+  know the line will not travel.
+- `.agent_works/` is committed durable state; the dot-prefix signals
+  "meta, not code" (IDE file trees hide it by default). `.local/` is
+  gitignored session scratch.
+- Local model weights go in `models/` (gitignored) with a download
+  script and setup notes in README.

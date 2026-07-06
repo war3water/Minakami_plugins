@@ -3,265 +3,147 @@
 > Canonical agent-routing doc. `CLAUDE.md`, `GEMINI.md`, and `AGENT.md`
 > are aliases that resolve here. Edit this file; the aliases follow.
 
----
-
 ## 1. Hard Rules (non-negotiable)
 
-1. **Secrets stay out of git.** Never commit `.env`,
-   `credentials.json`, API keys, or any file matching `*secret*`. If
-   you spot one already committed, stop and ask before touching
-   anything else.
+1. **Secrets stay out of git.** Never commit `.env`, `credentials.json`,
+   API keys, or any file matching `*secret*`. If one is already
+   committed, stop and ask before touching anything else.
 2. **Destructive git ops require explicit instruction.** Never run
    `git reset --hard`, `git push --force`, `git branch -D`, or
    `git clean -f` unless the user named the command in this session.
-3. **Project-internal references use relative paths.** Anything that
-   points inside this repo: no drive-letter prefixes (a letter plus
-   colon), no tilde home shortcuts, no absolute user-home directories
-   — use repo-relative paths or `${PROJECT_ROOT}` indirection, so the
-   docs survive a clone to any machine. Absolute paths ARE allowed
-   when the reference is genuinely environment-bound (another local
-   repo, a system service, a tool install location) — but mark the
-   line with a `(local-env)` tag so readers know it will not travel.
-4. **Durable agent state lives in `.agent_works/`.** Ephemeral scratch
-   goes to `.local/` (gitignored). Never put durable state in
-   `.local/`; never put session scratch in `.agent_works/`. The
-   dot-prefix on `.agent_works/` signals "this is meta, not code" —
-   IDE file trees hide it by default, but it is committed to git.
-5. **Describe the system as it is today** — in user-facing docs
-   especially. In `README.md`, `AGENTS.md`, and anything else humans
-   or agents read to onboard, never write "previously", "no longer",
-   "now uses", or "is still" — that is version-history rot, and the
-   next reader has no way to date the claim. Git history is the
-   archive. (Internal session state like `current_handoff.md` can
-   still narrate recent transitions when useful.)
-6. **Stop and ask when blocked** by permissions, missing credentials,
-   or a heavy setup step. Do not invent product decisions silently.
-7. **Never delete cross-agent pointer files** — `CLAUDE.md`,
-   `GEMINI.md`, `AGENT.md`, or any symlink / one-line pointer
-   resolving to `AGENTS.md` — unless the user explicitly asks. They
-   are the entry points other agents use; removing one silently
-   breaks that runtime's onboarding.
-8. **Environment isolation.** Never install packages or run
-   verifications in the base / global environment. Use a
-   project-dedicated env (`.venv`, conda env from `environment.yaml`,
-   project-local `node_modules`, etc.) — whatever the language uses.
-   On Windows, avoid the `C:` drive for large deps and model weights
-   to prevent disk pressure.
-
----
+3. **Project-internal references use relative paths.** Anything pointing
+   inside this repo: no drive-letter prefixes (a letter plus colon), no
+   tilde or absolute user-home paths — repo-relative or `${PROJECT_ROOT}`
+   only, so the docs survive a clone. Genuinely environment-bound
+   references (another local repo, a system service) are allowed with a
+   `(local-env)` tag on the line.
+4. **No version control, no edits.** If the tree is not under git,
+   `git init` + a baseline commit before the first change.
+5. **Check before deleting or renaming anything public-facing** — a
+   file, public symbol, shim, or re-export. Search `README*`, `docs/`,
+   and configs for it first; if it is mentioned, config-reachable, or
+   possibly consumed outside this repo: keep it, flag it, and ask.
+6. **Durable agent state lives in `.agent_works/`** (committed).
+   Ephemeral scratch goes to `.local/` (gitignored). Never swap them.
+7. **Describe the system as it is today** in onboarding docs. No
+   "previously" / "no longer" / "now uses" — git history is the archive.
+   (Session state like `current_handoff.md` may narrate transitions.)
+8. **Stop and ask when blocked** by permissions, credentials, or a heavy
+   setup step. Do not invent product decisions silently.
+9. **Never delete cross-agent pointer files** — `CLAUDE.md`, `GEMINI.md`,
+   `AGENT.md`, or any alias of `AGENTS.md` — unless the user explicitly
+   asks; they are other runtimes' entry points.
+10. **Environment isolation.** Never install or verify in the base /
+    global environment — use the project-dedicated env (`.venv`, local
+    `node_modules`, etc.).
 
 ## 2. Routing — Where do I write?
 
-| Intent | File |
-|---|---|
-| Architectural decision (append-only) | `.agent_works/decisions.md` |
-| Multi-step plan | `.agent_works/plans.md` |
+| Intent / change | File |
+| --- | --- |
+| Architecture decision | `.agent_works/decisions.md` (append-only ADR: date, context, decision, consequences) |
+| Multi-step plan / plan delta | `.agent_works/plans.md` (landed work moves to `## Done`) |
 | Requirements / scope / north star | `.agent_works/project_requirements.md` |
-| Handoff to next session (replace each session) | `.agent_works/handoff/current_handoff.md` |
-| Work tickets | `.agent_works/coordination/work_queue.md` |
+| Session handoff (replace each session) | `.agent_works/handoff/current_handoff.md` |
+| Work tickets / task completion | `.agent_works/coordination/work_queue.md` (one line; detail in commit) |
+| Rule elaboration, examples, debug notes | `.agent_works/conventions.md` |
 | Ephemeral scratch | `.local/<topic>/` |
-| User-facing onboarding | `README.md` |
+| Onboarding, features, verify commands | `README.md` |
 | Permission tweaks (Claude Code) | `.claude/settings.local.json` |
 
-**Source-of-truth priority** (top wins on conflict):
-`AGENTS.md` → `project_requirements.md` → `decisions.md` → `plans.md` →
+**Source-of-truth priority** (top wins on conflict): `AGENTS.md` →
+`project_requirements.md` → `decisions.md` → `plans.md` →
 `current_handoff.md` → `README.md`.
 
-_If `plans.md` / `project_requirements.md` are absent (minimal
-layout), create them from this routing table on first need._
-
----
+Update docs in the same commit as the change they describe. If
+`plans.md` / `project_requirements.md` are absent (minimal layout),
+create them from this table on first need. `README.md` is the human's
+entry point; this file is the agent's — two audiences, no overlap.
 
 ## 3. Session Protocol
 
-### Session start
-1. Read `.agent_works/handoff/current_handoff.md` — that is the active
-   state. If it says "fresh", you are at the beginning.
-2. Skim `.agent_works/coordination/work_queue.md` for open tickets.
-3. **Progressive disclosure.** Only load `decisions.md` / `plans.md` /
-   `project_requirements.md` if the task needs them. Pre-loading the
-   whole tree on every session wastes context.
+- **Start:** read `.agent_works/handoff/current_handoff.md` — the active
+  state — and skim `work_queue.md` for open tickets. Load the other docs
+  only when the task needs them; don't preload the tree.
+- **During:** restate the goal before large changes; propose structure
+  before generating big code outputs; keep diffs small and reviewable.
+- **End:** replace `current_handoff.md` with active state only (a
+  snapshot, not a journal); close tickets in `work_queue.md` as
+  one-liners; append settled choices to `decisions.md`.
 
-### During the session
-- Restate the goal in practical engineering terms before large changes.
-- Propose structure before generating big code outputs.
-- Keep diffs reviewable. Small, deliberate edits beat sweeping
-  rewrites.
+## 4. Working Principles
 
-### Session end
-- Replace `current_handoff.md` with active state only — it is a
-  snapshot, not a journal. Git history is the archive.
-- Mark closed tickets in `work_queue.md` as one-line entries.
-- Append any settled architecture choices to `decisions.md` (ADR
-  shape: date, context, decision, consequences).
+- **Incremental, MVP-first.** Smallest useful step, quickest meaningful
+  demo; advanced capabilities are future upgrades. When two designs
+  work, ship the simpler one.
+- **A feature is finished when a runnable check pins it** — a test, or a
+  command listed in README §Verify, hitting the real service at least
+  once. Unpinned behavior rarely survives later refactors.
+- **Every real capability is listed in README §Features** — dormant ones
+  included, with how to enable them. An undocumented capability reads as
+  dead code to a later maintainer.
+- **Dependency discipline.** Justify each new dependency; prefer hosted
+  APIs over local model weights.
+- **Check `decisions.md` before changing settled architecture.** Propose
+  a revisit with evidence; do not unilaterally flip.
+- **Debuggability is part of done.** A new entry point gets its debug
+  launch profile and its address recorded in README at creation.
 
----
+## 5. Code Conventions
 
-## 4. File Budgets
+- **Comments only for a non-obvious *why*** (workaround, hidden
+  constraint). Well-named identifiers explain the what.
+- **Validate at system boundaries** (user input, external APIs); trust
+  framework guarantees inside; never catch what you cannot act on.
+- **No features beyond the task.** A bug fix needs no surrounding
+  cleanup; no half-finished implementations.
+- **Every layer earns its existence.** No wrapper, factory, registry, or
+  base class with a single implementation. Move code = update every
+  caller in the same change; rename = rename, no compat re-exports.
+- **Extend, don't fork.** One implementation per behavior — find the
+  existing helper before writing a new one; duplicates drift apart.
+- **One nameable responsibility per module.** No `utils` / `common`
+  dumping grounds whose job you can't state in one sentence.
 
-| File | Soft max | Note |
-|---|---|---|
-| `AGENTS.md` (this file) | ~250 lines | Routing + rules only. No specs. |
-| `current_handoff.md` | ~80 lines | Replace each session. |
-| `project_requirements.md` | ~stable | North star; rarely grows. |
-| `decisions.md` | ~300 lines | Append-only; archive when full. |
-| `plans.md` | ~400 lines | Trim landed milestones to a `## Done` subsection. |
-| `work_queue.md` | ~100 lines | Closed tickets collapse to a one-line index. |
-
-When a file hits its budget, prune or archive — do not just keep
-appending. Doc rot kills onboarding.
-
-**Code replaces status, not requirements.** When a feature lands, mark
-it done in `work_queue.md` / `plans.md`. `project_requirements.md`
-stays as the finish line; do not rewrite it to reflect implementation.
-
----
-
-## 5. Working Principles
-
-- **Incremental.** Smallest useful next step. Quickest meaningful demo
-  first; deepen later.
-- **MVP-first.** Advanced capabilities (multi-agent loops, critic
-  passes, image-gen, eval systems) are future upgrades, not first-demo
-  dependencies.
-- **Discussion before large code generation.** Clarity beats volume.
-  Propose structure, agree on shape, then write.
-- **Dependency discipline.** Justify each new dependency. Prefer
-  hosted APIs over local model weights for AI work; local weights go
-  in `models/` (gitignored) with a download script and README setup.
-- **Don't tightly couple future modules.** Preserve extension points.
-  Anything that smells like a framework should be optional.
-- **Real calls for core verification.** Mocks are fine at unit
-  boundaries; the integration path must hit the actual service at
-  least once before claiming done.
-- **First principles, Occam's Razor.** When two designs work, ship
-  the simpler one.
-- **Check `decisions.md`** before changing settled architecture. If
-  evidence supports a revisit, propose it; do not unilaterally flip.
-- **Debuggability is part of done.** When you add a new entry point
-  (CLI, server, test target, frontend page), wire its
-  `.vscode/launch.json` (or your IDE's equivalent) at the same time —
-  so the next debugger does not have to reverse-engineer it.
-- **Debug addresses live in `README.md`, not in agent memory.** Before
-  launching a debugger or hitting an endpoint, check the project
-  README for the canonical host, port, and env vars. If they are not
-  there, add them — do not guess and do not hardcode.
-- **Frontend file-system access during debug.** When local-file
-  access is needed (test fixtures, simulated uploads), expand
-  `vite.config.*` `server.fs.allow` (or the equivalent) temporarily
-  and drive uploads from JS in-page — native file dialogs break
-  headless / DevTools-driven debugging. Revoke the expanded
-  allow-list when the debug session ends.
-
----
-
-## 6. Code Conventions
-
-- **Default to no comments.** Add a comment only when the *why* is
-  non-obvious (a workaround, a hidden constraint, surprising behavior).
-  Well-named identifiers explain the *what*.
-- **No error handling for impossible scenarios.** Validate at system
-  boundaries (user input, external APIs); trust framework guarantees
-  inside. Do not catch exceptions you cannot act on.
-- **No features beyond what the task requires.** A bug fix does not
-  need surrounding cleanup. A one-shot operation does not need a
-  helper. No half-finished implementations.
-- **No backwards-compat shims for unreleased code.** If a name
-  changes, rename it. Do not re-export the old name "just in case".
-
----
-
-## 7. Communication With the User
+## 6. Communication With the User
 
 The user does not carry your full context or remember every prior
-decision the way you do. Speak accordingly.
+decision. Speak accordingly (worked examples: `conventions.md`):
 
-- **No bare codenames or internal IDs.** Never cite `D-073`,
-  `TP-082`, `Phase H`, `Milestone G`, `v5_rerank`, or any module
-  shorthand without a one-line description of what it refers to.
-  "Per D-073 we capped X" → "Per D-073 (the 2026-04 retry-budget cap)
-  we capped X". The user does not have the decision log memorized;
-  opaque codes force a lookup before they can engage.
-- **Explain technology and acronyms on first use.** Spell out before
-  short-forming. "We switched to RPC" → "We switched the inter-process
-  call layer to RPC (HTTP+JSON over a local socket)"; the short form
-  is fine after the explanation.
-- **Concrete over abstract.** "performance is better" leaves the user
-  guessing. Show the difference — "p50 dropped from 240ms to 90ms on
-  the smoke task". A specific number, file path, or diff beats a
-  general adjective every time.
-- **Annotate code snippets.** When pasting code, add an inline comment
-  on any variable or field whose meaning is not self-evident inside
-  the snippet. The user reads without your full file context — what
-  is obvious to you may be opaque to them. Do not make them grep.
-- **Plain speech over jargon.** A status update should read like a
-  sentence said aloud, not a Slack-of-acronyms. If you would have to
-  look up the meaning in six months, rewrite it now.
+- No bare codenames or IDs — add a one-line description on first use.
+- Spell out technology and acronyms before short-forming them.
+- Concrete over abstract — a number, path, or diff beats an adjective.
+- Annotate pasted code whose meaning isn't clear from the snippet alone.
+- Plain speech over jargon; write it as you would say it aloud.
 
----
+## 7. Runtimes & Aliases
 
-## 8. Runtime-Specific Notes
+- **Claude Code:** permissions live in `.claude/settings.local.json`
+  (extend `allow` as friction surfaces); skills in `.claude/skills/`.
+- **Codex CLI:** reads `AGENTS.md` directly; skills in `.agent/skills/`.
+- **Gemini / Aider / Cursor / others:** each reads its own root file;
+  all resolve here.
 
-### Claude Code
-- Permissions live in `.claude/settings.local.json`. Edit there, not
-  here. Add to the `allow` list as friction surfaces.
-- Custom skills under `.claude/skills/`. The plugin marketplace
-  handles installed plugins separately.
+Aliases are relative symlinks to `AGENTS.md` or one-line `@AGENTS.md`
+pointer files (mechanics: `conventions.md`). Never duplicate content
+across alias files — edit only this file.
 
-### Codex CLI
-- Skills under `.agent/skills/`.
+## 8. File Budgets
 
-### Other runtimes (Gemini, Aider, Cursor, Windsurf)
-- They each read their own file (`GEMINI.md`, `AGENT.md`,
-  `.cursorrules`, `.windsurfrules`). All resolve to **this** doc via
-  symlink or one-line pointer. Edit `AGENTS.md` and every runtime sees
-  the change.
+| File | Soft max | Note |
+| --- | --- | --- |
+| `AGENTS.md` (this file) | ~150 lines | Routing + rules; no specs, no rationale |
+| `conventions.md` | ~90 lines | Elaboration, one hop from here |
+| `current_handoff.md` | ~80 lines | Replace each session |
+| `decisions.md` | ~300 lines | Append-only; archive when full |
+| `plans.md` | ~400 lines | Landed milestones collapse into `## Done` |
+| `work_queue.md` | ~100 lines | Closed tickets collapse to one line |
 
----
+At budget, prune or archive — never just keep appending. For each line
+ask: would removing it cause a mistake? If not, cut it. Code replaces
+status, not requirements — `project_requirements.md` stays the finish
+line.
 
-## 9. Cross-Agent Pointer Pattern
-
-`CLAUDE.md`, `GEMINI.md`, `AGENT.md` (if present in repo root) are
-either:
-
-- **Symlinks** with the relative target `AGENTS.md` (same directory),
-  or
-- **One-line pointer files** containing the literal text `@AGENTS.md`
-  followed by a newline (the `@` prefix is the import syntax Claude
-  Code and Gemini CLI resolve mechanically; a legacy bare `AGENTS.md`
-  line is also treated as a pointer).
-
-Both forms are valid. Agents reading their own runtime file should
-resolve the pointer and load `AGENTS.md`. **Never duplicate content
-across the alias files** — that is the failure mode this pattern
-exists to prevent.
-
----
-
-## 10. Doc Update Routing
-
-| Change | Update |
-|---|---|
-| Product / scope shift | `project_requirements.md` |
-| Architecture decision | `decisions.md` (append) |
-| Session handoff | `handoff/current_handoff.md` (replace) |
-| Task completion | `coordination/work_queue.md` (one line; detail in commit) |
-| Plan delta | `plans.md` (mark landed; demote to done) |
-| User-facing setup | `README.md` |
-
-Update docs **in the same commit** as the change. A change without a
-doc update rots within two sessions.
-
-**`README.md` vs `AGENTS.md`.** `README.md` is the human's entry
-point: quickstart, install, run, debug addresses + ports, deploy
-steps — optimize for clone-and-run-in-5-minutes. `AGENTS.md` (this
-file) is the agent's entry point: routing, hard rules, working
-principles. Same project, two audiences, no content overlap. For
-README style inspiration, see
-<https://github.com/matiassingers/awesome-readme>.
-
----
-
-## 11. Glossary
+## 9. Glossary
 
 _Project-specific terms go here as they appear. Empty on first init._

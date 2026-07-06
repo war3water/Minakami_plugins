@@ -1,0 +1,16 @@
+{
+  // Lint config for this repo's markdown, including the *.md.tmpl templates
+  // (dev tooling — never shipped into scaffolded projects).
+  // Allowlist: enforce structure + correctness rules; stay silent on cosmetic
+  // style. MD060 (table padding) is intentionally off: cosmetic, not
+  // auto-fixable, and hand-aligning every table buys nothing functional.
+  "default": false,
+  "MD022": true,
+  "MD029": true,
+  "MD031": true,
+  "MD032": true,
+  "MD033": true,
+  "MD040": true,
+  "MD047": true,
+  "MD058": true
+}

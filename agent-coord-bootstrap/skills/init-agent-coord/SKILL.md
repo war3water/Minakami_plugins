@@ -1,6 +1,6 @@
 ---
 name: init-agent-coord
-description: Scaffold or upgrade a project's agent-coordination doc layer (AGENTS.md + .agent_works/ + cross-runtime aliases). USER-INVOKED ONLY — execute solely when the user explicitly names this skill ($agent-coord-bootstrap mention in Codex, /agent-coord-bootstrap:init-agent-coord in Claude Code); never auto-trigger from natural-language inference.
+description: Scaffold or upgrade a project's agent-coordination doc layer (AGENTS.md + .agent_works/ + cross-runtime aliases). Also seeds lightweight code-health practices (verification, documented features, deletion care) that keep the codebase maintainable. USER-INVOKED ONLY — execute solely when the user explicitly names this skill ($agent-coord-bootstrap mention in Codex, /agent-coord-bootstrap:init-agent-coord in Claude Code); never auto-trigger from natural-language inference.
 disable-model-invocation: true
 ---
 

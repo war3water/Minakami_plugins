@@ -6,7 +6,7 @@ Personal marketplace of cross-runtime plugins for [Claude Code](https://claude.c
 
 | Plugin | Purpose |
 |---|---|
-| `agent-coord-bootstrap` | Scaffold or upgrade an agent-coordination doc layer (`AGENTS.md` + `.agent_works/` + cross-runtime aliases). Fresh init for new projects; content-preserving migration for existing ones. |
+| `agent-coord-bootstrap` | Scaffold or upgrade an agent-coordination doc layer (`AGENTS.md` + `.agent_works/` + cross-runtime aliases). Fresh init for new projects; content-preserving migration for existing ones. Seeds lightweight code-health practices that keep the codebase maintainable. |
 
 ## Install on a new device
 
@@ -50,7 +50,7 @@ codex plugin add agent-coord-bootstrap@minakami-plugins
 
 ## Repository layout
 
-```
+```text
 .agents/plugins/marketplace.json    Codex canonical
 .claude-plugin/marketplace.json     Claude + Codex legacy (duplicate)
 install.sh / install.ps1            One-command bootstrap

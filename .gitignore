@@ -1,4 +1,5 @@
 .local/
+.agent_works/
 *.lock
 __pycache__/
 *.pyc

@@ -1,10 +1,10 @@
 # agent-coord-bootstrap
 
-Scaffold or upgrade the agent-coordination doc layer — fresh init for new projects, content-preserving migration for existing ones. Works in Claude Code and Codex CLI from the same plugin source (Claude Code surfaces the `/init-agent-coord` slash command; Codex CLI surfaces the same runbook as a plugin skill, since Codex loads skills rather than commands).
+Scaffold or upgrade the agent-coordination doc layer — fresh init for new projects, content-preserving migration for existing ones. Works in Claude Code and Codex CLI from the same plugin source (Claude Code surfaces the `/init-agent-coord` slash command; Codex CLI surfaces the same runbook as a plugin skill, since Codex loads skills rather than commands). Beyond coordination, the scaffold seeds lightweight code-health practices that keep the codebase from decaying into a cleanup project.
 
 ## What it creates
 
-```
+```text
 <your-project>/
 ├── AGENTS.md                              ← canonical routing + hard rules (~150 lines)
 ├── CLAUDE.md                              ← symlink or one-line pointer → AGENTS.md
@@ -16,6 +16,7 @@ Scaffold or upgrade the agent-coordination doc layer — fresh init for new proj
 ├── .claude/skills/.gitkeep                ← skill pointer dir
 ├── .agent/skills/.gitkeep                 ← Codex skill pointer dir (if codex target)
 └── .agent_works/
+    ├── conventions.md                     ← elaboration + examples, one hop from AGENTS.md
     ├── decisions.md
     ├── plans.md
     ├── project_requirements.md
@@ -29,7 +30,7 @@ Scaffold or upgrade the agent-coordination doc layer — fresh init for new proj
 
 In any project root:
 
-```
+```text
 /agent-coord-bootstrap:init-agent-coord    # Claude Code (plugin-namespaced slash command)
 $agent-coord-bootstrap                     # Codex CLI (type $ and pick agent-coord-bootstrap; also /skills)
 ```
@@ -45,6 +46,24 @@ If the project already has coordination files (`AGENTS.md`, `.agent_works/`, a c
 
 So the plugin serves both ends: initializing a fresh repo, and refactoring an existing project into an agent-ready handoff structure.
 
+## What it seeds against decay
+
+The scaffolded docs carry preventive counterparts of the repair rules in the companion `/code-cleanup` skill,
+each backed by its measured evals (iterations 1–8, 2026-07):
+
+- **Verification pins behavior** — a feature is done when a runnable check pins it, listed in README `### Verify`.
+  Measured: with a stated net, 6/6 liveness traps survived cleanup agents; without one, an outward shim was deleted 3/3.
+- **Documented features survive** — every real capability, dormant ones included, is listed in README `## Features`.
+  Measured: a README-documented dormant capability was kept 3/3 by bare agents; its undocumented twin deleted 3/3.
+- **Deletion care** — check README/docs/configs before deleting or renaming anything public-facing.
+  Measured: this mechanical check bound agent behavior where prose warnings did not.
+- **Indirection, duplication, dumping grounds** — layers must earn their existence; extend, don't fork; one
+  nameable responsibility per module. From the repair skill's gates (agents over-produce indirection; duplicates drift).
+- **Restore hatch** — no edits on an untracked tree. Measured: bare agents on untracked trees produced no real restore path.
+
+Binding one-liners live inline in `AGENTS.md` (rules bind at the decision site); elaboration sits one hop away
+in `conventions.md`; the evidence stays here, out of your repo.
+
 ## Design constraints
 
 - **Run-once per project.** Bootstrap/upgrade is per-project, not per-session. No background hooks, no session-start checks.
@@ -57,3 +76,4 @@ So the plugin serves both ends: initializing a fresh repo, and refactoring an ex
 1. Fill in `.agent_works/project_requirements.md` with your product north star.
 2. Read `AGENTS.md` once — it's the routing doc both you and any agent will consult.
 3. Add real tickets to `.agent_works/coordination/work_queue.md` as work surfaces.
+4. Put your real test/smoke commands in README `### Verify` and your capabilities in `## Features`.
