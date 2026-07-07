@@ -17,12 +17,18 @@ Scaffold or upgrade the agent-coordination doc layer — fresh init for new proj
 ├── .agent/skills/.gitkeep                 ← Codex skill pointer dir (if codex target)
 └── .agent_works/
     ├── conventions.md                     ← elaboration + examples, one hop from AGENTS.md
-    ├── decisions.md
-    ├── plans.md
-    ├── project_requirements.md
-    ├── handoff/current_handoff.md
-    └── coordination/work_queue.md
+    ├── decisions.md                        ← full layout only; lean creates on first need
+    ├── plans.md                            ← full layout only; lean creates on first need
+    ├── project_requirements.md             ← full layout only; lean creates on first need
+    ├── handoff/current_handoff.md          ← full layout only; lean creates on first need
+    └── coordination/work_queue.md          ← full layout only; lean creates on first need
 ```
+
+**Layout: `lean` (default) or `full`.** `lean` scaffolds only the prevention layer — `AGENTS.md`, the
+README, and `conventions.md` — and lets the five process docs be born on first need from the routing table
+in `AGENTS.md`. `full` writes them all upfront for an established or multi-agent project. The prevention
+value (behavior nets, documented features, deletion care) lives in `AGENTS.md` + README and is identical in
+both; the process docs are coordination scaffolding, so a new project starts clean and grows into them.
 
 ## Usage
 
@@ -35,7 +41,7 @@ In any project root:
 $agent-coord-bootstrap                     # Codex CLI (type $ and pick agent-coord-bootstrap; also /skills)
 ```
 
-You'll be asked five questions (project name, runtime targets, layout, permission profile, symlink strategy). All have sensible defaults.
+You'll be asked five questions (project name, runtime targets, layout, permission profile, symlink strategy). All have sensible defaults — `layout` defaults to `lean` (see below).
 
 ### Existing projects — upgrade mode
 

@@ -56,16 +56,18 @@
 `project_requirements.md` → `decisions.md` → `plans.md` →
 `current_handoff.md` → `README.md`.
 
-Update docs in the same commit as the change they describe. If
-`plans.md` / `project_requirements.md` are absent (minimal layout),
-create them from this table on first need. `README.md` is the human's
-entry point; this file is the agent's — two audiences, no overlap.
+Update docs in the same commit as the change they describe. In a lean
+scaffold most `.agent_works/` docs above do not exist yet — create any
+one from its row here the first time you need to write that kind of
+content. `README.md` is the human's entry point; this file is the
+agent's — two audiences, no overlap.
 
 ## 3. Session Protocol
 
 - **Start:** read `.agent_works/handoff/current_handoff.md` — the active
-  state — and skim `work_queue.md` for open tickets. Load the other docs
-  only when the task needs them; don't preload the tree.
+  state — and skim `work_queue.md` for open tickets. If either does not
+  exist yet (lean scaffold), you are at the beginning. Load the other
+  docs only when the task needs them; don't preload the tree.
 - **During:** restate the goal before large changes; propose structure
   before generating big code outputs; keep diffs small and reviewable.
 - **End:** replace `current_handoff.md` with active state only (a

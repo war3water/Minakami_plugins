@@ -43,9 +43,14 @@ Use `AskUserQuestion` (if available) or plain prose. Collect all answers before 
 
 1. **project_name** — kebab-case slug. Default: basename of the current working directory.
 2. **runtime_targets** — comma-separated subset of `{claude, codex, gemini, aider}`. Default: `claude, codex`. Determines which alias files get created in Step A4.
-3. **layout** — `minimal` or `full`. Default: `full`.
-   - `minimal` → only `handoff/current_handoff.md`, `decisions.md`, `coordination/work_queue.md`
-   - `full` → also `plans.md` and `project_requirements.md`
+3. **layout** — `lean` or `full`. Default: `lean`.
+   - `lean` → creates `AGENTS.md` + `.agent_works/conventions.md` and the README only. The five process
+     docs (`decisions.md`, `plans.md`, `project_requirements.md`, `handoff/current_handoff.md`,
+     `coordination/work_queue.md`) are **not** created now — they are born on first need from the routing
+     table in `AGENTS.md`. Right for a new or small project: the prevention layer (AGENTS.md + README) is
+     fully present; process ceremony waits until the project earns it.
+   - `full` → also creates all five process docs upfront. Right for an established or multi-agent project
+     that will use the coordination structure immediately.
 4. **permission_profile** — `dev-local`, `dev-network`, or `read-only`. Default: `dev-local`.
 5. **symlink_strategy** — `auto` or `pointer-only`. Default: `auto`.
    - `auto` → try real symlinks; on failure (Windows without Developer Mode, etc.) fall back to one-line pointer files
@@ -71,22 +76,26 @@ Substitutions: `{{project_name}}` → answer 1; `{{date}}` → today's ISO date.
 
 **Do NOT write `.claude/settings.local.json` in this step** — the permission profile is written last (Step A6), so a restrictive profile (e.g. `read-only`, which denies the Write/Edit tools) cannot lock out the remainder of the scaffold.
 
-### Always create:
+### Always create (both layouts):
 
 | Template source | Target path |
 |---|---|
 | `AGENTS.md.tmpl` | `AGENTS.md` |
 | `.agent_works/conventions.md.tmpl` | `.agent_works/conventions.md` |
-| `.agent_works/decisions.md.tmpl` | `.agent_works/decisions.md` |
-| `.agent_works/handoff/current_handoff.md.tmpl` | `.agent_works/handoff/current_handoff.md` |
-| `.agent_works/coordination/work_queue.md.tmpl` | `.agent_works/coordination/work_queue.md` |
 
-### If `layout == full`, also create:
+### If `layout == full`, also create (lean defers all five to first need):
 
 | Template source | Target path |
 |---|---|
+| `.agent_works/decisions.md.tmpl` | `.agent_works/decisions.md` |
+| `.agent_works/handoff/current_handoff.md.tmpl` | `.agent_works/handoff/current_handoff.md` |
+| `.agent_works/coordination/work_queue.md.tmpl` | `.agent_works/coordination/work_queue.md` |
 | `.agent_works/plans.md.tmpl` | `.agent_works/plans.md` |
 | `.agent_works/project_requirements.md.tmpl` | `.agent_works/project_requirements.md` |
+
+Under `lean`, an agent creates any of these five from its template the first time it needs to write that
+kind of content (the routing table in `AGENTS.md` names each path). This is the plugin's own
+"grow on need" principle applied to itself.
 
 ### README.md — only if missing
 
@@ -238,7 +247,9 @@ Same five questions as Step A2, but pre-fill defaults from the inventory:
 
 - `project_name` — from existing docs if stated, else cwd basename.
 - `runtime_targets` — infer from which alias files already exist (e.g. `CLAUDE.md` present → `claude` is a target); default to adding `codex`. Every selected target gets its alias **created or verified** in B5 — including targets with no existing file.
-- `layout` — `full` if the project already has plan/requirement docs to migrate, else ask.
+- `layout` — `full` if the project already has plan/requirement/decision docs to migrate; else `lean`
+  (create only the docs that receive migrated content, plus AGENTS.md + conventions.md — never empty
+  process docs).
 - `permission_profile` — if `.claude/settings.local.json` exists, default is `keep-existing` (see B2 special case). If it does NOT exist, ask normally; the chosen profile is written in B5.
 - `symlink_strategy` — `auto`.
 
