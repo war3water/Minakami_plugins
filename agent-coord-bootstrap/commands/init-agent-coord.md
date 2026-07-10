@@ -51,7 +51,7 @@ Use `AskUserQuestion` (if available) or plain prose. Collect all answers before 
      fully present; process ceremony waits until the project earns it.
    - `full` → also creates all five process docs upfront. Right for an established or multi-agent project
      that will use the coordination structure immediately.
-4. **permission_profile** — `dev-local`, `dev-network`, or `read-only`. Default: `dev-local`.
+4. **permission_profile** — `dev-local`, `dev-network`, or `read-only`. Default: `dev-local`. Asked only when `claude` is in `runtime_targets` — without a Claude Code target no `.claude/` artifacts are created and this question is skipped.
 5. **symlink_strategy** — `auto` or `pointer-only`. Default: `auto`.
    - `auto` → try real symlinks; on failure (Windows without Developer Mode, etc.) fall back to one-line pointer files
    - `pointer-only` → always write a one-line pointer file
@@ -65,14 +65,27 @@ Also resolve **{{date}}** to today's ISO date (e.g. `2026-06-02`).
 If the directory already contains code, read its build/test manifests
 (e.g. `package.json`, `pyproject.toml`, `Makefile`) and note the real
 install / run / test commands. Use them in Step A3 in place of the
-README template's placeholder commands. An empty or docs-only directory
-keeps the placeholders.
+README template's placeholder commands, and resolve **{{initial_state}}**
+to a one-line factual summary (e.g. "existing codebase — Node CLI, 9
+source files"). Fill only what inspection supports: README template
+sections that don't apply (env vars, debug table, project structure) are
+deleted or kept as clearly-marked placeholders — never asserted as fact.
+An empty or docs-only directory keeps the placeholders and resolves
+{{initial_state}} to "fresh project — no work started".
+
+## Step A2.6 — Version-control gate (only when code is present)
+
+If the directory contains code but is not a git repository (or has
+uncommitted changes), pause and recommend `git init` + a baseline commit
+first — the same rule the scaffold itself seeds (AGENTS.md §1 rule 4).
+Ask whether to proceed anyway; respect the answer. An empty directory
+skips this gate.
 
 ## Step A3 — Write files from templates
 
 For each template at `<plugin-root>/templates/<src>`, read the file, perform string substitution on the placeholders, and write it to the corresponding target path under the user's cwd.
 
-Substitutions: `{{project_name}}` → answer 1; `{{date}}` → today's ISO date. No other substitutions exist.
+Substitutions: `{{project_name}}` → answer 1; `{{date}}` → today's ISO date; `{{initial_state}}` → the Step A2.5 summary (handoff template only). No other substitutions exist.
 
 **Do NOT write `.claude/settings.local.json` in this step** — the permission profile is written last (Step A6), so a restrictive profile (e.g. `read-only`, which denies the Write/Edit tools) cannot lock out the remainder of the scaffold.
 
@@ -93,9 +106,10 @@ Substitutions: `{{project_name}}` → answer 1; `{{date}}` → today's ISO date.
 | `.agent_works/plans.md.tmpl` | `.agent_works/plans.md` |
 | `.agent_works/project_requirements.md.tmpl` | `.agent_works/project_requirements.md` |
 
-Under `lean`, an agent creates any of these five from its template the first time it needs to write that
-kind of content (the routing table in `AGENTS.md` names each path). This is the plugin's own
-"grow on need" principle applied to itself.
+Under `lean`, a later agent creates any of these five the first time it needs to write that kind of
+content, following its routing-table row in `AGENTS.md` — the row carries the path and the file's shape;
+the plugin's templates are NOT assumed available after bootstrap. This is the plugin's own "grow on need"
+principle applied to itself.
 
 ### README.md — only if missing
 
@@ -103,24 +117,24 @@ If `README.md` does NOT exist in the cwd, write `README.md.tmpl` → `README.md`
 
 ### .gitignore — append, don't replace
 
-Read `<plugin-root>/templates/gitignore.tmpl`. If `.gitignore` exists in the cwd, append the template content (skip lines already present). If `.gitignore` does not exist, write the template content as the new file.
+Read `<plugin-root>/templates/gitignore.tmpl`. If `.gitignore` exists in the cwd, append the template content (skip lines already present). If `.gitignore` does not exist, write the template content as the new file. Omit the `.claude/settings.local.json` line when `claude` is not in `{{runtime_targets}}`. If `.gitignore` is a symlink, do not append through it — flag it and ask.
 
 ### Skill pointer directories — empty
 
-- Always create `.claude/skills/` with an empty `.gitkeep` file inside.
+- If `claude` is in `{{runtime_targets}}`, create `.claude/skills/` with an empty `.gitkeep` file inside.
 - If `codex` is in `{{runtime_targets}}`, also create `.agent/skills/` with an empty `.gitkeep` file inside.
 
 ## Step A4 — Create cross-runtime alias files
 
-For each runtime in `{{runtime_targets}}` (excluding the canonical `AGENTS.md` itself), create the corresponding alias in the cwd root:
+For each runtime in `{{runtime_targets}}`, wire up its access mechanism in the cwd root:
 
-| Runtime | Alias filename |
+| Runtime | Mechanism |
 |---|---|
-| `claude` | `CLAUDE.md` |
-| `gemini` | `GEMINI.md` |
-| `aider` | `AGENT.md` |
+| `claude` | `CLAUDE.md` alias — symlink or `@AGENTS.md` pointer |
+| `gemini` | `GEMINI.md` alias — symlink or `@AGENTS.md` pointer |
+| `aider` | no alias file works (aider has no auto-discovery) — append `read: AGENTS.md` to `.aider.conf.yml` (create it if missing; if it is a symlink, flag and ask), and note the `aider --read AGENTS.md` alternative in the A7 report |
 
-(Codex reads `AGENTS.md` directly — no alias needed.)
+(Codex CLI and Cursor read `AGENTS.md` directly — no alias needed.)
 
 ### Symlink creation algorithm
 
@@ -141,11 +155,13 @@ Record per-alias which strategy was used (symlink vs pointer) — you'll report 
 
 Scan every file you created in Steps A3 and A4 for forbidden patterns:
 
-- Windows drive letters: `[A-Za-z]:\\`
+- Windows drive letters: `[A-Za-z]:\\` — and the forward-slash form (a SINGLE letter + `:/`, i.e. not preceded by another letter; URL schemes like `https://` are NOT drive letters)
+- UNC shares: `\\server\share`-style paths
 - POSIX home expansions: `/Users/`, `/home/`, `~/`
+- POSIX system roots — enumerated; do NOT flag every leading slash: `/opt/`, `/srv/`, `/etc/`, `/usr/`, `/var/`, `/tmp/`
 - Windows home expansions: `%USERPROFILE%`, `$HOME`
 
-Files to scan: `AGENTS.md`, `README.md` (if created), everything under `.agent_works/`.
+Files to scan: `AGENTS.md`, `README.md` (if created), everything under `.agent_works/`, `.gitignore`, `.aider.conf.yml` (if written), and every pointer-file alias created in Step A4.
 
 **Exemptions — skip a match when any of these apply:**
 
@@ -162,7 +178,7 @@ The template should not contain absolute paths. This is a plugin bug — report 
 
 ## Step A6 — Write the permission profile (last write)
 
-Now — as the final write of the scaffold — pick exactly one:
+Skip this step entirely when `claude` is not in `{{runtime_targets}}` — no `.claude/` exists; note the skip in A7. Otherwise, as the final write of the scaffold, pick exactly one:
 
 | Profile | Template source | Target path |
 |---|---|---|
@@ -171,6 +187,10 @@ Now — as the final write of the scaffold — pick exactly one:
 | `read-only` | `settings.local.json.read-only.tmpl` | `.claude/settings.local.json` |
 
 This runs after everything else so that a restrictive profile takes effect only when there is nothing left to write.
+
+## Step A6.5 — Re-scan the last write
+
+Run the Step A5 patterns over the settings file just written (it did not exist at A5 time). Same failure protocol as A5.
 
 ## Step A7 — Report
 
@@ -183,20 +203,23 @@ Created files:
   AGENTS.md                                    (canonical)
   <list each created file>
 
-Cross-runtime aliases:
-  CLAUDE.md      symlink → AGENTS.md           (or "pointer file")
-  GEMINI.md      <as appropriate>
-  AGENT.md       <as appropriate>
+Cross-runtime access:
+  CLAUDE.md       symlink → AGENTS.md          (or "pointer file"; only if claude targeted)
+  GEMINI.md       <as appropriate>
+  .aider.conf.yml read: AGENTS.md              (aider target; or run `aider --read AGENTS.md`)
+  Codex CLI / Cursor: read AGENTS.md directly — nothing created
 
-Permission profile: {{permission_profile}}
+Permission profile: {{permission_profile}}    (or "skipped — no Claude Code target")
 Layout: {{layout}}
 
-Next steps:
-  1. Fill in .agent_works/project_requirements.md with your product north star.
-  2. Read AGENTS.md — it's the routing doc every agent will consult.
-  3. Add real tickets to .agent_works/coordination/work_queue.md as work surfaces.
-  4. Put your real test/smoke commands in README ### Verify and list
+Next steps (match the layout):
+  1. Read AGENTS.md — it's the routing doc every agent will consult.
+  2. Put your real test/smoke commands in README ### Verify and list
      capabilities in ## Features.
+  3. full layout: fill .agent_works/project_requirements.md and add real
+     tickets to work_queue.md.
+     lean layout: those docs are created on first need from the AGENTS.md
+     routing table — nothing to fill now.
 ```
 
 If `README.md` already existed (and was therefore not written), add one line to the report: `README.md: left untouched — consider adding ## Features and ### Verify sections yourself.`
@@ -209,7 +232,7 @@ Done. Do not perform any additional actions. Do not commit anything to git — l
 
 Goal: reorganize the project's existing coordination docs into this plugin's layout **without losing any unique content or project-specific rules**. Hard rules for this entire mode:
 
-- **Never delete unique content.** Anything that has no obvious home goes to `.agent_works/upgrade_parking.md`, flagged in the final report — not dropped.
+- **Never delete unique content.** Anything inventoried that has no obvious home goes to `.agent_works/upgrade_parking.md`, flagged in the final report — not dropped. The inventory covers the locations listed in Step B2; the B6 report names what was NOT searched, so the user can point the upgrade at anything it missed.
 - **Never overwrite `README.md`.** The only permitted change is an append-only addition the user approved as an explicit B4 plan row (e.g. `## Features` / `### Verify` stubs); existing README content is never modified.
 - **No writes before the user approves the migration plan (Step B4).**
 - **Never write through a link.** If a target path is currently a symlink or pointer file, unlink/delete it first and write a fresh regular file — writing "through" a symlink modifies the file it points at, which may be a merge source you still need.
@@ -224,11 +247,11 @@ Run `git status`. Three cases:
 
 ## Step B2 — Inventory and classify
 
-Read each existing coordination artifact found in Step 1. Also check these common locations for coordination-like docs (do not crawl the whole repo): `docs/`, `.github/`, repo root `*.md` files.
+Read each existing coordination artifact found in Step 1. Also check these common locations for coordination-like docs (do not crawl the whole repo): `docs/`, `.github/`, repo root `*.md` files, tool rule files (`.cursorrules`, `.windsurfrules`, `.cursor/rules/`, `.windsurf/`, `.aider.conf.yml`), and nested `AGENTS.md` / `CLAUDE.md` files listed via `git ls-files` (tracked files only; if not a git repo, check just the top two directory levels).
 
 Classify every content block (a section, a rule list, a table) into one of three buckets:
 
-1. **matches-plugin-layout** — content that duplicates what the plugin's templates already provide (e.g. a generic "don't commit secrets" rule). The template version wins; the duplicate is dropped from the merged doc. This is the ONLY case where existing text is not carried over — and because it is the only destructive classification, **every bucket-1 block gets its own row in the B4 plan** so the user sees and approves each drop.
+1. **matches-plugin-layout** — content that duplicates what the plugin's templates already provide (e.g. a generic "don't commit secrets" rule). Classify here ONLY when the match is near-exact — same rule, same scope, no project-specific detail; **when in doubt, use bucket 2 and merge**. The template version wins; the duplicate is dropped from the merged doc. This is the ONLY case where existing text is not carried over — and because it is the only destructive classification, **every bucket-1 block gets its own row in the B4 plan with the dropped text quoted verbatim**, so the user sees exactly what is dropped and approves it.
 2. **unique-preserve** — project-specific rules, decisions, status, domain knowledge, custom workflows. These MUST appear in the migrated layout.
 3. **conflict** — existing content that contradicts a template rule (e.g. an existing doc says "always work in base environment"). Flag for the user in the migration plan; the user's existing rule wins unless they say otherwise.
 
@@ -239,14 +262,14 @@ Special cases:
 - **`CLAUDE.md` (or other alias) is already a correct symlink/pointer to `AGENTS.md`** → leave it untouched; verify the target resolves and note "already correct" in the plan.
 - **Legacy `agent_works/` (non-dot)** → contents migrate to `.agent_works/`; the old directory is removed only after every file inside has been moved or parked.
 - **Style-guide / debug-notes / communication-guideline content** (conventions elaboration rather than binding rules) → merges into `.agent_works/conventions.md`, not into `AGENTS.md`.
-- **Existing `.claude/settings.local.json`** → preserved as-is. Optionally offer to append missing **safety `ask`/`deny` entries** from the chosen profile template (e.g. destructive-git asks) — never remove or weaken the user's existing `allow` entries, and never append tool-level `Write`/`Edit` denies.
+- **Existing `.claude/settings.local.json`** → preserved as-is. Optionally offer to append missing **safety `ask`/`deny` entries** from the chosen profile template — but check overlap first: Claude applies `deny → ask → allow`, so an offered entry whose pattern intersects an existing `allow` (same command family, or one pattern is a prefix/glob of the other) would silently weaken that allow. **Overlapping entries become B4 conflict rows** — the user decides; only non-overlapping entries may be offered as an append. Never remove or edit existing entries, and never append tool-level `Write`/`Edit` denies.
 
 ## Step B3 — Ask the five questions
 
 Same five questions as Step A2, but pre-fill defaults from the inventory:
 
 - `project_name` — from existing docs if stated, else cwd basename.
-- `runtime_targets` — infer from which alias files already exist (e.g. `CLAUDE.md` present → `claude` is a target); default to adding `codex`. Every selected target gets its alias **created or verified** in B5 — including targets with no existing file.
+- `runtime_targets` — infer from which access mechanisms already exist (`CLAUDE.md` present → `claude`; `.aider.conf.yml` present → `aider`); default to adding `codex`. Every selected target gets its alias **created or verified** in B5 — including targets with no existing file.
 - `layout` — `full` if the project already has plan/requirement/decision docs to migrate; else `lean`
   (create only the docs that receive migrated content, plus AGENTS.md + conventions.md — never empty
   process docs).
@@ -262,7 +285,7 @@ Present a migration plan as a table — every row is one action. Allowed actions
 |---|--------|--------|-------------|
 | 1 | CLAUDE.md §"Project rules" (7 unique rules) | merge into | AGENTS.md §1 Hard Rules |
 | 2 | CLAUDE.md (file itself, after merge) | convert to alias | pointer → AGENTS.md |
-| 3 | CLAUDE.md §"never commit secrets" | drop (duplicate of template §1.1) | — |
+| 3 | CLAUDE.md §"never commit secrets" — quoted: "Never commit secrets or .env files" | drop (duplicate of template §1.1) | — |
 | 4 | docs/handoff_notes.md | move | .agent_works/handoff/current_handoff.md |
 | 5 | agent_works/decisions.md (legacy dir) | move | .agent_works/decisions.md |
 | 6 | (template) | create | .agent_works/coordination/work_queue.md |
@@ -274,7 +297,7 @@ Present a migration plan as a table — every row is one action. Allowed actions
 | ...| | | |
 ```
 
-The plan MUST include: one row per bucket-1 drop, one row per alias (created, converted, or verified), one create-row per template file the layout is missing (including `.agent_works/conventions.md`), the exact `.gitignore` lines to append, and a settings row (write chosen profile / append safety entries / keep-existing untouched). Optionally — offer it, let the user decide — an append-only row adding `## Features` / `### Verify` stubs to an existing `README.md`.
+The plan MUST include: one row per bucket-1 drop **with the dropped text quoted verbatim in the row**, one row per alias (created, converted, or verified), one create-row per template file the layout is missing (including `.agent_works/conventions.md`), the exact `.gitignore` lines to append, and a settings row (write chosen profile / append approved non-overlapping safety entries / keep-existing untouched; overlapping entries appear under Conflicts instead). Include as a **recommended default** — the user can strike the row — an append-only row adding `## Features` / `### Verify` stubs to an existing `README.md`: those sections carry the scaffold's verification and documented-features practices.
 
 List every conflict from B2 explicitly below the table with a recommendation. Then ask the user to approve, amend, or pause. **Do not write anything until approval.**
 
@@ -290,7 +313,7 @@ In this order:
    - **Already a correct symlink/pointer to AGENTS.md** → leave untouched.
    - **Real file with content** (merge confirmed in step 2) → delete the original file first, then run the Step A4 algorithm on the now-empty path.
    - **Missing** (newly added runtime target) → run the Step A4 algorithm directly.
-6. Append `.gitignore` entries (exactly the lines approved in the plan), create skill pointer dirs as in Step A3, and — only if the plan included the approved row — append the `## Features` / `### Verify` stubs to `README.md`.
+6. Append `.gitignore` entries (exactly the lines approved in the plan), create skill pointer dirs as in Step A3, and — only if the plan included the approved row — append the `## Features` / `### Verify` stubs to `README.md`. Before appending to any file in this step, confirm the target is a regular file — if it is a symlink or pointer, do not write through it; flag and ask.
 7. Remove the legacy `agent_works/` directory only if it is now empty.
 8. **Settings (last write, mirroring Step A6):** per the approved plan row — write the chosen profile if no settings file existed; append the approved safety entries if the user accepted the offer; otherwise leave untouched.
 
@@ -319,6 +342,10 @@ Settings: <written dev-local / appended 3 safety entries / kept existing untouch
 
 Portability warnings (from your original content — consider making relative):
   <file>:<line>: <pattern>     (omit section if none)
+
+Not searched (point me at anything there worth migrating):
+  <locations outside the B2 list — e.g. untracked or deeply nested dirs,
+   build configs, Makefiles, CI beyond .github/>
 
 Conflicts resolved:
   <rule> — kept your existing version / replaced per your choice

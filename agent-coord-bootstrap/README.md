@@ -9,11 +9,11 @@ Scaffold or upgrade the agent-coordination doc layer — fresh init for new proj
 ├── AGENTS.md                              ← canonical routing + hard rules (~150 lines)
 ├── CLAUDE.md                              ← symlink or one-line pointer → AGENTS.md
 ├── GEMINI.md                              ← (if gemini target selected)
-├── AGENT.md                               ← (if aider target selected)
+├── .aider.conf.yml                        ← (if aider target: gains read: AGENTS.md — aider has no auto-discovery)
 ├── README.md                              ← human onboarding stub (only if missing)
-├── .gitignore                             ← appends .local/ and friends
-├── .claude/settings.local.json            ← permission allowlist (chosen profile)
-├── .claude/skills/.gitkeep                ← skill pointer dir
+├── .gitignore                             ← appends .local/, .claude/settings.local.json and friends
+├── .claude/settings.local.json            ← permission allowlist (claude target only; gitignored)
+├── .claude/skills/.gitkeep                ← skill pointer dir (claude target only)
 ├── .agent/skills/.gitkeep                 ← Codex skill pointer dir (if codex target)
 └── .agent_works/
     ├── conventions.md                     ← elaboration + examples, one hop from AGENTS.md
@@ -41,7 +41,7 @@ In any project root:
 $agent-coord-bootstrap                     # Codex CLI (type $ and pick agent-coord-bootstrap; also /skills)
 ```
 
-You'll be asked five questions (project name, runtime targets, layout, permission profile, symlink strategy). All have sensible defaults — `layout` defaults to `lean` (see below).
+You'll be asked five questions (project name, runtime targets, layout, permission profile, symlink strategy). All have sensible defaults — `layout` defaults to `lean` (see below); the permission question is skipped when Claude Code is not a runtime target. Codex CLI and Cursor read `AGENTS.md` directly and need no alias file.
 
 ### Existing projects — upgrade mode
 
@@ -79,7 +79,8 @@ in `conventions.md`; the evidence stays here, out of your repo.
 
 ## After it runs
 
-1. Fill in `.agent_works/project_requirements.md` with your product north star.
-2. Read `AGENTS.md` once — it's the routing doc both you and any agent will consult.
-3. Add real tickets to `.agent_works/coordination/work_queue.md` as work surfaces.
-4. Put your real test/smoke commands in README `### Verify` and your capabilities in `## Features`.
+1. Read `AGENTS.md` once — it's the routing doc both you and any agent will consult.
+2. Put your real test/smoke commands in README `### Verify` and your capabilities in `## Features`.
+3. Full layout: fill in `.agent_works/project_requirements.md` and add real tickets to
+   `work_queue.md`. Lean layout (default): those docs are created on first need from the
+   routing table — nothing to fill yet.

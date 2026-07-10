@@ -29,14 +29,16 @@
 
 ## Alias mechanics
 
-`CLAUDE.md`, `GEMINI.md`, and `AGENT.md` in the repo root are either
-symlinks with the relative target `AGENTS.md` (same directory, never an
-absolute path) or one-line pointer files containing exactly `@AGENTS.md`
-— the import syntax Claude Code and Gemini CLI resolve mechanically. A
-legacy bare `AGENTS.md` line is also treated as a pointer. Agents
-reading their own runtime file resolve the pointer and load `AGENTS.md`.
-Duplicating content across alias files is the failure mode this pattern
-exists to prevent.
+Alias files in the repo root (`CLAUDE.md`, `GEMINI.md`, legacy
+`AGENT.md`) are either symlinks with the relative target `AGENTS.md`
+(same directory, never an absolute path) or one-line pointer files
+containing exactly `@AGENTS.md` — the import syntax Claude Code and
+Gemini CLI resolve mechanically. A legacy bare `AGENTS.md` line is also
+treated as a pointer. Tools that read `AGENTS.md` directly (Codex CLI,
+Cursor) need no alias; tools with neither auto-discovery nor import
+syntax (aider) are bridged by their own config — `.aider.conf.yml` →
+`read: AGENTS.md`. Duplicating content across alias files is the
+failure mode this pattern exists to prevent.
 
 ## Paths and state
 

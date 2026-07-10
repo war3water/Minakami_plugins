@@ -1,7 +1,7 @@
 # Agent Coordination — {{project_name}}
 
-> Canonical agent-routing doc. `CLAUDE.md`, `GEMINI.md`, and `AGENT.md`
-> are aliases that resolve here. Edit this file; the aliases follow.
+> Canonical agent-routing doc. Alias files (`CLAUDE.md`, `GEMINI.md`, …)
+> resolve here. Edit this file; the aliases follow.
 
 ## 1. Hard Rules (non-negotiable)
 
@@ -44,10 +44,11 @@
 | --- | --- |
 | Architecture decision | `.agent_works/decisions.md` (append-only ADR: date, context, decision, consequences) |
 | Multi-step plan / plan delta | `.agent_works/plans.md` (landed work moves to `## Done`) |
-| Requirements / scope / north star | `.agent_works/project_requirements.md` |
+| Requirements / scope / north star | `.agent_works/project_requirements.md` (purpose, scope in/out, success criteria) |
 | Session handoff (replace each session) | `.agent_works/handoff/current_handoff.md` |
 | Work tickets / task completion | `.agent_works/coordination/work_queue.md` (one line; detail in commit) |
 | Rule elaboration, examples, debug notes | `.agent_works/conventions.md` |
+| Skill / tool artifacts (reports, ledgers) | `.agent_works/<skill-name>/` |
 | Ephemeral scratch | `.local/<topic>/` |
 | Onboarding, features, verify commands | `README.md` |
 | Permission tweaks (Claude Code) | `.claude/settings.local.json` |
@@ -56,23 +57,26 @@
 `project_requirements.md` → `decisions.md` → `plans.md` →
 `current_handoff.md` → `README.md`.
 
-Update docs in the same commit as the change they describe. In a lean
-scaffold most `.agent_works/` docs above do not exist yet — create any
-one from its row here the first time you need to write that kind of
-content. `README.md` is the human's entry point; this file is the
+Update docs in the same commit as the change. In a lean scaffold most
+`.agent_works/` docs don't exist yet — create one from its row here on
+first need. `README.md` is the human's entry point; this file is the
 agent's — two audiences, no overlap.
 
 ## 3. Session Protocol
 
-- **Start:** read `.agent_works/handoff/current_handoff.md` — the active
-  state — and skim `work_queue.md` for open tickets. If either does not
-  exist yet (lean scaffold), you are at the beginning. Load the other
-  docs only when the task needs them; don't preload the tree.
+- **Start:** read `.agent_works/handoff/current_handoff.md` and skim
+  `work_queue.md` (absent in a lean scaffold = you're at the beginning).
+  Load other docs only when the task needs them; don't preload the tree.
 - **During:** restate the goal before large changes; propose structure
   before generating big code outputs; keep diffs small and reviewable.
 - **End:** replace `current_handoff.md` with active state only (a
   snapshot, not a journal); close tickets in `work_queue.md` as
   one-liners; append settled choices to `decisions.md`.
+- **One write-capable agent per worktree at a time** — multi-agent means
+  multiple runtimes and sequential sessions, not parallel writers. Claim
+  a ticket (Owner + date) in `work_queue.md` before starting; re-read it
+  before updating; only the owner replaces `current_handoff.md`. Parallel
+  work goes to separate git worktrees, each with its own handoff.
 
 ## 4. Working Principles
 
@@ -110,8 +114,7 @@ agent's — two audiences, no overlap.
 
 ## 6. Communication With the User
 
-The user does not carry your full context or remember every prior
-decision. Speak accordingly (worked examples: `conventions.md`):
+The user does not carry your full context (worked examples: `conventions.md`):
 
 - No bare codenames or IDs — add a one-line description on first use.
 - Spell out technology and acronyms before short-forming them.
@@ -123,13 +126,14 @@ decision. Speak accordingly (worked examples: `conventions.md`):
 
 - **Claude Code:** permissions live in `.claude/settings.local.json`
   (extend `allow` as friction surfaces); skills in `.claude/skills/`.
-- **Codex CLI:** reads `AGENTS.md` directly; skills in `.agent/skills/`.
-- **Gemini / Aider / Cursor / others:** each reads its own root file;
-  all resolve here.
+- **Codex CLI / Cursor:** read `AGENTS.md` directly — no alias needed;
+  Codex skills live in `.agent/skills/`.
+- **Gemini CLI:** `GEMINI.md` resolves here (symlink or `@AGENTS.md`).
+- **aider / tools without auto-discovery:** point their own config at
+  this file (e.g. `.aider.conf.yml` → `read: AGENTS.md`).
 
-Aliases are relative symlinks to `AGENTS.md` or one-line `@AGENTS.md`
-pointer files (mechanics: `conventions.md`). Never duplicate content
-across alias files — edit only this file.
+Never duplicate content across alias files — edit only this file
+(mechanics: `conventions.md`).
 
 ## 8. File Budgets
 
@@ -144,8 +148,7 @@ across alias files — edit only this file.
 
 At budget, prune or archive — never just keep appending. For each line
 ask: would removing it cause a mistake? If not, cut it. Code replaces
-status, not requirements — `project_requirements.md` stays the finish
-line.
+status, not requirements — requirements stay the finish line.
 
 ## 9. Glossary
 

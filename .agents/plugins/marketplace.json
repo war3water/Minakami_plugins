@@ -1,7 +1,7 @@
 {
   "name": "minakami-plugins",
   "metadata": {
-    "version": "0.5.0",
+    "version": "0.5.1",
     "description": "Minakami's personal agent plugins for Claude Code and Codex CLI"
   },
   "owner": {
@@ -11,7 +11,7 @@
   "plugins": [
     {
       "name": "agent-coord-bootstrap",
-      "version": "0.5.0",
+      "version": "0.5.1",
       "description": "Scaffold or upgrade an agent-coordination doc layer (AGENTS.md + .agent_works/ + cross-runtime aliases). Fresh init for new projects; content-preserving migration for existing ones. Seeds lightweight code-health practices that keep the codebase maintainable.",
       "category": "scaffolding",
       "source": {
