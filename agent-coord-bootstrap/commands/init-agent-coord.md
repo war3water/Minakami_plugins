@@ -42,7 +42,7 @@ If the user picks **Pause**, exit immediately without writing any files. If the 
 Use `AskUserQuestion` (if available) or plain prose. Collect all answers before doing anything else.
 
 1. **project_name** — kebab-case slug. Default: basename of the current working directory.
-2. **runtime_targets** — comma-separated subset of `{claude, codex, gemini, aider}`. Default: `claude, codex`. Determines which alias files get created in Step A4.
+2. **runtime_targets** — comma-separated subset of `{claude, codex, gemini}`. Default: `claude, codex`. Determines which alias files get created in Step A4.
 3. **layout** — `lean` or `full`. Default: `lean`.
    - `lean` → creates `AGENTS.md` + `.agent_works/conventions.md` and the README only. The five process
      docs (`decisions.md`, `plans.md`, `project_requirements.md`, `handoff/current_handoff.md`,
@@ -132,9 +132,8 @@ For each runtime in `{{runtime_targets}}`, wire up its access mechanism in the c
 |---|---|
 | `claude` | `CLAUDE.md` alias — symlink or `@AGENTS.md` pointer |
 | `gemini` | `GEMINI.md` alias — symlink or `@AGENTS.md` pointer |
-| `aider` | no alias file works (aider has no auto-discovery) — append `read: AGENTS.md` to `.aider.conf.yml` (create it if missing; if it is a symlink, flag and ask), and note the `aider --read AGENTS.md` alternative in the A7 report |
 
-(Codex CLI and Cursor read `AGENTS.md` directly — no alias needed.)
+(Codex CLI and Cursor read `AGENTS.md` directly — no alias needed. Tools outside this list can symlink their expected file to `AGENTS.md` or point their own config at it — the user wires that up, not this command.)
 
 ### Symlink creation algorithm
 
@@ -161,7 +160,7 @@ Scan every file you created in Steps A3 and A4 for forbidden patterns:
 - POSIX system roots — enumerated; do NOT flag every leading slash: `/opt/`, `/srv/`, `/etc/`, `/usr/`, `/var/`, `/tmp/`
 - Windows home expansions: `%USERPROFILE%`, `$HOME`
 
-Files to scan: `AGENTS.md`, `README.md` (if created), everything under `.agent_works/`, `.gitignore`, `.aider.conf.yml` (if written), and every pointer-file alias created in Step A4.
+Files to scan: `AGENTS.md`, `README.md` (if created), everything under `.agent_works/`, `.gitignore`, and every pointer-file alias created in Step A4.
 
 **Exemptions — skip a match when any of these apply:**
 
@@ -206,7 +205,6 @@ Created files:
 Cross-runtime access:
   CLAUDE.md       symlink → AGENTS.md          (or "pointer file"; only if claude targeted)
   GEMINI.md       <as appropriate>
-  .aider.conf.yml read: AGENTS.md              (aider target; or run `aider --read AGENTS.md`)
   Codex CLI / Cursor: read AGENTS.md directly — nothing created
 
 Permission profile: {{permission_profile}}    (or "skipped — no Claude Code target")
@@ -247,7 +245,7 @@ Run `git status`. Three cases:
 
 ## Step B2 — Inventory and classify
 
-Read each existing coordination artifact found in Step 1. Also check these common locations for coordination-like docs (do not crawl the whole repo): `docs/`, `.github/`, repo root `*.md` files, tool rule files (`.cursorrules`, `.windsurfrules`, `.cursor/rules/`, `.windsurf/`, `.aider.conf.yml`), and nested `AGENTS.md` / `CLAUDE.md` files listed via `git ls-files` (tracked files only; if not a git repo, check just the top two directory levels).
+Read each existing coordination artifact found in Step 1. Also check these common locations for coordination-like docs (do not crawl the whole repo): `docs/`, `.github/`, repo root `*.md` files, tool rule files (`.cursorrules`, `.windsurfrules`, `.cursor/rules/`, `.windsurf/`), and nested `AGENTS.md` / `CLAUDE.md` files listed via `git ls-files` (tracked files only; if not a git repo, check just the top two directory levels).
 
 Classify every content block (a section, a rule list, a table) into one of three buckets:
 
@@ -269,7 +267,7 @@ Special cases:
 Same five questions as Step A2, but pre-fill defaults from the inventory:
 
 - `project_name` — from existing docs if stated, else cwd basename.
-- `runtime_targets` — infer from which access mechanisms already exist (`CLAUDE.md` present → `claude`; `.aider.conf.yml` present → `aider`); default to adding `codex`. Every selected target gets its alias **created or verified** in B5 — including targets with no existing file.
+- `runtime_targets` — infer from which access mechanisms already exist (e.g. `CLAUDE.md` present → `claude`); default to adding `codex`. Every selected target gets its alias **created or verified** in B5 — including targets with no existing file.
 - `layout` — `full` if the project already has plan/requirement/decision docs to migrate; else `lean`
   (create only the docs that receive migrated content, plus AGENTS.md + conventions.md — never empty
   process docs).

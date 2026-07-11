@@ -129,8 +129,8 @@ The user does not carry your full context (worked examples: `conventions.md`):
 - **Codex CLI / Cursor:** read `AGENTS.md` directly — no alias needed;
   Codex skills live in `.agent/skills/`.
 - **Gemini CLI:** `GEMINI.md` resolves here (symlink or `@AGENTS.md`).
-- **aider / tools without auto-discovery:** point their own config at
-  this file (e.g. `.aider.conf.yml` → `read: AGENTS.md`).
+- **Other tools:** symlink their expected file to `AGENTS.md`, or point
+  their own config at this file.
 
 Never duplicate content across alias files — edit only this file
 (mechanics: `conventions.md`).

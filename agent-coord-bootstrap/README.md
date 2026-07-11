@@ -9,7 +9,6 @@ Scaffold or upgrade the agent-coordination doc layer — fresh init for new proj
 ├── AGENTS.md                              ← canonical routing + hard rules (~150 lines)
 ├── CLAUDE.md                              ← symlink or one-line pointer → AGENTS.md
 ├── GEMINI.md                              ← (if gemini target selected)
-├── .aider.conf.yml                        ← (if aider target: gains read: AGENTS.md — aider has no auto-discovery)
 ├── README.md                              ← human onboarding stub (only if missing)
 ├── .gitignore                             ← appends .local/, .claude/settings.local.json and friends
 ├── .claude/settings.local.json            ← permission allowlist (claude target only; gitignored)
