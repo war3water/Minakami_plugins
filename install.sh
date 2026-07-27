@@ -5,7 +5,7 @@ set -uo pipefail
 
 MARKETPLACE="war3water/Minakami_plugins"
 MARKETPLACE_NAME="minakami-plugins"
-PLUGINS=("agent-coord-bootstrap")
+PLUGINS=("agent-coord-bootstrap" "prompt-audit")
 
 echo "Minakami Plugins installer"
 echo "  marketplace: ${MARKETPLACE}"
@@ -69,6 +69,9 @@ if [ "${#FAILURES[@]}" -gt 0 ]; then
 fi
 
 echo
-echo "Done. In any project root (fresh or existing):"
+echo "Done. To scaffold or upgrade a project's coordination docs (any project root):"
 echo "  Claude Code: /agent-coord-bootstrap:init-agent-coord"
 echo "  Codex CLI:   \$agent-coord-bootstrap"
+echo "To audit a prompt's effectiveness for a target coding model:"
+echo "  Claude Code: /prompt-audit:audit-prompt"
+echo "  Codex CLI:   \$prompt-audit"

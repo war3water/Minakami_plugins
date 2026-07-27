@@ -5,7 +5,7 @@ $ErrorActionPreference = 'Continue'
 
 $Marketplace = 'war3water/Minakami_plugins'
 $MarketplaceName = 'minakami-plugins'
-$Plugins = @('agent-coord-bootstrap')
+$Plugins = @('agent-coord-bootstrap', 'prompt-audit')
 
 Write-Host 'Minakami Plugins installer'
 Write-Host "  marketplace: $Marketplace"
@@ -67,6 +67,9 @@ if ($Failures.Count -gt 0) {
 }
 
 Write-Host ''
-Write-Host 'Done. In any project root (fresh or existing):'
+Write-Host "Done. To scaffold or upgrade a project's coordination docs (any project root):"
 Write-Host '  Claude Code: /agent-coord-bootstrap:init-agent-coord'
 Write-Host '  Codex CLI:   $agent-coord-bootstrap'
+Write-Host "To audit a prompt's effectiveness for a target coding model:"
+Write-Host '  Claude Code: /prompt-audit:audit-prompt'
+Write-Host '  Codex CLI:   $prompt-audit'

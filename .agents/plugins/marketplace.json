@@ -1,7 +1,7 @@
 {
   "name": "minakami-plugins",
   "metadata": {
-    "version": "0.5.2",
+    "version": "0.6.0",
     "description": "Minakami's personal agent plugins for Claude Code and Codex CLI"
   },
   "owner": {
@@ -19,6 +19,21 @@
         "url": "https://github.com/war3water/Minakami_plugins",
         "ref": "main",
         "path": "agent-coord-bootstrap"
+      },
+      "policy": {
+        "installation": "AVAILABLE"
+      }
+    },
+    {
+      "name": "prompt-audit",
+      "version": "0.1.0",
+      "description": "Audit one prompt's effectiveness for a specific target coding model — token efficiency, goal clarity, confusion/hallucination triggers, capability limiting, and more. Evidence-cited findings tables, an honest verdict, prioritized refinement advice, and an optional approval-gated rewrite. Asks instead of guessing whenever intent is unclear.",
+      "category": "review",
+      "source": {
+        "source": "git-subdir",
+        "url": "https://github.com/war3water/Minakami_plugins",
+        "ref": "main",
+        "path": "prompt-audit"
       },
       "policy": {
         "installation": "AVAILABLE"
