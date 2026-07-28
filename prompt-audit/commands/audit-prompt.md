@@ -13,7 +13,7 @@ Follow the steps below **in order**. Do not skip steps. This command writes NO f
 Two rules bind every step:
 
 - **Ask, never guess.** Whenever the prompt's intent, scope, success criteria, or target is unclear, ask the user. An audit against a guessed goal is worthless — and worse, it looks authoritative.
-- **Honesty over impressiveness.** Every claim follows the honesty rules in Step 3. No fabricated metrics, ever.
+- **Honesty over impressiveness.** Every claim follows the honesty rules in Step 3.
 
 ---
 
@@ -33,7 +33,7 @@ Scope rules:
 
 ## Step 2 — Interview: build the audit contract
 
-Use `AskUserQuestion` if available (batching within its limits); otherwise ask as numbered plain questions. Collect all answers before any analysis.
+Skip any question whose answer is already explicit in the user's messages — never re-ask what the user has stated; record it as answered. Ask the remaining questions in one batch where the tool allows, using `AskUserQuestion` if available or numbered plain questions otherwise. Collect all answers before any analysis.
 
 1. **target_model** — which coding model or agent will run this prompt. Offer: `Claude family` / `GPT–Codex family` / `Gemini family` / `other or unknown`. If the user names a specific version, record it as a user-stated fact — never infer a version yourself.
 2. **prompt_role** — what kind of prompt this is:
@@ -46,7 +46,7 @@ Use `AskUserQuestion` if available (batching within its limits); otherwise ask a
 4. **usage_context** — what else the model sees when this prompt runs (tools, repo contents, other system context), and roughly how often it runs. High frequency raises the weight of token efficiency (D2); agent-facing prompts activate the injection checks in D8.
 5. **known_pain** (optional) — failures the user has already observed with this prompt. When given, these anchor the audit in observed reality and may raise the severity of matching `[hypothesis]` findings (see Step 3).
 
-Then print a short **Audit contract** — 3 to 5 bullets covering target, role, goal, success criteria, and any weighting notes (e.g. "runs every session → token efficiency weighted up") — and ask the user to confirm it. Loop corrections here until the user confirms. Analysis starts only after confirmation.
+Then print a short **Audit contract** — 3 to 5 bullets covering target, role, goal, success criteria, and any weighting notes (e.g. "runs every session → token efficiency weighted up"). If any contract element was inferred or defaulted rather than stated by the user, ask the user to confirm the contract and loop corrections until confirmed. If every element is user-stated, print it and proceed without waiting — the user can still object at the Step 4 checkpoint.
 
 ## Step 2.5 — Load references
 
@@ -54,16 +54,16 @@ Read the reference files that match the confirmed target:
 
 | target_model answer | Reference file to load |
 |---|---|
-| Claude family | `<plugin-root>/references/claude.md` |
-| GPT–Codex family | `<plugin-root>/references/gpt-codex.md` |
-| Gemini family | `<plugin-root>/references/gemini.md` |
+| Claude family | `<plugin-root>/references/claude-family.md` |
+| GPT–Codex family | `<plugin-root>/references/gpt-codex-family.md` |
+| Gemini family | `<plugin-root>/references/gemini-family.md` |
 | other or unknown | none — general only |
 
 Always also read `<plugin-root>/references/general.md`.
 
-**Basis-labeling rule** — every model-specific or effectiveness claim in the report carries exactly one basis tag:
+**Basis-labeling rule** — every model-specific or effectiveness claim in the report carries at least one basis tag (a corroborated hypothesis carries `[hypothesis] [user-stated]`):
 
-- `[ref: <file> §<section>]` — backed by the loaded family reference file
+- `[ref: <file> §<section>]` — backed by the loaded family reference file; `§` takes the heading text verbatim, e.g. `[ref: claude-family.md §Instruction-following profile]`
 - `[general]` — backed by `references/general.md`
 - `[user-stated]` — grounded in the user's own interview answers (including known_pain)
 - `[hypothesis]` — your own reasoning, backed by neither a reference file nor the user
@@ -79,7 +79,8 @@ You are a language model reading text. You cannot run the prompt, measure tokens
 - You MAY count what the text shows: lines, words, duplicated blocks, repeated rules — and phrase reductions approximately ("removing the duplicated block cuts ~40 lines").
 - You may NOT invent token counts, percentages, benchmark numbers, or improvement estimates. You may NOT claim empirical results ("this will improve accuracy by 30%").
 - You may NOT attribute behavior to a specific model version without a `[user-stated]` basis.
-- A speculative mechanism is tagged `[hypothesis]` and capped at severity **Minor** — unless the user's known_pain answer corroborates it, in which case the observed failure justifies the higher severity and the finding cites `[user-stated]` alongside.
+- A speculative mechanism is tagged `[hypothesis]` and defaults to severity **Minor**. It may carry a higher rating only when the mechanism, if real, implies task failure or unsafe action — then the severity is written `Major (unverified)` or `Critical (unverified)`, the verdict paragraph states that the rating rests on an unverified mechanism, and Step 4 should seek corroboration. Corroboration (known_pain, or a Step 4 answer) removes the marker and adds `[user-stated]`.
+- Zero findings is a valid, complete outcome. Never manufacture a finding — or an advice item — to appear thorough; an "OK" row is a result.
 
 ### The eight dimensions
 
@@ -88,7 +89,7 @@ Check every dimension. Every dimension gets a row in the report's summary table,
 | ID | Dimension | Evidence looks like |
 |---|---|---|
 | D1 | Goal clarity and achievement | no definition of done; conflicting goals; output format unstated where the output is machine-consumed; success criteria that cannot be checked |
-| D2 | Token efficiency and streamlining | duplicated instructions; the same rule restated in different words; low-information filler; over-long or near-duplicate examples; wasteful under-length that forces clarification round-trips; **obsolete guidance** — instructions restating what current-generation models already do unprompted (step-by-step boilerplate, generic expert personas, basic-practice reminders), flagged as removable |
+| D2 | Token efficiency and streamlining | duplicated instructions; the same rule restated in different words; low-information filler; over-long or near-duplicate examples; wasteful under-length that forces clarification round-trips; **obsolete guidance** — instructions restating what current-generation models already do unprompted (the no-op list in `general.md`), flagged as removable |
 | D3 | Confusion and hallucination triggers | references to files, tools, or variables that do not exist in the stated usage context; undefined jargon or project shorthand; presupposed facts that are false or unverifiable; demands to state specifics the model cannot know |
 | D4 | Capability limiting | over-constraint that forbids useful behavior; micromanaged step order where model judgment would do better; stale workarounds for old model weaknesses; needless persona shackles that narrow the answer space |
 | D5 | Internal consistency | rules that contradict each other; colliding rules with no stated priority; examples that contradict the instructions they illustrate |
@@ -134,11 +135,13 @@ Write the report in the language of your conversation with the user. Emit it as 
 prompt-audit: report for <source>
 
 Target: <family, plus user-stated version if any> | Role: <prompt_role> | Size: <n> lines / ~<n> words
-Audit basis: references/<family>.md + references/general.md
+Audit basis: <the loaded reference files — general.md only when the target is other/unknown>
 
 ## Verdict: <verdict>
 
 <2–4 sentences justifying the verdict, citing finding IDs.>
+
+Works well: <up to 3 bullets — existing elements the rewrite must preserve; omit if nothing stands out>
 
 ## Dimension summary
 
@@ -177,12 +180,12 @@ Critical and Major finding; optional for Minor/Info.>
 - <Oversize sampling caveat, if Step 1 triggered it.>
 ```
 
-**Verdict scale** — pick exactly one; no invented scores:
+**Verdict scale** — apply the first matching entry, top to bottom; no invented scores:
 
-- `Effective as-is` — no Critical or Major findings
-- `Effective with revisions` — no Critical findings
-- `Needs rework` — at least one Critical, or pervasive Majors
 - `Not fit for purpose` — the confirmed goal is unreachable by this prompt as designed; requires explicit justification in the verdict paragraph
+- `Needs rework` — at least one Critical, or Major findings in three or more dimensions
+- `Effective with revisions` — at least one Major or Minor finding
+- `Effective as-is` — no findings beyond Info
 
 **Table hygiene:** excerpts in the findings table truncate to ~10 words plus an ellipsis (full text lives in Finding details); one clause per cell; no inline HTML anywhere. Keep every basis tag visible — a claim without its tag does not ship.
 
@@ -191,14 +194,14 @@ Critical and Major finding; optional for Minor/Info.>
 After the report, ask the user — do not just do it:
 
 1. **Rewrite in chat** — produce the full revised prompt in the conversation only.
-2. **Rewrite to a file** — the user confirms the exact path first. Default suggestion when the prompt came from a file: a sibling `<name>.revised.<ext>`. Never overwrite the original. Never write inside this plugin or its marketplace repo. Nothing is written before the user confirms the path.
+2. **Rewrite to a file** — state the concrete default path inside this offer (a sibling `<name>.revised.<ext>` when the prompt came from a file) so a single reply can both pick this option and confirm or replace the path. Never overwrite the original. Never write under the plugin's own directory tree. Nothing is written before an explicit path confirmation.
 3. **Stop here** — the report stands on its own.
 
-If any language discussion finding is open (Step 3, Language rules), resolve it with the user now — which language should the rewrite use — before writing anything.
+Fold any open language discussion finding (Step 3, Language rules) into this same offer — one ask, not two — and resolve which language the rewrite uses before writing anything.
 
 Rewrite rules:
 
-- Preserve the confirmed intent exactly. Add no capabilities the user did not ask for.
+- Preserve the confirmed intent exactly, and keep the elements the report listed under "Works well". Add no capabilities the user did not ask for.
 - Every change must be traceable to a finding ID. After the rewrite, print a **change map**:
 
 ```markdown

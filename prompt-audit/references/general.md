@@ -6,13 +6,13 @@ Evergreen contract: this file carries durable, family-independent guidance only.
 
 What qualifies as a finding:
 
-- A verbatim excerpt with a location, a stated mechanism (why it hurts on the target), and a concrete fix. All five parts (excerpt, dimension, severity, mechanism, fix) or it is not reportable.
+- All five parts the runbook enumerates — a finding missing any of them is not reportable.
 - The mechanism must be causal, not aesthetic. "This sentence is redundant with L12, and duplicate rules drift apart over edits" is a finding; "I would phrase this differently" is not.
 
 What does not qualify:
 
 - Stylistic taste with no failure mechanism.
-- Speculation presented as fact — speculation is allowed but must be tagged `[hypothesis]` and capped at Minor severity unless corroborated by the user's observed failures.
+- Speculation presented as fact — speculation is allowed only under the runbook's `[hypothesis]` honesty rules.
 - Anything the auditor cannot support from the text plus the loaded references plus the user's answers.
 
 ## Severity calibration

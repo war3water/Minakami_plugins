@@ -1,6 +1,6 @@
 # Claude family — durable prompt guidance
 
-Evergreen contract: family-level, durable guidance only. No model version numbers, no benchmarks, no pricing. If a claim holds for only one model version, it does not belong here. The audit runbook cites this file as `[ref: claude.md §<section>]`.
+Evergreen contract: family-level, durable guidance only. No model version numbers, no benchmarks, no pricing. If a claim holds for only one model version, it does not belong here. The audit runbook cites this file as `[ref: claude-family.md §<section>]`.
 
 ## Structure preferences
 
@@ -18,11 +18,7 @@ Evergreen contract: family-level, durable guidance only. No model version number
 
 ## Known no-op and harmful patterns
 
-- "Think step by step" and similar reasoning boilerplate — reasoning-capable Claude models do this unprompted; the phrase is a streamlining candidate.
-- Flattery personas ("you are the world's greatest engineer") — no capability gain; a persona earns its place only when it carries real constraints.
-- Threats, bribes, and emotional pressure — no durable effect; noise.
-- Wall-of-caps emphasis — a few IMPORTANT markers work; page-wide capitalization dilutes all of them.
-- "Do not hallucinate" — aspiration without a lever; replace with an escape hatch ("if unsure, say so and ask").
+- The universal list in `general.md` applies unchanged. The family delta is emphasis, not new items: strong instruction-following means a harmful over-constraint outweighs a lingering no-op — a bad rule gets obeyed here, not ignored, so D4 findings deserve the scrutiny.
 
 ## Token-efficiency notes
 
@@ -32,8 +28,7 @@ Evergreen contract: family-level, durable guidance only. No model version number
 
 ## Language notes
 
-- Coverage is strongest in English; instruction-following in other major languages is good but technical edge-case interpretation is most precise in English.
-- Mixed-language prompts (English instructions, native-language domain terms) are handled well and are often the practical optimum — surface as a discussion option, not a prescription.
+- The universal trade-offs in `general.md` apply. Family delta: mixed-language prompts (English instructions, native-language domain terms) are handled well and are often the practical optimum — surface as a discussion option, not a prescription.
 
 ## Dimension weighting
 

@@ -1,6 +1,6 @@
 # Gemini family — durable prompt guidance
 
-Evergreen contract: family-level, durable guidance only. No model version numbers, no benchmarks, no pricing. If a claim holds for only one model version, it does not belong here. The audit runbook cites this file as `[ref: gemini.md §<section>]`.
+Evergreen contract: family-level, durable guidance only. No model version numbers, no benchmarks, no pricing. If a claim holds for only one model version, it does not belong here. The audit runbook cites this file as `[ref: gemini-family.md §<section>]`.
 
 This file is deliberately thinner than its siblings — audits for this family lean more heavily on `general.md`.
 
@@ -25,7 +25,7 @@ This file is deliberately thinner than its siblings — audits for this family l
 
 ## Language notes
 
-- Broad multilingual coverage; the general language trade-offs apply — surface for discussion, never decide silently.
+- Broad multilingual coverage; the universal trade-offs in `general.md` apply unchanged.
 
 ## Dimension weighting
 

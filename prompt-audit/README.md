@@ -1,6 +1,6 @@
 # prompt-audit
 
-Audit one prompt's effectiveness for a specific target coding model. You supply the prompt (pasted or by file path) and name the model family it targets; the audit interviews you for the prompt's goal and success criteria, analyzes the text across eight fixed dimensions, and delivers an evidence-cited report — findings tables, an honest verdict, prioritized refinement advice — plus an optional approval-gated rewrite. Works in Claude Code and Codex CLI from the same plugin source (Claude Code surfaces the `/audit-prompt` slash command; Codex CLI surfaces the same runbook as a plugin skill, since Codex loads skills rather than commands).
+Audit one prompt's effectiveness for a specific target coding model. You supply the prompt (pasted or by file path) and name the model family it targets; the audit interviews you for the prompt's goal and success criteria, analyzes the text across eight fixed dimensions, and delivers an evidence-cited report — findings tables, an honest verdict, prioritized refinement advice — plus an optional approval-gated rewrite. Works in Claude Code and Codex CLI from the same plugin source (Claude Code surfaces the `/prompt-audit:audit-prompt` slash command; Codex CLI surfaces the same runbook as a plugin skill, since Codex loads skills rather than commands).
 
 `prompt-audit` is fully independent of the other plugins in this marketplace — it shares no content or logic with them, only the repo's packaging conventions.
 
@@ -17,7 +17,7 @@ Audit one prompt's effectiveness for a specific target coding model. You supply 
 | D7 | Context completeness and assumptions — what the model needs but is not given |
 | D8 | Robustness and edge handling — failure paths, escape hatches, injection surface in agent prompts |
 
-Per-family knowledge lives in `references/` (`claude.md`, `gpt-codex.md`, `gemini.md`, plus the universal `general.md`) — durable, family-level guidance only, no version trivia. Every model-specific claim in the report carries a basis tag: `[ref: <file> §<section>]`, `[general]`, `[user-stated]`, or `[hypothesis]`.
+Per-family knowledge lives in `references/` (`claude-family.md`, `gpt-codex-family.md`, `gemini-family.md`, plus the universal `general.md`) — durable, family-level guidance only, no version trivia. The family files carry the `-family` suffix deliberately: bare `claude.md`/`gemini.md` collide case-insensitively with the `CLAUDE.md`/`GEMINI.md` instruction files those runtimes auto-load. Every model-specific claim in the report carries a basis tag: `[ref: <file> §<section>]`, `[general]`, `[user-stated]`, or `[hypothesis]`.
 
 ## Honesty rules
 
