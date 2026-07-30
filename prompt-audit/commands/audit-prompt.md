@@ -184,8 +184,8 @@ Critical and Major finding; optional for Minor/Info.>
 
 - `Not fit for purpose` — the confirmed goal is unreachable by this prompt as designed; requires explicit justification in the verdict paragraph
 - `Needs rework` — at least one Critical, or Major findings in three or more dimensions
-- `Effective with revisions` — at least one Major or Minor finding
-- `Effective as-is` — no findings beyond Info
+- `Effective with revisions` — at least one Major finding
+- `Effective as-is` — no Critical or Major findings; Minors, if any, are listed but do not block using the prompt as-is
 
 **Table hygiene:** excerpts in the findings table truncate to ~10 words plus an ellipsis (full text lives in Finding details); one clause per cell; no inline HTML anywhere. Keep every basis tag visible — a claim without its tag does not ship.
 
