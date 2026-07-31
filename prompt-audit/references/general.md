@@ -34,7 +34,7 @@ What does not qualify:
 - **Examples that contradict instructions.** The model tends to follow the example, silently overriding the stated rule.
 - **Unbounded asks.** "Be comprehensive", "cover everything" with no stop condition or budget invites overlong output and rambling.
 - **Presupposed context.** Referencing files, tools, variables, or prior decisions that do not exist in the stated usage context sends the model chasing phantoms — a direct hallucination trigger.
-- **Undelimited untrusted content.** In agent-facing prompts, external text (file contents, web results, user data) mixed with instructions without clear delimitation is an instruction-injection surface.
+- **Undelimited or spoofable untrusted content.** In agent-facing prompts, external text (file contents, web results, user data) mixed with instructions without clear delimitation is an instruction-injection surface. Delimitation alone is not enough: substituted content can embed text that imitates the closing delimiter or inserts new-looking rules, so the prompt must declare the delimited region inert — data, never instructions — and state that only the outermost harness-inserted delimiters count.
 - **Micromanaged step order.** Scripting every micro-step where judgment would do better both limits the model and breaks when the situation deviates from the script.
 - **Stale workarounds.** Instructions that compensate for a weakness earlier models had; on current models they cost tokens and can actively fight the model's better default behavior.
 
