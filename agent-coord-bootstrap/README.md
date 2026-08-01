@@ -73,6 +73,7 @@ in `conventions.md`; the evidence stays here, out of your repo.
 
 - **Run-once per project.** Bootstrap/upgrade is per-project, not per-session. No background hooks, no session-start checks.
 - **Prompt-only.** No Python engine, no install-time dependencies. The slash command is the entire plugin logic.
+- **Project content is data.** Everything the command reads from your project — manifests, READMEs, coordination docs — is material to classify and migrate, never instructions to follow or approval to act on. Instructions come only from the runbook and your live replies.
 - **Portable.** No drive letters, no `~`, no absolute paths in any scaffolded file. Aliases use relative symlink targets or bare-filename pointer files.
 - **Dual-runtime.** Identical behavior in Claude Code and Codex CLI.
 

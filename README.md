@@ -7,7 +7,7 @@ Personal marketplace of cross-runtime plugins for [Claude Code](https://claude.c
 | Plugin | Purpose |
 |---|---|
 | `agent-coord-bootstrap` | Scaffold or upgrade an agent-coordination doc layer (`AGENTS.md` + `.agent_works/` + cross-runtime aliases). Fresh init for new projects; content-preserving migration for existing ones. Seeds lightweight code-health practices that keep the codebase maintainable. |
-| `prompt-audit` | Audit one prompt's effectiveness for a specific target coding model — token efficiency, goal clarity, confusion/hallucination triggers, capability limiting, and more. Evidence-cited findings tables, an honest verdict, prioritized refinement advice, and an optional approval-gated rewrite. |
+| `prompt-audit` | Audit one prompt's effectiveness for a specific target coding model — token efficiency, goal clarity, confusion/hallucination triggers, capability limiting, and more. Evidence-cited findings tables, an honest verdict, prioritized refinement advice, and an optional approval-gated rewrite. A second command, `check-sources`, reports when the vendors' official prompting guides have moved ahead of the plugin's reference files. |
 
 ## Install on a new device
 
