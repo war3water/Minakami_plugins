@@ -15,10 +15,12 @@ Evergreen contract: family-level, durable guidance only. No model version number
 - Rigid rules get over-complied with. When two rules can collide, state which wins; otherwise the model may satisfy the letter of the wrong one.
 - Stating *why* a rule exists improves adherence — a one-clause motivation lets the model apply the rule sensibly at edges the author did not foresee.
 - Prefer describing tools and when to use them over scripting exact call sequences; the model handles conditional judgment well and scripts break on deviation.
+- Task scope can expand under the model's own judgment; for narrow tasks, state the intended scope explicitly — deliver what was asked, at the scope intended — rather than assuming the task description bounds it.
 
 ## Known no-op and harmful patterns
 
-- The universal list in `general.md` applies unchanged. The family delta is emphasis, not new items: strong instruction-following means a harmful over-constraint outweighs a lingering no-op — a bad rule gets obeyed here, not ignored, so D4 findings deserve the scrutiny.
+- The universal list in `general.md` applies unchanged, with an emphasis delta: strong instruction-following means a harmful over-constraint outweighs a lingering no-op — a bad rule gets obeyed here, not ignored, so D4 findings deserve the scrutiny.
+- Family addition — instructed re-verification: "double-check your answer", "add a final verification step", "verify with a subagent". Current Claude models verify and self-correct natively, so these instructions compound with native behavior into over-verification — token cost with no quality gain. Flag as removable; in high-frequency agentic prompts, flag as actively harmful.
 
 ## Token-efficiency notes
 

@@ -47,6 +47,7 @@ What does not qualify:
 - **Escape hatch.** "If the input is unclear or a constraint cannot be met, say so and ask" — cheap insurance against confident wrong output.
 - **Delimit data from instructions.** Fences, tags, or clearly labeled sections; instructions outside, material inside.
 - **One canonical example.** A single worked example that agrees with the rules beats three near-duplicates.
+- **Explicit length contract.** State the desired length of responses and written deliverables outright; models do not reliably infer length preferences, and an unstated preference yields the model's own calibration — usually longer than wanted.
 
 ## Known no-op patterns — streamlining candidates
 

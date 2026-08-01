@@ -9,6 +9,7 @@ This file is deliberately thinner than its siblings — audits for this family l
 - Concise, directive instructions work best; short labeled sections over long prose.
 - In long contexts, repeat the critical constraints near the end — distance from the task erodes their weight.
 - Request output structure explicitly (schema, headings, or field list) when the output is consumed downstream.
+- Few-shot examples are a strong lever — patterns are picked up from a small number of examples; tune the count by experiment rather than defaulting to zero or many.
 
 ## Instruction-following profile
 
