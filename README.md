@@ -84,5 +84,5 @@ The two `marketplace.json` files and the two `plugin.json` files are **duplicate
 
 - A plugin release bumps that plugin's `version` in four places at once: both of its `plugin.json` copies and its entry in both `marketplace.json` copies (via the canonical-then-sync flow above). `metadata.version` is the marketplace's own release train — bumped only for marketplace-level events (new plugin, installer changes), never for per-plugin releases.
 - Ship criteria: `npx markdownlint-cli2 "**/*.md"` clean, manifest pairs in sync, no absolute paths in plugin content.
-- `prompt-audit` releases additionally run its five-case eval sweep before shipping — see that plugin's README §Maintenance. Eval fixtures, expectations, and sweep results live in the maintainer's external test workspace, never in this repo.
+- `prompt-audit` releases that change its audit runbook or `references/` content additionally run its five-case eval sweep before shipping — see that plugin's README §Maintenance. Eval fixtures, expectations, and sweep results live in the maintainer's external test workspace, never in this repo. Its `/prompt-audit:check-sources` command reports when the vendors' official prompting guides have moved ahead of the reference files.
 - The commit log is the changelog: `<type>: v<x.y.z> — <summary>` for releases, scoped conventional style otherwise.

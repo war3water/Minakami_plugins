@@ -41,6 +41,13 @@ In any session:
 $prompt-audit                 # Codex CLI (type $ and pick prompt-audit; also /skills)
 ```
 
+A second, maintainer-facing command checks whether the vendors' official prompting guides have changed since the reference files were last refreshed (needs a session with web tools; read-only):
+
+```text
+/prompt-audit:check-sources   # Claude Code
+$prompt-audit  → check-sources  # Codex CLI
+```
+
 Then paste the prompt or give its file path. The audit runs in this order:
 
 1. **Acquire** — one prompt per run; mixed files get their prompt region confirmed with you, never guessed.
@@ -68,8 +75,8 @@ Language: the report is written in your conversation's language; a rewrite keeps
 
 ## Maintenance
 
-- **Eval sweep per release.** A standing five-case eval suite regression-tests every version bump: a seeded-defect prompt (must catch known Criticals), a polished prompt (must reach `Effective as-is`), a genuinely clean prompt (guards against manufactured findings), an injection-bait agent prompt (D8 coverage), and a Chinese-language prompt (language-discussion behavior). Fixtures, expected finding classes, and sweep results live in the maintainer's external test workspace — never in this repo — and expectations are kept out of the invocation payloads so the auditor never sees its answer key. Judged runs are pinned to one model per sweep: cross-model verdicts are not comparable (severity calibration differs), so a sweep is only diffable against a baseline made with the same model. An optional mid-tier canary run checks instruction robustness; it is labeled and never counted in the quality baseline.
-- **Reference refresh.** The `references/` no-op and anti-pattern lists shift as model capability evolves. Refreshing them is a normal version bump, gated by the same eval sweep — a reference change should visibly move at least one expected finding's basis tag or severity, and regress nothing. Refresh from the vendors' official prompting guides, distilling only durable family-level claims (version-specific tips stay out, per the reference files' evergreen contract):
+- **Eval sweep per audit-affecting release.** A standing five-case eval suite regression-tests every version bump that changes `commands/audit-prompt.md` or `references/` content; releases that touch neither (new commands, docs, the source registry) ship on lint + manifest parity alone. The suite: a seeded-defect prompt (must catch known Criticals), a polished prompt (must reach `Effective as-is`), a genuinely clean prompt (guards against manufactured findings), an injection-bait agent prompt (D8 coverage), and a Chinese-language prompt (language-discussion behavior). Fixtures, expected finding classes, and sweep results live in the maintainer's external test workspace — never in this repo — and expectations are kept out of the invocation payloads so the auditor never sees its answer key. Judged runs are pinned to one model per sweep: cross-model verdicts are not comparable (severity calibration differs), so a sweep is only diffable against a baseline made with the same model. An optional mid-tier canary run checks instruction robustness; it is labeled and never counted in the quality baseline.
+- **Reference refresh.** The `references/` no-op and anti-pattern lists shift as model capability evolves. Refreshing them is a normal version bump, gated by the same eval sweep — a reference change should visibly move at least one expected finding's basis tag or severity, and regress nothing. **Freshness self-check:** run `/prompt-audit:check-sources` periodically and after any vendor model launch — it fetches the guides registered in `SOURCES.md`, diffs them against the recorded coverage notes, looks for newly published model-specific prompting pages, and reports whether a refresh release is warranted. Every refresh release updates the matching `SOURCES.md` rows in the same commit. Refresh from the vendors' official prompting guides, distilling only durable family-level claims (version-specific tips stay out, per the reference files' evergreen contract):
   - Claude family — Anthropic's [prompting best practices](https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/claude-prompting-best-practices) plus per-model pages such as [prompting Claude Opus 5](https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/prompting-claude-opus-5)
   - GPT–Codex family — OpenAI's [GPT-5 prompting guide](https://cookbook.openai.com/examples/gpt-5/gpt-5_prompting_guide) and successor guides in the [Cookbook](https://cookbook.openai.com/)
   - Gemini family — Google's [prompt design strategies](https://ai.google.dev/gemini-api/docs/prompting-strategies)
