@@ -24,7 +24,7 @@ For each registry row:
 
 1. Fetch the URL. A redirect, retirement, or 404 is itself a refresh trigger — a moved guide means the registry row is stale.
 2. Compare the page's current guidance against the row's coverage notes. Ignore cosmetic edits; look for new sections, new prompting patterns or anti-patterns, changed recommendations, and advice the vendor has deprecated.
-3. Check the vendor's surrounding docs index for NEW model-specific prompting pages published after the row's last-reviewed date (for example, a new "prompting <model>" page). A new page is a refresh trigger even when every registered page is unchanged.
+3. Check the vendor's surrounding docs index for NEW model-specific prompting pages published after the row's last-reviewed date (for example, a new `prompting <model>` page). A new page is a refresh trigger even when every registered page is unchanged.
 
 ## Step 4 — Report
 
