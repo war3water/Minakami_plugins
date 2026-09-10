@@ -5,7 +5,7 @@ set -uo pipefail
 
 MARKETPLACE="war3water/Minakami_plugins"
 MARKETPLACE_NAME="minakami-plugins"
-PLUGINS=("agent-coord-bootstrap" "prompt-audit")
+PLUGINS=("agent-coord-bootstrap" "prompt-audit" "code-map")
 
 echo "Minakami Plugins installer"
 echo "  marketplace: ${MARKETPLACE}"
@@ -75,3 +75,6 @@ echo "  Codex CLI:   \$agent-coord-bootstrap"
 echo "To audit a prompt's effectiveness for a target coding model:"
 echo "  Claude Code: /prompt-audit:audit-prompt"
 echo "  Codex CLI:   \$prompt-audit"
+echo "To build an interactive code map of the current repository:"
+echo "  Claude Code: /code-map:code-map"
+echo "  Codex CLI:   \$code-map"

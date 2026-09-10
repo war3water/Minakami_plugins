@@ -1,0 +1,562 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>__CODE_MAP_TITLE__ · code map</title>
+<style>
+  :root {
+    --bg: #f6f6f3; --panel: #ffffff; --ink: #1d1d1b; --muted: #6a6a64; --line: #d8d8d1;
+    --accent: #2b62d9; --accent-soft: #e6eefc; --seen: #55554f; --inferred: #b8791f;
+    --flag: #c43c3c; --note: #2c9a5a; --shadow: 0 1px 2px rgba(0,0,0,.06);
+    --node: #ffffff; --node-fn: #fbfbf7; --node-mod: #f4f7ff; --node-stage: #fff8ec;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #151514; --panel: #1e1e1c; --ink: #ebebe6; --muted: #9a9a92; --line: #33332f;
+      --accent: #7ea2f0; --accent-soft: #24324f; --seen: #b5b5ad; --inferred: #d9a04a;
+      --flag: #e26b6b; --note: #5cc484; --shadow: none;
+      --node: #262624; --node-fn: #262624; --node-mod: #23272f; --node-stage: #2c2820;
+    }
+  }
+  * { box-sizing: border-box; }
+  html, body { height: 100%; }
+  body { margin: 0; background: var(--bg); color: var(--ink); font: 14px/1.45 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; display: flex; flex-direction: column; height: 100vh; }
+  header { background: var(--panel); border-bottom: 1px solid var(--line); padding: 10px 16px; display: flex; flex-wrap: wrap; gap: 8px 18px; align-items: center; }
+  #title { font-size: 17px; font-weight: 650; margin: 0; }
+  #meta { color: var(--muted); font-size: 12px; }
+  #scope { color: var(--muted); font-size: 12px; flex-basis: 100%; }
+  #scope details { display: inline; }
+  #scope summary { cursor: pointer; color: var(--accent); display: inline; }
+  .tabs { display: flex; gap: 4px; }
+  .tab { border: 1px solid var(--line); background: transparent; color: var(--ink); padding: 5px 12px; border-radius: 6px; cursor: pointer; font: inherit; }
+  .tab.active { background: var(--accent); color: #fff; border-color: var(--accent); }
+  .search-wrap { position: relative; flex: 1 1 260px; max-width: 460px; }
+  #search { width: 100%; padding: 6px 10px; border: 1px solid var(--line); border-radius: 6px; background: var(--bg); color: var(--ink); font: inherit; }
+  #results { position: absolute; top: 100%; left: 0; right: 0; z-index: 20; background: var(--panel); border: 1px solid var(--line); border-radius: 6px; box-shadow: 0 6px 20px rgba(0,0,0,.15); max-height: 60vh; overflow: auto; margin-top: 4px; }
+  .result { display: flex; gap: 8px; align-items: baseline; width: 100%; text-align: left; border: 0; background: transparent; color: var(--ink); padding: 6px 10px; cursor: pointer; font: inherit; }
+  .result:hover, .result:focus { background: var(--accent-soft); outline: none; }
+  .result-name { font-family: ui-monospace, Consolas, monospace; }
+  .result-empty { padding: 8px 10px; }
+  .zoom { display: flex; gap: 2px; }
+  .zoom button { border: 1px solid var(--line); background: transparent; color: var(--ink); min-width: 30px; height: 28px; border-radius: 6px; cursor: pointer; font: inherit; }
+  .legend { display: flex; gap: 12px; align-items: center; color: var(--muted); font-size: 12px; flex-wrap: wrap; }
+  .legend .sw { display: inline-block; width: 22px; height: 0; border-top: 2px solid var(--seen); vertical-align: middle; margin-right: 4px; }
+  .legend .sw.inferred { border-top-style: dashed; border-top-color: var(--inferred); }
+  .legend .dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; vertical-align: middle; margin-right: 4px; }
+  main { flex: 1; display: grid; grid-template-columns: minmax(0, 1fr) 390px; min-height: 0; }
+  #view { overflow: auto; padding: 12px 16px 24px; }
+  #detail { overflow: auto; border-left: 1px solid var(--line); background: var(--panel); padding: 14px 16px 24px; }
+  @media (max-width: 900px) {
+    main { grid-template-columns: 1fr; grid-template-rows: 1fr auto; }
+    #detail { border-left: 0; border-top: 1px solid var(--line); max-height: 45vh; }
+  }
+  h2 { font-size: 15px; margin: 6px 0 8px; }
+  h3 { font-size: 12px; margin: 14px 0 6px; color: var(--muted); text-transform: uppercase; letter-spacing: .05em; }
+  .block { margin-bottom: 18px; }
+  .prose { max-width: 72ch; margin: 0 0 8px; }
+  .muted { color: var(--muted); }
+  .small { font-size: 12px; }
+  .cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 10px; }
+  .card { text-align: left; border: 1px solid var(--line); background: var(--panel); color: var(--ink); border-radius: 8px; padding: 10px 12px; cursor: pointer; font: inherit; box-shadow: var(--shadow); }
+  .card:hover, .card.selected, .card.match { border-color: var(--accent); }
+  .card.dim, .stage.dim { opacity: .35; }
+  .card-title { font-weight: 650; }
+  .card-sub { color: var(--muted); font-size: 12px; margin-bottom: 4px; }
+  .card-body { margin: 0; font-size: 13px; }
+  .chips { display: flex; flex-wrap: wrap; gap: 6px; margin: 4px 0 8px; }
+  .chip { border: 1px solid var(--line); background: transparent; color: var(--ink); padding: 3px 10px; border-radius: 999px; cursor: pointer; font: inherit; font-size: 12px; }
+  .chip.active { background: var(--accent-soft); border-color: var(--accent); }
+  .graph-box { overflow: auto; border: 1px solid var(--line); border-radius: 8px; background: var(--panel); max-height: 72vh; }
+  svg.graph { display: block; }
+  .node rect { fill: var(--node); stroke: var(--line); stroke-width: 1; cursor: pointer; }
+  .node.kind-module rect { fill: var(--node-mod); }
+  .node.kind-function rect { fill: var(--node-fn); }
+  .node.kind-stage rect { fill: var(--node-stage); }
+  .node:hover rect, .node:focus rect { stroke: var(--accent); }
+  .node:focus { outline: none; }
+  .node.selected rect { stroke: var(--accent); stroke-width: 2; }
+  .node.match rect { stroke: var(--accent); stroke-width: 2; fill: var(--accent-soft); }
+  .node.dim, .edge.dim { opacity: .22; }
+  .node.faded { opacity: .55; }
+  .label { font: 12px ui-monospace, Consolas, monospace; fill: var(--ink); pointer-events: none; }
+  .edge { fill: none; stroke: var(--seen); stroke-width: 1.3; }
+  .edge.inferred { stroke: var(--inferred); stroke-dasharray: 5 4; }
+  .edge.hot, .edge.match { stroke-width: 2.4; }
+  .edge.hot { stroke: var(--accent); }
+  .arrow.seen { fill: var(--seen); }
+  .arrow.inferred { fill: var(--inferred); }
+  .flag-dot { fill: var(--flag); }
+  .note-dot { fill: var(--note); }
+  .flow { display: flex; align-items: stretch; gap: 6px; overflow-x: auto; padding: 6px 2px 10px; }
+  .stage { flex: 0 0 200px; text-align: left; border: 1px solid var(--line); background: var(--node-stage); color: var(--ink); border-radius: 8px; padding: 8px 10px; cursor: pointer; font: inherit; box-shadow: var(--shadow); }
+  .stage:hover, .stage.selected, .stage.match { border-color: var(--accent); }
+  .stage.expanded { border-width: 2px; border-color: var(--accent); }
+  .stage-idx { font-size: 11px; color: var(--muted); }
+  .stage-name { font-weight: 650; }
+  .stage-io { font: 11px ui-monospace, Consolas, monospace; color: var(--muted); margin-top: 2px; word-break: break-all; }
+  .arrow { flex: 0 0 auto; display: flex; flex-direction: column; align-items: center; justify-content: center; color: var(--seen); min-width: 60px; padding: 0 4px; }
+  .arrow.inferred { color: var(--inferred); }
+  .arrow-type { font: 11px ui-monospace, Consolas, monospace; max-width: 120px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .arrow-line { font-size: 20px; line-height: 1; }
+  .drawer { border-top: 1px dashed var(--line); padding-top: 10px; }
+  .flag-row { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 4px; }
+  .badge { display: inline-block; font-size: 11px; padding: 1px 6px; border-radius: 999px; border: 1px solid var(--flag); color: var(--flag); }
+  .kind { display: inline-block; font-size: 11px; text-transform: uppercase; letter-spacing: .05em; color: var(--muted); }
+  .detail-title { font-family: ui-monospace, Consolas, monospace; font-size: 16px; margin: 2px 0 8px; word-break: break-all; }
+  .sig { background: var(--bg); border: 1px solid var(--line); border-radius: 6px; padding: 8px 10px; overflow-x: auto; margin: 0 0 8px; font-size: 12px; }
+  .loc { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-bottom: 8px; }
+  .open { background: var(--accent); color: #fff; text-decoration: none; padding: 4px 10px; border-radius: 6px; font-size: 13px; }
+  .loc-text { font-size: 12px; color: var(--muted); }
+  .linkish { border: 0; background: transparent; color: var(--accent); cursor: pointer; font: inherit; padding: 0; text-align: left; }
+  .copy { font-size: 12px; border: 1px solid var(--line); border-radius: 4px; padding: 1px 6px; color: var(--muted); background: transparent; cursor: pointer; }
+  .dsec { margin-bottom: 8px; }
+  table.io { border-collapse: collapse; width: 100%; font-size: 13px; }
+  table.io td { padding: 3px 6px 3px 0; vertical-align: top; border-bottom: 1px solid var(--line); }
+  .io-name { font-family: ui-monospace, Consolas, monospace; white-space: nowrap; }
+  .inferred-tag { display: inline-block; font-size: 10px; color: var(--inferred); border: 1px solid var(--inferred); border-radius: 999px; padding: 0 5px; margin-left: 6px; vertical-align: middle; }
+  ul.flags, ul.rel { list-style: none; padding: 0; margin: 0; }
+  ul.rel li, ul.flags li { padding: 2px 0; }
+  .notes { width: 100%; font-family: inherit; font-size: 13px; line-height: 1.4; border: 1px solid var(--line); border-radius: 6px; padding: 8px; background: var(--bg); color: var(--ink); resize: vertical; }
+  .hint { padding-top: 20px; }
+</style>
+</head>
+<body>
+<header>
+  <div>
+    <h1 id="title">__CODE_MAP_TITLE__</h1>
+    <div id="meta"></div>
+  </div>
+  <nav class="tabs" aria-label="Layers">
+    <button class="tab active" data-layer="overview">Overview</button>
+    <button class="tab" data-layer="modules">Modules</button>
+    <button class="tab" data-layer="pipeline">Pipeline</button>
+  </nav>
+  <div class="search-wrap">
+    <input id="search" type="search" placeholder="Search symbol or file  ( / )" autocomplete="off" aria-label="Search nodes">
+    <div id="results" hidden></div>
+  </div>
+  <div class="zoom" aria-label="Zoom">
+    <button id="zoom-out" title="Zoom out">−</button>
+    <button id="zoom-reset" title="Reset zoom">1:1</button>
+    <button id="zoom-in" title="Zoom in">+</button>
+  </div>
+  <div class="legend">
+    <span><span class="sw"></span>seen</span>
+    <span><span class="sw inferred"></span>inferred</span>
+    <span><span class="dot" style="background:var(--flag)"></span>hotspot</span>
+    <span><span class="dot" style="background:var(--note)"></span>has note</span>
+  </div>
+  <div id="scope"></div>
+</header>
+<main>
+  <div id="view"></div>
+  <aside id="detail"></aside>
+</main>
+<script id="code-map-data" type="application/json">__CODE_MAP_DATA__</script>
+<script>
+(function () {
+  'use strict';
+  const dataEl = document.getElementById('code-map-data');
+  let DATA;
+  try { DATA = JSON.parse(dataEl.textContent); }
+  catch (e) { document.getElementById('view').textContent = 'code-map: the embedded data block is not valid JSON (' + e.message + ').'; return; }
+
+  // ---------- helpers ----------
+  const $ = (sel) => document.querySelector(sel);
+  const el = (tag, attrs, ...children) => {
+    const n = document.createElement(tag);
+    for (const [k, v] of Object.entries(attrs || {})) {
+      if (v == null) continue;
+      if (k === 'class') n.className = v;
+      else if (k === 'text') n.textContent = v;
+      else if (k.startsWith('on')) n.addEventListener(k.slice(2), v);
+      else n.setAttribute(k, v);
+    }
+    for (const c of children) if (c != null && c !== false) n.append(c);
+    return n;
+  };
+  const svgEl = (tag, attrs) => {
+    const n = document.createElementNS('http://www.w3.org/2000/svg', tag);
+    for (const [k, v] of Object.entries(attrs || {})) n.setAttribute(k, v);
+    return n;
+  };
+  const put = (parent, ...items) => { for (const it of items) if (it) parent.append(it); };
+  const push = (map, k, v) => { if (!map.has(k)) map.set(k, []); map.get(k).push(v); };
+  const truncate = (s, n) => { s = String(s || ''); return s.length > n ? s.slice(0, n - 1) + '…' : s; };
+
+  // ---------- index ----------
+  const nodes = new Map(), kindOf = new Map();
+  const add = (list, kind) => (list || []).forEach((n) => { nodes.set(n.id, n); kindOf.set(n.id, kind); });
+  const stages = (DATA.pipeline && DATA.pipeline.stages) || [];
+  add(DATA.subsystems, 'subsystem'); add(DATA.modules, 'module'); add(stages, 'stage'); add(DATA.functions, 'function');
+  const callers = new Map(), modIn = new Map(), modOut = new Map(), stageOf = new Map();
+  (DATA.functions || []).forEach((f) => (f.calls || []).forEach((c) => push(callers, c.to, { from: f.id, confidence: c.confidence, evidence: c.evidence })));
+  (DATA.moduleEdges || []).forEach((e) => { push(modOut, e.from, e); push(modIn, e.to, e); });
+  stages.forEach((s) => (s.functions || []).forEach((fid) => { if (!stageOf.has(fid)) stageOf.set(fid, s.id); }));
+
+  const FLAG_HELP = {
+    'no-doc': 'No docstring or doc comment',
+    'untyped': 'No type information on parameters or return',
+    'high-fan-in': 'Called from many places; changes ripple',
+    'long': 'Long body; refactor candidate',
+    'todo': 'Contains TODO, FIXME, or HACK',
+    'no-callers': 'No static callers found; dead or dynamic'
+  };
+
+  const state = { layer: 'overview', subsystem: null, expanded: null, selected: null, query: '', zoom: 1 };
+  const view = $('#view'), detail = $('#detail'), searchInput = $('#search'), results = $('#results');
+
+  // ---------- notes (browser storage, keyed by repo root + stable node id) ----------
+  const noteKey = (id) => 'codemap:' + ((DATA.meta && (DATA.meta.repoRoot || DATA.meta.repo)) || '') + ':' + id;
+  const loadNote = (id) => { try { return localStorage.getItem(noteKey(id)) || ''; } catch (e) { return ''; } };
+  const saveNote = (id, text) => { try { if (text) localStorage.setItem(noteKey(id), text); else localStorage.removeItem(noteKey(id)); return true; } catch (e) { return false; } };
+  const hasNote = (id) => loadNote(id) !== '';
+
+  // ---------- editor links ----------
+  function buildLink(n) {
+    const m = DATA.meta || {};
+    const scheme = m.editorScheme || 'vscode://file/{abs_path}:{line}:{col}';
+    const root = String(m.repoRoot || '').replace(/\\/g, '/').replace(/\/+$/, '');
+    const rel = String(n.path || '').replace(/\\/g, '/');
+    const abs = root ? root + '/' + rel : rel;
+    return scheme
+      .replace('{abs_path}', encodeURI(abs))
+      .replace('{rel_path}', encodeURI(rel))
+      .replace('{line}', String(n.line || 1))
+      .replace('{col}', '1')
+      .replace('{project}', encodeURIComponent(m.project || m.repo || ''));
+  }
+  async function copyText(t) { try { await navigator.clipboard.writeText(t); return true; } catch (e) { return false; } }
+
+  // ---------- layered DAG layout: columns by dependency depth, back edges ignored for layering ----------
+  const NODE_W = 172, NODE_H = 36, GAP_X = 72, GAP_Y = 14, PAD = 16;
+  function layoutDag(ids, edges, groupOf) {
+    const idSet = new Set(ids);
+    const out = new Map(); ids.forEach((i) => out.set(i, []));
+    edges.forEach((e) => { if (idSet.has(e.from) && idSet.has(e.to) && e.from !== e.to) out.get(e.from).push(e.to); });
+    const color = new Map(), fwd = new Map(); ids.forEach((i) => fwd.set(i, []));
+    const visit = (u) => {
+      color.set(u, 1);
+      for (const v of out.get(u)) { if (color.get(v) === 1) continue; fwd.get(u).push(v); if (!color.has(v)) visit(v); }
+      color.set(u, 2);
+    };
+    ids.forEach((i) => { if (!color.has(i)) visit(i); });
+    const indeg = new Map(); ids.forEach((i) => indeg.set(i, 0));
+    fwd.forEach((list) => list.forEach((v) => indeg.set(v, indeg.get(v) + 1)));
+    const depth = new Map();
+    const queue = ids.filter((i) => indeg.get(i) === 0); queue.forEach((i) => depth.set(i, 0));
+    while (queue.length) {
+      const u = queue.shift();
+      for (const v of fwd.get(u)) {
+        depth.set(v, Math.max(depth.get(v) || 0, depth.get(u) + 1));
+        indeg.set(v, indeg.get(v) - 1);
+        if (indeg.get(v) === 0) queue.push(v);
+      }
+    }
+    ids.forEach((i) => { if (!depth.has(i)) depth.set(i, 0); });
+    const cols = new Map(); ids.forEach((i) => push(cols, depth.get(i), i));
+    const colKeys = [...cols.keys()].sort((a, b) => a - b);
+    const pos = new Map(); let maxRows = 1;
+    colKeys.forEach((d, ci) => {
+      const list = cols.get(d).sort((a, b) => (groupOf(a) + ' ' + nodes.get(a).name).localeCompare(groupOf(b) + ' ' + nodes.get(b).name));
+      maxRows = Math.max(maxRows, list.length);
+      list.forEach((id, ri) => pos.set(id, { x: PAD + ci * (NODE_W + GAP_X), y: PAD + ri * (NODE_H + GAP_Y) }));
+    });
+    const width = PAD * 2 + Math.max(1, colKeys.length) * (NODE_W + GAP_X) - GAP_X;
+    const height = PAD * 2 + maxRows * (NODE_H + GAP_Y) - GAP_Y;
+    return { pos, width, height };
+  }
+  function edgePath(a, b) {
+    const y1 = a.y + NODE_H / 2, y2 = b.y + NODE_H / 2;
+    if (b.x > a.x) { const x1 = a.x + NODE_W, x2 = b.x, dx = Math.max(30, (x2 - x1) / 2); return 'M' + x1 + ',' + y1 + ' C' + (x1 + dx) + ',' + y1 + ' ' + (x2 - dx) + ',' + y2 + ' ' + x2 + ',' + y2; }
+    if (b.x < a.x) { const x1 = a.x, x2 = b.x + NODE_W; return 'M' + x1 + ',' + y1 + ' C' + (x1 - 50) + ',' + (y1 + 34) + ' ' + (x2 + 50) + ',' + (y2 + 34) + ' ' + x2 + ',' + y2; }
+    const x1 = a.x + NODE_W, x2 = b.x + NODE_W; return 'M' + x1 + ',' + y1 + ' C' + (x1 + 46) + ',' + y1 + ' ' + (x2 + 46) + ',' + y2 + ' ' + x2 + ',' + y2;
+  }
+  function drawGraph(ids, edges, opts) {
+    opts = opts || {};
+    const groupOf = opts.groupOf || (() => '');
+    const { pos, width, height } = layoutDag(ids, edges, groupOf);
+    const svg = svgEl('svg', { class: 'graph', viewBox: '0 0 ' + width + ' ' + height, width: Math.round(width * state.zoom), height: Math.round(height * state.zoom) });
+    const defs = svgEl('defs');
+    ['seen', 'inferred'].forEach((c) => {
+      const m = svgEl('marker', { id: 'arrow-' + c, viewBox: '0 0 10 10', refX: 10, refY: 5, markerWidth: 7, markerHeight: 7, orient: 'auto' });
+      m.append(svgEl('path', { d: 'M0,0 L10,5 L0,10 z', class: 'arrow ' + c }));
+      defs.append(m);
+    });
+    svg.append(defs);
+    const edgeLayer = svgEl('g', { class: 'edges' }); svg.append(edgeLayer);
+    edges.forEach((e) => {
+      const a = pos.get(e.from), b = pos.get(e.to); if (!a || !b) return;
+      const conf = e.confidence === 'inferred' ? 'inferred' : 'seen';
+      const p = svgEl('path', { d: edgePath(a, b), class: 'edge ' + conf, 'marker-end': 'url(#arrow-' + conf + ')', 'data-from': e.from, 'data-to': e.to });
+      const t = svgEl('title');
+      t.textContent = nodes.get(e.from).name + ' → ' + nodes.get(e.to).name + (conf === 'inferred' ? ' (inferred)' : '') + (e.evidence ? '\n' + e.evidence : '');
+      p.append(t);
+      edgeLayer.append(p);
+    });
+    const nodeLayer = svgEl('g', { class: 'nodes' }); svg.append(nodeLayer);
+    ids.forEach((id) => {
+      const n = nodes.get(id), p = pos.get(id), kind = kindOf.get(id);
+      const g = svgEl('g', { class: 'node kind-' + kind + (opts.faded && opts.faded.has(id) ? ' faded' : '') + (state.selected === id ? ' selected' : ''), transform: 'translate(' + p.x + ',' + p.y + ')', 'data-id': id, tabindex: 0, role: 'button' });
+      g.append(svgEl('rect', { width: NODE_W, height: NODE_H, rx: 6 }));
+      const label = svgEl('text', { x: 10, y: NODE_H / 2 + 4, class: 'label' }); label.textContent = truncate(n.name, 21); g.append(label);
+      (n.flags || []).slice(0, 4).forEach((f, i) => g.append(svgEl('circle', { cx: NODE_W - 10 - i * 10, cy: 8, r: 3.5, class: 'flag-dot flag-' + f })));
+      if (hasNote(id)) g.append(svgEl('circle', { cx: NODE_W - 10, cy: NODE_H - 8, r: 3.5, class: 'note-dot' }));
+      const t = svgEl('title');
+      t.textContent = n.name + (n.signature ? '\n' + n.signature : '') + (n.path ? '\n' + n.path + ':' + (n.line || 1) : '') + ((n.flags || []).length ? '\nflags: ' + n.flags.join(', ') : '');
+      g.append(t);
+      g.addEventListener('click', () => select(id));
+      g.addEventListener('keydown', (ev) => { if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); select(id); } });
+      g.addEventListener('mouseenter', () => hoverEdges(svg, id, true));
+      g.addEventListener('mouseleave', () => hoverEdges(svg, id, false));
+      nodeLayer.append(g);
+    });
+    const box = el('div', { class: 'graph-box' }); box.append(svg); return box;
+  }
+  function hoverEdges(svg, id, on) { svg.querySelectorAll('path.edge').forEach((p) => p.classList.toggle('hot', on && (p.dataset.from === id || p.dataset.to === id))); }
+
+  // ---------- views ----------
+  function render() {
+    view.innerHTML = '';
+    document.querySelectorAll('.tab').forEach((t) => t.classList.toggle('active', t.dataset.layer === state.layer));
+    if (state.layer === 'overview') renderOverview(); else if (state.layer === 'modules') renderModules(); else renderPipeline();
+    renderDetail(); applyQuery();
+  }
+  function renderOverview() {
+    view.append(el('section', { class: 'block' }, el('h2', { text: 'Architecture' }), el('p', { class: 'prose', text: DATA.overview || 'No overview recorded.' })));
+    const grid = el('div', { class: 'cards' });
+    (DATA.subsystems || []).forEach((s) => {
+      const count = (s.modules || []).length;
+      grid.append(el('button', { class: 'card' + (state.selected === s.id ? ' selected' : ''), 'data-id': s.id, onclick: () => { state.subsystem = s.id; state.layer = 'modules'; state.selected = s.id; setHash(s.id); render(); } },
+        el('div', { class: 'card-title', text: s.name }),
+        el('div', { class: 'card-sub', text: count + (count === 1 ? ' module' : ' modules') }),
+        el('p', { class: 'card-body', text: s.summary || '' })));
+    });
+    view.append(el('section', { class: 'block' }, el('h2', { text: 'Subsystems' }), (DATA.subsystems || []).length ? grid : el('p', { class: 'muted', text: 'No subsystems recorded.' })));
+    if (stages.length) {
+      view.append(el('section', { class: 'block' }, el('h2', { text: 'Pipeline at a glance' }),
+        el('p', { class: 'prose', text: stages.map((s) => s.name).join('  →  ') }),
+        el('button', { class: 'linkish', text: 'Open the pipeline view', onclick: () => { state.layer = 'pipeline'; render(); } })));
+    }
+  }
+  function renderModules() {
+    const chips = el('div', { class: 'chips' });
+    const chip = (label, id) => el('button', { class: 'chip' + (state.subsystem === id ? ' active' : ''), text: label, onclick: () => { state.subsystem = id; render(); } });
+    chips.append(chip('All', null)); (DATA.subsystems || []).forEach((s) => chips.append(chip(s.name, s.id)));
+    const ids = (DATA.modules || []).filter((m) => !state.subsystem || m.subsystem === state.subsystem).map((m) => m.id);
+    const idSet = new Set(ids);
+    const edges = (DATA.moduleEdges || []).filter((e) => idSet.has(e.from) && idSet.has(e.to));
+    view.append(el('section', { class: 'block' }, el('h2', { text: 'Module dependency map' }), chips,
+      el('p', { class: 'muted small', text: ids.length + ' modules, ' + edges.length + ' import edges. An arrow points from a module to what it imports; hover a node to light its edges, click it for detail.' })));
+    if (ids.length) view.append(drawGraph(ids, edges, { groupOf: (id) => nodes.get(id).subsystem || '' }));
+  }
+  function renderPipeline() {
+    view.append(el('section', { class: 'block' }, el('h2', { text: 'Algorithm pipeline' }),
+      el('p', { class: 'muted small', text: stages.length ? 'Click a stage to expand the functions inside it; click again to collapse. The label on each arrow is the data type passed to the next stage.' : 'No pipeline recorded.' })));
+    if (!stages.length) return;
+    const flow = el('div', { class: 'flow' });
+    stages.forEach((s, i) => {
+      flow.append(el('button', { class: 'stage' + (state.expanded === s.id ? ' expanded' : '') + (state.selected === s.id ? ' selected' : ''), 'data-id': s.id,
+        onclick: () => { state.expanded = state.expanded === s.id ? null : s.id; state.selected = s.id; setHash(s.id); render(); } },
+        el('div', { class: 'stage-idx', text: 'stage ' + (i + 1) }),
+        el('div', { class: 'stage-name', text: s.name }),
+        el('div', { class: 'stage-io', text: ((s.input && s.input.type) || '?') + ' → ' + ((s.output && s.output.type) || '?') }),
+        flagRow(s.flags)));
+      if (i < stages.length - 1) {
+        const o = s.output || {};
+        flow.append(el('div', { class: 'arrow' + (o.inferred ? ' inferred' : ''), title: o.desc || '' }, el('span', { class: 'arrow-type', text: o.type || '' }), el('span', { class: 'arrow-line', text: '⟶' })));
+      }
+    });
+    view.append(flow);
+    const s = state.expanded && nodes.get(state.expanded);
+    if (!s) return;
+    const own = new Set(s.functions || []);
+    const ids = [...own].filter((id) => nodes.has(id));
+    ids.slice().forEach((fid) => (nodes.get(fid).calls || []).forEach((c) => { if (nodes.has(c.to) && !own.has(c.to) && !ids.includes(c.to)) ids.push(c.to); }));
+    const idSet = new Set(ids), edges = [];
+    ids.forEach((fid) => (nodes.get(fid).calls || []).forEach((c) => { if (idSet.has(c.to)) edges.push({ from: fid, to: c.to, confidence: c.confidence, evidence: c.evidence }); }));
+    const faded = new Set(ids.filter((id) => !own.has(id)));
+    const drawer = el('section', { class: 'block drawer' }, el('h3', { text: 'Inside “' + s.name + '”' }),
+      el('p', { class: 'muted small', text: own.size + (own.size === 1 ? ' function' : ' functions') + ' in this stage' + (faded.size ? ', plus ' + faded.size + (faded.size === 1 ? ' callee that belongs' : ' callees that belong') + ' elsewhere (faded)' : '') + '. Arrows are calls; dashed means inferred.' }));
+    if (ids.length) drawer.append(drawGraph(ids, edges, { groupOf: (id) => (own.has(id) ? '0' : '1'), faded }));
+    else drawer.append(el('p', { class: 'muted', text: 'No functions recorded for this stage.' }));
+    view.append(drawer);
+  }
+  function flagRow(flags) { const row = el('div', { class: 'flag-row' }); (flags || []).forEach((f) => row.append(el('span', { class: 'badge', text: f, title: FLAG_HELP[f] || f }))); return row; }
+
+  // ---------- detail panel ----------
+  function renderDetail() {
+    detail.innerHTML = '';
+    const id = state.selected, n = id && nodes.get(id);
+    if (!n) { detail.append(el('p', { class: 'muted hint', text: 'Select a node to see its purpose, typed inputs and outputs, flags, relations, and your notes. Press / to search.' })); return; }
+    const kind = kindOf.get(id);
+    detail.append(el('div', { class: 'kind', text: kind }));
+    detail.append(el('h2', { class: 'detail-title', text: n.name }));
+    if (n.signature) detail.append(el('pre', { class: 'sig' }, el('code', { text: n.signature })));
+    if (n.path) {
+      const href = buildLink(n);
+      const copyBtn = el('button', { class: 'copy', text: 'copy', title: 'Copy path:line' });
+      copyBtn.addEventListener('click', async () => { const ok = await copyText(n.path + ':' + (n.line || 1)); copyBtn.textContent = ok ? 'copied' : 'copy failed'; setTimeout(() => { copyBtn.textContent = 'copy'; }, 1200); });
+      detail.append(el('div', { class: 'loc' }, el('a', { class: 'open', href: href, title: href, text: 'Open in editor' }), el('code', { class: 'loc-text', text: n.path + ':' + (n.line || 1) + (n.endLine ? '–' + n.endLine : '') }), copyBtn));
+    }
+    if (n.purpose || n.summary) detail.append(el('p', { class: 'prose', text: n.purpose || n.summary }));
+    if (kind === 'stage') put(detail, ioTable('Input', n.input ? [n.input] : []), ioTable('Output', n.output ? [n.output] : []));
+    if (kind === 'function') put(detail, ioTable('Inputs', n.inputs || []), ioTable('Outputs', n.outputs || []), statLine(n));
+    if ((n.flags || []).length) detail.append(section('Flags', el('ul', { class: 'flags' }, ...n.flags.map((f) => el('li', {}, el('span', { class: 'badge', text: f }), ' ', el('span', { class: 'muted small', text: FLAG_HELP[f] || '' }))))));
+    relations(n, kind);
+    notesBlock(id);
+  }
+  function section(title, ...body) { return el('section', { class: 'dsec' }, el('h3', { text: title }), ...body); }
+  function ioTable(title, rows) {
+    if (!rows.length) return section(title, el('p', { class: 'muted small', text: 'none recorded' }));
+    const t = el('table', { class: 'io' });
+    rows.forEach((r) => t.append(el('tr', {}, el('td', { class: 'io-name', text: r.name || '' }), el('td', {}, el('code', { text: r.type || '?' }), r.inferred ? el('span', { class: 'inferred-tag', text: 'inferred' }) : null), el('td', { class: 'muted', text: r.desc || '' }))));
+    return section(title, t);
+  }
+  function statLine(n) {
+    const parts = [];
+    if (n.fanIn != null) parts.push('fan-in ' + n.fanIn);
+    if (n.length != null) parts.push(n.length + ' lines');
+    const st = n.stage && nodes.get(n.stage); if (st) parts.push('stage: ' + st.name);
+    const m = n.module && nodes.get(n.module); if (m) parts.push('module: ' + m.name);
+    return parts.length ? el('p', { class: 'muted small', text: parts.join(' · ') }) : null;
+  }
+  function relList(title, items) {
+    if (!items.length) return null;
+    return section(title, el('ul', { class: 'rel' }, ...items.map((it) => {
+      const t = nodes.get(it.id);
+      return el('li', {},
+        t ? el('button', { class: 'linkish', text: t.name, title: t.path ? t.path + ':' + (t.line || 1) : '', onclick: () => navigateTo(it.id) }) : el('span', { class: 'muted', text: String(it.id) }),
+        it.confidence === 'inferred' ? el('span', { class: 'inferred-tag', text: 'inferred' }) : null,
+        it.evidence ? el('span', { class: 'muted small', text: '  ' + it.evidence }) : null);
+    })));
+  }
+  function relations(n, kind) {
+    if (kind === 'function') {
+      put(detail, relList('Calls', (n.calls || []).map((c) => ({ id: c.to, confidence: c.confidence, evidence: c.evidence }))),
+        relList('Called by', (callers.get(n.id) || []).map((c) => ({ id: c.from, confidence: c.confidence, evidence: c.evidence }))));
+    } else if (kind === 'module') {
+      put(detail, relList('Imports', (modOut.get(n.id) || []).map((e) => ({ id: e.to, confidence: e.confidence, evidence: e.evidence }))),
+        relList('Imported by', (modIn.get(n.id) || []).map((e) => ({ id: e.from, confidence: e.confidence, evidence: e.evidence }))),
+        relList('Functions', (n.functions || []).map((f) => ({ id: f }))));
+    } else if (kind === 'stage') {
+      put(detail, relList('Functions', (n.functions || []).map((f) => ({ id: f }))));
+    } else if (kind === 'subsystem') {
+      put(detail, relList('Modules', (n.modules || []).map((m) => ({ id: m }))));
+    }
+  }
+  function notesBlock(id) {
+    const ta = el('textarea', { class: 'notes', rows: 5, placeholder: 'Your notes on this node. Saved in this browser under the node id, so they survive regenerating the map.' });
+    ta.value = loadNote(id);
+    const status = el('span', { class: 'muted small', text: '' });
+    let timer = null;
+    ta.addEventListener('input', () => {
+      clearTimeout(timer); status.textContent = 'saving…';
+      timer = setTimeout(() => { const ok = saveNote(id, ta.value); status.textContent = ok ? 'saved' : 'not saved: browser storage unavailable'; refreshNoteDots(); }, 300);
+    });
+    detail.append(section('Notes', ta, status));
+  }
+  function refreshNoteDots() {
+    document.querySelectorAll('.node').forEach((g) => {
+      const id = g.dataset.id, has = hasNote(id), dot = g.querySelector('.note-dot');
+      if (has && !dot) g.append(svgEl('circle', { cx: NODE_W - 10, cy: NODE_H - 8, r: 3.5, class: 'note-dot' }));
+      if (!has && dot) dot.remove();
+    });
+  }
+
+  // ---------- selection and navigation ----------
+  function setHash(id) { try { history.replaceState(null, '', '#' + encodeURIComponent(id)); } catch (e) { /* some file:// contexts refuse; harmless */ } }
+  function select(id) {
+    state.selected = id; setHash(id);
+    document.querySelectorAll('[data-id]').forEach((x) => x.classList.toggle('selected', x.dataset.id === id));
+    renderDetail();
+  }
+  function findStageCalling(fid) {
+    for (const s of stages) for (const f of (s.functions || [])) { const fn = nodes.get(f); if (fn && (fn.calls || []).some((c) => c.to === fid)) return s.id; }
+    return null;
+  }
+  function navigateTo(id) {
+    const kind = kindOf.get(id); if (!kind) return;
+    if (kind === 'subsystem') state.layer = 'overview';
+    else if (kind === 'module') { state.layer = 'modules'; const m = nodes.get(id); if (state.subsystem && m.subsystem !== state.subsystem) state.subsystem = null; }
+    else if (kind === 'stage') { state.layer = 'pipeline'; state.expanded = id; }
+    else { state.layer = 'pipeline'; const sid = nodes.get(id).stage || stageOf.get(id) || findStageCalling(id); if (sid) state.expanded = sid; }
+    state.selected = id; setHash(id); render();
+    const target = view.querySelector('[data-id="' + CSS.escape(id) + '"]');
+    if (target && target.scrollIntoView) target.scrollIntoView({ block: 'center', inline: 'center' });
+  }
+
+  // ---------- search ----------
+  const matches = (n, q) => [n.name, n.path, n.signature, n.id].some((v) => v && String(v).toLowerCase().includes(q));
+  function applyQuery() {
+    const q = state.query.trim().toLowerCase();
+    document.querySelectorAll('[data-id]').forEach((x) => { const n = nodes.get(x.dataset.id); if (!n) return; const hit = !!q && matches(n, q); x.classList.toggle('match', hit); x.classList.toggle('dim', !!q && !hit); });
+    document.querySelectorAll('path.edge').forEach((p) => {
+      if (!q) { p.classList.remove('match', 'dim'); return; }
+      const a = nodes.get(p.dataset.from), b = nodes.get(p.dataset.to);
+      const hit = !!((a && matches(a, q)) || (b && matches(b, q)));
+      p.classList.toggle('match', hit); p.classList.toggle('dim', !hit);
+    });
+  }
+  function renderResults() {
+    results.innerHTML = '';
+    const q = state.query.trim().toLowerCase();
+    if (!q) { results.hidden = true; return; }
+    const score = (n) => {
+      const name = String(n.name || '').toLowerCase();
+      if (name === q) return 0;
+      if (name.startsWith(q)) return 1;
+      if (name.includes(q)) return 2;
+      if (String(n.path || '').toLowerCase().includes(q)) return 3;
+      if (String(n.signature || '').toLowerCase().includes(q)) return 4;
+      return 5;
+    };
+    const hits = [...nodes.values()].filter((n) => matches(n, q)).map((n) => [score(n), n]).sort((a, b) => a[0] - b[0]).map((x) => x[1]).slice(0, 30);
+    if (!hits.length) results.append(el('div', { class: 'muted result-empty', text: 'no matches' }));
+    hits.forEach((n) => results.append(el('button', { class: 'result', onclick: () => { results.hidden = true; navigateTo(n.id); } },
+      el('span', { class: 'kind', text: kindOf.get(n.id) }), el('span', { class: 'result-name', text: n.name }), el('span', { class: 'muted small', text: n.path ? n.path + ':' + (n.line || 1) : '' }))));
+    results.hidden = false;
+  }
+  searchInput.addEventListener('input', () => { state.query = searchInput.value; applyQuery(); renderResults(); });
+  searchInput.addEventListener('keydown', (ev) => {
+    if (ev.key === 'Escape') { searchInput.value = ''; state.query = ''; applyQuery(); renderResults(); searchInput.blur(); }
+    if (ev.key === 'Enter') { const first = results.querySelector('.result'); if (first) first.click(); }
+  });
+  searchInput.addEventListener('focus', () => { if (state.query.trim()) renderResults(); });
+  document.addEventListener('keydown', (ev) => {
+    const tag = (document.activeElement && document.activeElement.tagName) || '';
+    if (ev.key === '/' && !/^(INPUT|TEXTAREA)$/.test(tag)) { ev.preventDefault(); searchInput.focus(); searchInput.select(); }
+  });
+  document.addEventListener('click', (ev) => { if (!results.contains(ev.target) && ev.target !== searchInput) results.hidden = true; });
+
+  // ---------- tabs, zoom, header ----------
+  document.querySelectorAll('.tab').forEach((t) => t.addEventListener('click', () => { state.layer = t.dataset.layer; render(); }));
+  $('#zoom-in').addEventListener('click', () => { state.zoom = Math.min(2.2, +(state.zoom + 0.15).toFixed(2)); render(); });
+  $('#zoom-out').addEventListener('click', () => { state.zoom = Math.max(0.4, +(state.zoom - 0.15).toFixed(2)); render(); });
+  $('#zoom-reset').addEventListener('click', () => { state.zoom = 1; render(); });
+  function renderMeta() {
+    const m = DATA.meta || {}, sc = m.scope || {};
+    if (m.repo) { $('#title').textContent = m.repo; document.title = m.repo + ' · code map'; }
+    const parts = [];
+    if (m.generated) parts.push('generated ' + m.generated);
+    if (sc.entry) { const e = nodes.get(sc.entry); parts.push('entry ' + (e ? e.name : sc.entry)); }
+    if (sc.focus) parts.push('focus ' + sc.focus);
+    if (m.editorScheme) parts.push('links open in ' + m.editorScheme.split(':')[0]);
+    parts.push((DATA.modules || []).length + ' modules, ' + stages.length + ' stages, ' + (DATA.functions || []).length + ' functions');
+    $('#meta').textContent = parts.join(' · ');
+    const box = $('#scope'); box.innerHTML = '';
+    if (sc.kept) box.append(el('span', { text: sc.kept + ' ' }));
+    const cut = sc.cut || [];
+    if (cut.length) box.append(el('details', {}, el('summary', { text: cut.length + ' left out of this map' }), el('span', { class: 'small', text: ' ' + cut.join(', ') })));
+  }
+
+  // ---------- init ----------
+  renderMeta();
+  let initial = '';
+  try { initial = decodeURIComponent((location.hash || '').slice(1)); } catch (e) { initial = ''; }
+  if (initial && nodes.has(initial)) navigateTo(initial); else render();
+})();
+</script>
+</body>
+</html>

@@ -5,7 +5,7 @@ $ErrorActionPreference = 'Continue'
 
 $Marketplace = 'war3water/Minakami_plugins'
 $MarketplaceName = 'minakami-plugins'
-$Plugins = @('agent-coord-bootstrap', 'prompt-audit')
+$Plugins = @('agent-coord-bootstrap', 'prompt-audit', 'code-map')
 
 Write-Host 'Minakami Plugins installer'
 Write-Host "  marketplace: $Marketplace"
@@ -73,3 +73,6 @@ Write-Host '  Codex CLI:   $agent-coord-bootstrap'
 Write-Host "To audit a prompt's effectiveness for a target coding model:"
 Write-Host '  Claude Code: /prompt-audit:audit-prompt'
 Write-Host '  Codex CLI:   $prompt-audit'
+Write-Host 'To build an interactive code map of the current repository:'
+Write-Host '  Claude Code: /code-map:code-map'
+Write-Host '  Codex CLI:   $code-map'

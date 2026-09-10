@@ -8,6 +8,7 @@ Personal marketplace of cross-runtime plugins for [Claude Code](https://claude.c
 |---|---|
 | `agent-coord-bootstrap` | Scaffold or upgrade an agent-coordination doc layer (`AGENTS.md` + `.agent_works/` + cross-runtime aliases). Fresh init for new projects; content-preserving migration for existing ones. Seeds lightweight code-health practices that keep the codebase maintainable. |
 | `prompt-audit` | Audit one prompt's effectiveness for a specific target coding model — token efficiency, goal clarity, confusion/hallucination triggers, capability limiting, and more. Evidence-cited findings tables, an honest verdict, prioritized refinement advice, and an optional approval-gated rewrite. A second command, `check-sources`, reports when the vendors' official prompting guides have moved ahead of the plugin's reference files. |
+| `code-map` | Build an interactive, layered code map of a repository as one local HTML file — architecture overview, module dependency map, algorithm pipeline with typed data flow, and the functions inside each stage. Every node deep-links to your editor with typed inputs/outputs, hotspot flags, search, and notes; every edge cites its source line, and unconfirmed edges are marked inferred. |
 
 ## Install on a new device
 
@@ -31,10 +32,12 @@ The script detects which of Claude Code / Codex CLI you have installed, register
 claude plugin marketplace add war3water/Minakami_plugins
 claude plugin install agent-coord-bootstrap@minakami-plugins
 claude plugin install prompt-audit@minakami-plugins
+claude plugin install code-map@minakami-plugins
 
 codex plugin marketplace add war3water/Minakami_plugins
 codex plugin add agent-coord-bootstrap@minakami-plugins
 codex plugin add prompt-audit@minakami-plugins
+codex plugin add code-map@minakami-plugins
 ```
 
 Note the asymmetry: Claude Code uses `plugin install`, Codex CLI uses `plugin add`. Both take the `<plugin>@<marketplace>` form. The marketplace source is the bare `owner/repo` GitHub shorthand — `github:`-prefixed forms are rejected by both CLIs.
@@ -46,11 +49,13 @@ Note the asymmetry: Claude Code uses `plugin install`, Codex CLI uses `plugin ad
 claude plugin marketplace update minakami-plugins
 claude plugin update agent-coord-bootstrap@minakami-plugins
 claude plugin update prompt-audit@minakami-plugins
+claude plugin update code-map@minakami-plugins
 
 # Codex CLI: refresh the marketplace, then re-add the plugins
 codex plugin marketplace upgrade minakami-plugins
 codex plugin add agent-coord-bootstrap@minakami-plugins
 codex plugin add prompt-audit@minakami-plugins
+codex plugin add code-map@minakami-plugins
 ```
 
 ## Known limitation — Codex headless mode
@@ -76,6 +81,13 @@ prompt-audit/                       Plugin source
     commands/audit-prompt.md        Slash command runbook (Claude Code surface)
     skills/audit-prompt/            Skill wrapper (Codex surface)
     references/                     Per-model-family durable prompt guidance the audit cites
+code-map/                           Plugin source
+    .codex-plugin/plugin.json       Manifest (canonical)
+    .claude-plugin/plugin.json      Manifest (duplicate)
+    commands/code-map.md            Slash command runbook (Claude Code surface)
+    skills/code-map/                Skill wrapper (Codex surface)
+    references/                     Extraction method, data contract, editor link schemes
+    templates/viewer.html           Reference viewer the run fills with data
 ```
 
 The two `marketplace.json` files and the two `plugin.json` files are **duplicated, not symlinked** — Windows + Git symlinks are unreliable. Edit `.agents/plugins/marketplace.json` and `.codex-plugin/plugin.json` as canonical, then run `bash scripts/sync-manifests.sh` before committing.
