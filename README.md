@@ -7,7 +7,7 @@ Personal marketplace of cross-runtime plugins for [Claude Code](https://claude.c
 | Plugin | Purpose |
 |---|---|
 | `agent-coord-bootstrap` | Scaffold or upgrade an agent-coordination doc layer (`AGENTS.md` + `.agent_works/` + cross-runtime aliases). Fresh init for new projects; content-preserving migration for existing ones. Seeds lightweight code-health practices that keep the codebase maintainable. |
-| `prompt-audit` | Audit one prompt's effectiveness for a specific target coding model — token efficiency, goal clarity, confusion/hallucination triggers, capability limiting, and more. Evidence-cited findings tables, an honest verdict, prioritized refinement advice, and an optional approval-gated rewrite. A second command, `check-sources`, reports when the vendors' official prompting guides have moved ahead of the plugin's reference files. |
+| `prompt-audit` | Audit one prompt's effectiveness for a specific target coding model — token efficiency, goal clarity, confusion/hallucination triggers, capability limiting, and more. Evidence-cited findings tables, an honest verdict, prioritized refinement advice, and an optional approval-gated rewrite. A second command, `check-sources`, lists the vendors' docs indexes to catch newly published model prompting pages and reports when the official guidance has moved ahead of the plugin's reference files. |
 | `code-map` | Build an interactive, layered code map of a repository as one local HTML file — architecture overview, module dependency map, algorithm pipeline with typed data flow, and the functions inside each stage. Every node deep-links to your editor with typed inputs/outputs, hotspot flags, search, and notes; every edge cites its source line, and unconfirmed edges are marked inferred. |
 
 ## Install on a new device
@@ -81,6 +81,7 @@ prompt-audit/                       Plugin source
     commands/audit-prompt.md        Slash command runbook (Claude Code surface)
     skills/audit-prompt/            Skill wrapper (Codex surface)
     references/                     Per-model-family durable prompt guidance the audit cites
+    SOURCES.md                      Source registry: discovery indexes, registered pages, outline snapshots (read by check-sources)
 code-map/                           Plugin source
     .codex-plugin/plugin.json       Manifest (canonical)
     .claude-plugin/plugin.json      Manifest (duplicate)
@@ -96,5 +97,5 @@ The two `marketplace.json` files and the two `plugin.json` files are **duplicate
 
 - A plugin release bumps that plugin's `version` in four places at once: both of its `plugin.json` copies and its entry in both `marketplace.json` copies (via the canonical-then-sync flow above). `metadata.version` is the marketplace's own release train — bumped only for marketplace-level events (new plugin, installer changes), never for per-plugin releases.
 - Ship criteria: `npx markdownlint-cli2 "**/*.md"` clean, manifest pairs in sync, no absolute paths in plugin content.
-- `prompt-audit` releases that change its audit runbook or `references/` content additionally run its five-case eval sweep before shipping — see that plugin's README §Maintenance. Eval fixtures, expectations, and sweep results live in the maintainer's external test workspace, never in this repo. Its `/prompt-audit:check-sources` command reports when the vendors' official prompting guides have moved ahead of the reference files.
+- `prompt-audit` releases that change its audit runbook or `references/` content additionally run its five-case eval sweep before shipping — see that plugin's README §Maintenance. Eval fixtures, expectations, and sweep results live in the maintainer's external test workspace, never in this repo. Its `/prompt-audit:check-sources` command lists the vendors' docs indexes for new model prompting pages, reports when the official guidance has moved ahead of the reference files, and emits the `SOURCES.md` patch a refresh release starts from.
 - The commit log is the changelog: `<type>: v<x.y.z> — <summary>` for releases, scoped conventional style otherwise.

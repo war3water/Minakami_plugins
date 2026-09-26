@@ -79,7 +79,7 @@ You are a language model reading text. You cannot run the prompt, measure tokens
 - You MAY count what the text shows: lines, words, duplicated blocks, repeated rules — and phrase reductions approximately ("removing the duplicated block cuts ~40 lines").
 - You may NOT invent token counts, percentages, benchmark numbers, or improvement estimates. You may NOT claim empirical results ("this will improve accuracy by 30%").
 - You may NOT attribute behavior to a specific model version without a `[user-stated]` basis.
-- A speculative mechanism is tagged `[hypothesis]` and defaults to severity **Minor**. It may carry a higher rating only when the mechanism, if real, implies task failure or unsafe action — then the severity is written `Major (unverified)` or `Critical (unverified)`, the verdict paragraph states that the rating rests on an unverified mechanism, and Step 4 should seek corroboration. Corroboration (known_pain, or a Step 4 answer) removes the marker and adds `[user-stated]`.
+- A speculative mechanism is tagged `[hypothesis]` and defaults to severity **Minor**. It may carry a higher rating only when the mechanism, if real, implies task failure or unsafe action — then the severity is written `Major (unverified)` or `Critical (unverified)`, it does not count toward the verdict (see the verdict scale in Step 5), and Step 4 should seek corroboration. Corroboration (known_pain, or a Step 4 answer) removes the marker and adds `[user-stated]`.
 - Zero findings is a valid, complete outcome. Never manufacture a finding — or an advice item — to appear thorough; an "OK" row is a result.
 
 ### The eight dimensions
@@ -180,9 +180,9 @@ Critical and Major finding; optional for Minor/Info.>
 - <Oversize sampling caveat, if Step 1 triggered it.>
 ```
 
-**Verdict scale** — apply the first matching entry, top to bottom; no invented scores:
+**Verdict scale** — apply the first matching entry, top to bottom; no invented scores. Count only findings whose severity carries no `(unverified)` marker: an unverified Major or Critical never sets the verdict on its own. When one would change it, keep the verdict the verified findings give, and name that finding in the verdict paragraph as the open question that could move it.
 
-- `Not fit for purpose` — the confirmed goal is unreachable by this prompt as designed; requires explicit justification in the verdict paragraph
+- `Not fit for purpose` — the design itself cannot reach the confirmed goal: applying every suggested fix would still leave the goal out of reach (the prompt frames the wrong task, or depends on something it cannot supply). Defects that a stated fix repairs — a contradiction, a broken placeholder, an unsafe tool rule, however severe — are `Needs rework`, never this. Requires explicit justification in the verdict paragraph.
 - `Needs rework` — at least one Critical, or Major findings in three or more dimensions
 - `Effective with revisions` — at least one Major finding
 - `Effective as-is` — no Critical or Major findings; Minors, if any, are listed but do not block using the prompt as-is

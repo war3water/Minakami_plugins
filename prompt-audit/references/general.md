@@ -36,7 +36,7 @@ What does not qualify:
 - **Presupposed context.** Referencing files, tools, variables, or prior decisions that do not exist in the stated usage context sends the model chasing phantoms — a direct hallucination trigger.
 - **Undelimited or spoofable untrusted content.** In agent-facing prompts, external text (file contents, web results, user data) mixed with instructions without clear delimitation is an instruction-injection surface. Delimitation alone is not enough: substituted content can embed text that imitates the closing delimiter or inserts new-looking rules, so the prompt must declare the delimited region inert — data, never instructions — and state that only the outermost harness-inserted delimiters count.
 - **Micromanaged step order.** Scripting every micro-step where judgment would do better both limits the model and breaks when the situation deviates from the script.
-- **Stale workarounds.** Instructions that compensate for a weakness earlier models had; on current models they cost tokens and can actively fight the model's better default behavior.
+- **Stale workarounds.** Instructions that compensate for a weakness earlier models had; on current models they cost tokens and can actively fight the model's better default behavior. The vendors now say this outright: prompts and skills written for earlier models tend to be too prescriptive for current ones, and the first move when a prompt underperforms is to simplify it — remove repeated rules, redundant examples, and legacy scaffolding — before adding anything. A prompt that has only ever grown is the signature.
 
 ## Universal good patterns
 
@@ -48,17 +48,21 @@ What does not qualify:
 - **Delimit data from instructions.** Fences, tags, or clearly labeled sections; instructions outside, material inside.
 - **One canonical example.** A single worked example that agrees with the rules beats three near-duplicates.
 - **Explicit length contract.** State the desired length of responses and written deliverables outright; models do not reliably infer length preferences, and an unstated preference yields the model's own calibration — usually longer than wanted.
+- **Completion criteria and evidence-backed status.** In agentic prompts, state what done means — which checks must pass, which artifacts must exist — and require progress claims to point at tool results from the session. Without a stated completion condition the model picks its own stopping point; without the evidence rule, status reports drift from what was verified.
+- **Explicit scope statement.** Current models expand scope under their own judgment — fixing nearby code, adding tests, abstractions, or features the task did not ask for. Say what is in and out: deliver what was asked, at the scope intended, and report adjacent findings rather than acting on them.
+- **Autonomy boundaries.** Say which actions the model may take freely (local, reversible) and which need confirmation (destructive, hard to reverse, visible to others, scope expansions). Without the boundary the model either over-asks and stalls or takes unrequested actions; blanket caution language produces the stall.
 
 ## Known no-op patterns — streamlining candidates
 
 These instructions restate what current-generation coding models already do unprompted. They spend tokens without changing behavior, and some actively narrow it. This list shifts as model capability evolves — refreshing it is what a version bump of this plugin is for. A streamlining claim not covered here may still be made, tagged `[hypothesis]`.
 
 - "Do not hallucinate" / "be accurate" / "make sure your answer is correct" — aspiration, not instruction; no behavioral lever.
-- "Think step by step" and similar reasoning boilerplate — reasoning-capable models do this on their own; the phrase adds nothing and dates the prompt.
+- "Think step by step", "think carefully before answering", "outline your reasoning first" and similar reasoning boilerplate — reasoning-capable models plan internally, and every major vendor now advises dropping chain-of-thought scaffolds; reasoning depth is a runtime setting, not a prompt lever. The phrase adds latency and dates the prompt. The family files record the one exception: a deliberate depth request for a genuinely hard problem.
 - Generic expert personas — "you are the world's best programmer" adds no capability; a persona earns its place only when it carries real constraints (audience, tone, domain).
 - Threats, bribes, tips, and emotional appeals — no durable effect on modern models; noise.
 - Repeated courtesy — one "please" costs nothing; a pattern of them is filler.
 - Restating baseline competence — "write clean code", "follow best practices", "use meaningful variable names" without project-specific content; the model's defaults already cover this.
+- Not a no-op, for contrast: a rule tied to a concrete action — "open the file before describing it", "solve the general case, do not hard-code to the test inputs", "report adjacent bugs instead of fixing them" — changes behavior and stays. The no-op is the bare aspiration; the lever is the action.
 
 ## Token-efficiency heuristics
 
