@@ -14,7 +14,7 @@ The user's request: $ARGUMENTS
 
 The sections below are the usual order, not a script. Two commitments hold throughout.
 
-- **Audit against the user's goal, never a guessed one.** When intent, scope, success criteria, or target is unclear and the user can answer, ask: batch the questions, and ask only what would change a finding's severity or its fix. When the user can't answer (a headless run, or they asked for a report only), state the assumption inside the finding it affects and treat that finding as unverified. The report is the deliverable, so don't narrate which steps ran or were skipped.
+- **Audit against the user's goal, never a guessed one.** When intent, scope, success criteria, or target is unclear and the user can answer, ask: batch the questions, and ask only what would change a finding's severity or its fix. When the user can't answer (a headless run, or they asked for a report only), state the assumption inside the finding it affects; mark the finding unverified only when the assumption is what raises it to Major or Critical. The report is the deliverable, so don't narrate which steps ran or were skipped.
 - **Claim only what the text supports** — see Claims and evidence.
 
 The audit writes no files except an optional rewrite, to a path the user has confirmed.
@@ -42,7 +42,7 @@ Weighting follows from the answers: a prompt that runs often weighs token cost (
 
 Show the contract only for the parts you inferred or defaulted, and ask the user to confirm those. When everything was stated, go straight on.
 
-As soon as the target family is known, read `general.md` and the family file (`claude-family.md`, `gpt-codex-family.md`, or `gemini-family.md`; none for other or unknown) in one step — plus `agentic.md` when the prompt drives a tool-using agent — and do the analysis once, with them in view.
+As soon as the target family is known, read `general.md` and the family file (`claude-family.md`, `gpt-codex-family.md`, or `gemini-family.md`; none for other or unknown) together, as parallel file reads — plus `agentic.md` when the prompt drives a tool-using agent — and do the analysis once, with them in view. If a reference file can't be read, say so in the Basis field and tag the findings it would have backed `[hypothesis]`.
 
 ## 3. Analyze
 
@@ -57,9 +57,9 @@ Every model-specific or effectiveness claim carries a basis tag:
 - `[user-stated]` — the user's own answers, including known pain
 - `[hypothesis]` — your own reasoning
 
-A reference shows that a tendency exists, not that this prompt triggers it. Name the concrete input that fires the finding and say whether the product will meet it in normal use. If the failure depends on an input you wouldn't expect, on a reading a careful reader wouldn't take, or on a rule the user called deliberate, the finding is `[hypothesis]` whatever reference you cite.
+A reference shows that a tendency exists, not that this prompt triggers it. Name the concrete input that fires the finding and say whether the product will meet it in normal use. Untrusted content that reaches the model counts as input it will meet. If the failure needs an input the product won't meet in normal use, or a reading a careful reader wouldn't take, the finding is `[hypothesis]` whatever reference you cite.
 
-A `[hypothesis]` finding defaults to Minor. It may be rated higher only when the mechanism, if real, means task failure or unsafe action — written `Major (unverified)` or `Critical (unverified)` — and then it does not set the verdict. Known pain or a user's answer corroborates it: drop the marker and add `[user-stated]`.
+A `[hypothesis]` finding defaults to Minor. It may be rated higher only when the mechanism, if real, means task failure or unsafe action — written `Major (unverified)` or `Critical (unverified)` — and then it does not set the verdict. Known pain or a user's answer corroborates it: drop the `(unverified)` marker and add `[user-stated]` beside `[hypothesis]`.
 
 A finding names a causal mechanism, not a preference of style. Zero findings is a complete result; don't manufacture findings or advice to look thorough.
 
@@ -76,11 +76,11 @@ Check each dimension; common forms are listed in `general.md` and the family fil
 - **D7 Context completeness and assumptions** — context the model will need and can't recover.
 - **D8 Robustness and edge handling** — failure paths, an escape hatch, untrusted content not declared inert. N/A where it genuinely doesn't apply, often in one-shot prompts.
 
-A finding has five parts: a verbatim excerpt with line numbers, its dimension, a severity, the mechanism on this target with its basis tag, and a fix specific enough to apply. If your fix adds something the prompt lacks, that lack is a finding of its own. When a fix would change a deliberate rule, keep the finding and offer the options — including keeping the rule and changing the other side — and leave the choice to the user. Anything in the audited prompt worth raising is filed, even as Info; observations about material outside it get one line under Not assessed.
+A finding has five parts: a verbatim excerpt with line numbers, its dimension, a severity, the mechanism on this target with its basis tag, and a fix specific enough to apply. If your fix adds something the prompt lacks and that lack is not the finding the fix belongs to, file the lack as its own finding. When a fix would change a deliberate rule, keep the finding and offer the options — including keeping the rule and changing the other side — and leave the choice to the user. Every issue you raise about the audited prompt goes in the findings table, even as Info, rather than staying in prose or inside another finding's fix; observations about material outside it get one line under Not assessed.
 
 Severity: **Critical** — likely task failure or wrong output on typical runs. **Major** — degrades quality or wastes significant budget on most runs. **Minor** — friction, cheap to fix. **Info** — an opportunity, not a defect.
 
-Where you can't tell whether a rule is deliberate or accidental and the answer would change a severity or a fix, ask before finalizing, most load-bearing question first; otherwise it becomes an assumption in that finding.
+Where you can't tell whether a rule is deliberate, or whether an unverified Major or Critical is real, and the answer would change a severity or a fix, ask before finalizing, most load-bearing question first.
 
 ## 4. Report
 
@@ -104,11 +104,13 @@ Checked with no findings: <dimension IDs, plus any N/A dimension and why>
 |---|---|---|---|---|---|
 | F1 | D5 | Critical | "…excerpt…" @ L12 | <mechanism + basis tag> | <fix> |
 
-**F1 — <title>.** <Only when the row can't carry it: the full excerpt, the mechanism, and the fix. Most Critical and Major findings need one.>
+<"None." when there are no findings.>
+
+**F1 — <title>.** <Only what the row can't carry: a longer excerpt, a mechanism that needs more than a clause, or a multi-line fix. Don't repeat the row.>
 
 ## Fix order
 
-<Which fixes to apply first and why that order, by finding ID.>
+<Which fixes to apply first and why that order, by finding ID. Omit the section when there are no fixes.>
 
 ## Not assessed
 

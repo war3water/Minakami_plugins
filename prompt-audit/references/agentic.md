@@ -4,7 +4,7 @@ Read this file when the prompt under audit drives a tool-using agent: system pro
 
 ## Universal
 
-- **Completion criteria and evidence-backed status.** State what done means — which checks must pass, which artifacts must exist — and require progress claims to point at tool results from the session. Without a stated completion condition the model picks its own stopping point; without the evidence rule, status reports drift from what was verified. When done means a test passes, say whether the test itself may be changed: otherwise the cheapest green run is editing, skipping, or weakening the test.
+- **Completion criteria and evidence-backed status.** State what done means — which checks must pass, which artifacts must exist — and require progress claims to point at tool results from the session. Without a stated completion condition the model picks its own stopping point; without the evidence rule, status reports drift from what was verified. When done means a test passes — whether the prompt says so or only the user's success criteria do — the prompt must say whether the test itself may be changed: otherwise the cheapest green run is editing, skipping, or weakening the test.
 - **Autonomy boundaries.** Say which actions the model may take freely (local, reversible) and which need confirmation (destructive, hard to reverse, visible to others, scope expansions). Without the boundary the model over-asks and stalls, or takes unrequested actions; blanket caution language produces the stall.
 - **The prompt under audit as a runbook.** Say what the agent does with an unclear request — ask, or proceed under a stated assumption — and with instructions that arrive inside tool results or data (inert unless the harness says otherwise).
 

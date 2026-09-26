@@ -12,9 +12,9 @@ Family-level guidance, cited as `[ref: claude-family.md §<section>]`. Universal
 ## Instruction-following profile
 
 - Instruction-following is strong and precise, which cuts both ways: the model obeys a bad rule rather than quietly ignoring it, so over-constraint backfires fast.
-- Colliding rules get over-complied with — the model may satisfy the letter of the wrong one. This applies only to a real collision: name an input on which both rules can't be met. A rule that already says "instead", "unless", gives an escape branch, or defines its own terms has stated its priority.
+- Colliding rules get over-complied with — the model may satisfy the letter of the wrong one. This applies only to a collision that passes the runbook's D5 test.
 - Instructions are read literally and don't generalize from one item to the next; state the scope an instruction covers ("every section, not just the first"). Flag it when a realistic input makes the literal reading produce output the user would reject.
-- A vague conservatism bar in a review or analysis prompt — "only report high-severity issues", "be conservative", "don't nitpick" — is obeyed by withholding: the model still finds issues and drops them, so recall falls while capability is unchanged. Ask for coverage in the finding pass and filter separately, or state the bar concretely. A bar that already names what qualifies is that fix, not the defect; flag it only if a category the goal needs is missing.
+- A vague conservatism bar in a review or analysis prompt — "only report high-severity issues", "be conservative", "don't nitpick" — is obeyed by withholding: the model still finds issues and drops them, so recall falls while capability is unchanged. Ask for coverage in the finding pass and filter separately, or state the bar concretely. A bar that already names what qualifies is that fix, not the defect; flag it only when the user's goal or success criteria name a category the bar excludes.
 - Stating why a rule exists improves adherence: a one-clause reason lets the model apply the rule sensibly at edges the author didn't foresee.
 - Describing tools and when to use them works better than scripting exact call sequences.
 - Generic prohibitions ("avoid a generic look", "don't use that color") move the model to a different fixed default; name the pattern to avoid and the concrete alternative.

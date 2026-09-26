@@ -13,7 +13,7 @@ Family-independent guidance, cited as `[general]`. The runbook defines what a fi
 
 ## Universal anti-patterns
 
-- **Contradictory rules.** The model resolves the conflict unpredictably, and different runs resolve it differently. A conflict is real only when some input cannot satisfy both rules; a rule that says "instead", "unless", gives an escape branch, or defines its own terms already states which applies.
+- **Contradictory rules.** The model resolves the conflict unpredictably, and different runs resolve it differently; the runbook's D5 test decides whether a conflict is real.
 - **Duplicate rules.** Restating a rule in new words reads as two rules, and over edits the copies drift apart and start to conflict.
 - **Vague success criteria.** "Make it good", "be thorough" — the model optimizes for its own reading of good, which may not be the user's.
 - **Negation-heavy rule lists.** Long chains of "don't X, never Y" leave the desired behavior unstated; say what to do instead.
@@ -35,11 +35,11 @@ Family-independent guidance, cited as `[general]`. The runbook defines what a fi
 - **Delimited data.** Fences, tags, or labeled sections: instructions outside, material inside.
 - **One canonical example.** A single worked example that agrees with the rules beats several near-duplicates.
 - **Explicit length contract.** Models don't reliably infer length preferences; an unstated one yields the model's own calibration, usually longer than wanted.
-- **Explicit scope statement.** Current models expand scope on their own judgment — nearby fixes, extra tests, unrequested abstractions. Say what is in and out: deliver what was asked, at the scope intended, and report adjacent findings rather than acting on them.
+- **Explicit scope statement.** Current models expand scope on their own judgment — nearby fixes, extra tests, unrequested abstractions. Say what is in and out: deliver what was asked, at the scope intended, and report adjacent findings rather than acting on them. Applies where the model changes code or other artifacts; a prompt whose output is fully specified already bounds its scope.
 
 ## Known no-op patterns
 
-These restate what current coding models do unprompted: they cost tokens without changing behavior, and some narrow it. Aspirations with no lever ("do not hallucinate", "be accurate"); reasoning boilerplate ("think step by step", "outline your reasoning first" — reasoning depth is a runtime setting, and the family files record the one exception); generic expert personas with no real constraint attached; threats, bribes, and emotional appeals; repeated courtesy; and restated baseline competence ("write clean code", "follow best practices") with no project-specific content. A streamlining claim outside this list can still be made, tagged `[hypothesis]`.
+These restate what current coding models do unprompted: they cost tokens without changing behavior, and some narrow it. Aspirations with no lever ("do not hallucinate", "be accurate"); reasoning boilerplate ("think step by step", "think carefully before answering", "reason at length first", "outline your reasoning first" — reasoning depth is a runtime setting, and the family files record the one exception); generic expert personas with no real constraint attached; threats, bribes, and emotional appeals; repeated courtesy; and restated baseline competence ("write clean code", "follow best practices") with no project-specific content. A streamlining claim outside this list can still be made, tagged `[hypothesis]`.
 
 Not a no-op, for contrast: a rule tied to a concrete action — "read the file before describing it", "solve the general case, don't hard-code to the test inputs", "report incorrect tests instead of working around them", "report adjacent bugs instead of fixing them" — changes behavior and stays. The no-op is the bare aspiration; the lever is the action.
 
