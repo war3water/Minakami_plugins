@@ -1,23 +1,11 @@
 ---
 name: check-sources
-description: Check whether the vendors' official prompting guidance has moved ahead of prompt-audit's reference files — lists each vendor's page index to find newly published model prompting pages, diffs every registered page against its recorded coverage and outline, and reports what changed per family, whether a reference-refresh release is warranted, and a ready-to-paste registry patch. Read-only; writes nothing. USER-INVOKED ONLY — execute solely when the user explicitly names this skill ($prompt-audit skills in Codex, /prompt-audit:check-sources in Claude Code); never auto-trigger from natural-language inference.
+description: Check whether the vendors' official prompting guidance has moved ahead of prompt-audit's reference files — lists each vendor's page index to find newly published model prompting pages, diffs every registered page against its recorded coverage and outline, and reports what changed per family, whether a reference-refresh release is warranted, and a ready-to-paste registry patch. Read-only; writes nothing. Runs only when the user invokes it by name ($prompt-audit skills in Codex, /prompt-audit:check-sources in Claude Code).
 disable-model-invocation: true
 ---
 
-This skill is a thin wrapper around the plugin's canonical runbook so that
-Codex CLI (which loads plugin skills, not plugin commands) can execute it.
-Claude Code users can equivalently run the plugin-namespaced slash command
-`/prompt-audit:check-sources`.
+This skill carries the plugin's source-check runbook to Codex CLI, which loads plugin skills rather than plugin commands. Claude Code runs the same runbook as `/prompt-audit:check-sources`.
 
-**Step 0 — invocation gate.** Whether and when to check reference
-freshness is the user's decision, not yours. Proceed only if the user
-explicitly invoked this skill by name in their message. If you arrived
-here by inferring intent from conversation, stop and ask: "Run
-check-sources?" — and proceed only on an explicit yes.
+Run it only when the user asked for it by name. If you arrived here by inferring intent, ask "Run check-sources?" and continue only on a yes.
 
-Then read and execute, exactly and in order, the runbook at:
-
-- Codex CLI: `${PLUGIN_ROOT}/commands/check-sources.md`
-- Claude Code: `${CLAUDE_PLUGIN_ROOT}/commands/check-sources.md`
-
-Do not improvise beyond what the runbook specifies.
+Then read and follow the runbook at `${PLUGIN_ROOT}/commands/check-sources.md` (in Claude Code, `${CLAUDE_PLUGIN_ROOT}/commands/check-sources.md`). The user's instructions in this conversation take precedence over its defaults.

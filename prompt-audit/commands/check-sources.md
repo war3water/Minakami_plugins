@@ -4,7 +4,7 @@ description: Check whether the vendors' official prompting guidance has moved ah
 disable-model-invocation: true
 ---
 
-You are executing `/check-sources` for the `prompt-audit` plugin.
+You are running prompt-audit's source check.
 
 Your job: tell the maintainer whether the plugin's reference files have fallen behind the vendors' official prompting guidance — including guidance for models that did not exist when the references were last refreshed. Plugin root: in Claude Code it is `${CLAUDE_PLUGIN_ROOT}`; in Codex CLI it is `${PLUGIN_ROOT}` — use whichever your runtime defines. The source registry lives at `<plugin-root>/SOURCES.md`.
 
