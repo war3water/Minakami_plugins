@@ -17,16 +17,21 @@ if command -v claude >/dev/null 2>&1; then
   FOUND_ANY=1
   echo
   echo "[claude] registering marketplace"
-  if ! claude plugin marketplace add "${MARKETPLACE}"; then
-    # tolerate an already-registered marketplace; refresh it instead
-    if ! claude plugin marketplace update "${MARKETPLACE_NAME}"; then
-      FAILURES+=("claude: marketplace add/update failed")
-    fi
+  # add succeeds on an already-registered marketplace without refreshing it, so always refresh;
+  # the refresh also fails when add did not register it, which is the failure that matters
+  claude plugin marketplace add "${MARKETPLACE}"
+  if ! claude plugin marketplace update "${MARKETPLACE_NAME}"; then
+    FAILURES+=("claude: marketplace add/update failed")
   fi
   for p in "${PLUGINS[@]}"; do
     echo "[claude] installing ${p}"
     if ! claude plugin install "${p}@${MARKETPLACE_NAME}"; then
       FAILURES+=("claude: install ${p} failed")
+      continue
+    fi
+    # install leaves an already-installed plugin at its installed version; update brings it current
+    if ! claude plugin update "${p}@${MARKETPLACE_NAME}"; then
+      FAILURES+=("claude: update ${p} failed")
     fi
   done
 else
@@ -37,10 +42,10 @@ if command -v codex >/dev/null 2>&1; then
   FOUND_ANY=1
   echo
   echo "[codex] registering marketplace"
-  if ! codex plugin marketplace add "${MARKETPLACE}"; then
-    if ! codex plugin marketplace upgrade "${MARKETPLACE_NAME}"; then
-      FAILURES+=("codex: marketplace add/upgrade failed")
-    fi
+  # same as above: add leaves an existing snapshot stale, so always upgrade it
+  codex plugin marketplace add "${MARKETPLACE}"
+  if ! codex plugin marketplace upgrade "${MARKETPLACE_NAME}"; then
+    FAILURES+=("codex: marketplace add/upgrade failed")
   fi
   for p in "${PLUGINS[@]}"; do
     echo "[codex] installing ${p}"
@@ -69,7 +74,8 @@ if [ "${#FAILURES[@]}" -gt 0 ]; then
 fi
 
 echo
-echo "Done. To scaffold or upgrade a project's coordination docs (any project root):"
+echo "Done. Restart any running Claude Code or Codex session to load the new versions."
+echo "To scaffold or upgrade a project's coordination docs (any project root):"
 echo "  Claude Code: /agent-coord-bootstrap:init-agent-coord"
 echo "  Codex CLI:   \$agent-coord-bootstrap"
 echo "To audit a prompt's effectiveness for a target coding model:"

@@ -24,7 +24,7 @@ curl -fsSL https://raw.githubusercontent.com/war3water/Minakami_plugins/main/ins
 iwr -useb https://raw.githubusercontent.com/war3water/Minakami_plugins/main/install.ps1 | iex
 ```
 
-The script detects which of Claude Code / Codex CLI you have installed, registers this marketplace with each, installs every plugin listed above, and reports any step that failed.
+The script detects which of Claude Code / Codex CLI you have installed, registers this marketplace with each, installs every plugin listed above, and reports any step that failed. Re-running it on a device that already has the plugins brings each one to its latest version.
 
 ### Manual
 
@@ -60,7 +60,7 @@ codex plugin add code-map@minakami-plugins
 
 ## Known limitation — Codex headless mode
 
-Codex CLI loads plugin skills in interactive sessions only. `codex exec` (verified on v0.145.0) does not load plugin skills at all — regardless of trusted directory or `--skip-git-repo-check` — so a `$<plugin>` invocation in a script falls back to the model improvising without the runbook. Invoke these plugins from an interactive `codex` session; re-test headless support after Codex CLI upgrades. Claude Code headless works normally (`claude -p "/<plugin>:<command> ..."`).
+Codex CLI loads plugin skills in interactive sessions only. `codex exec` (verified on v0.145.0, re-verified on v0.162.0 on 2026-10-09) does not load plugin skills at all — regardless of trusted directory or `--skip-git-repo-check` — so a `$<plugin>` invocation in a script falls back to the model improvising without the runbook. Invoke these plugins from an interactive `codex` session; re-test headless support after Codex CLI upgrades. Claude Code headless works normally (`claude -p "/<plugin>:<command> ..."`).
 
 ## Repository layout
 
@@ -79,7 +79,9 @@ prompt-audit/                       Plugin source
     .codex-plugin/plugin.json       Manifest (canonical)
     .claude-plugin/plugin.json      Manifest (duplicate)
     commands/audit-prompt.md        Slash command runbook (Claude Code surface)
+    commands/check-sources.md       Maintainer command: checks vendor docs indexes against the references
     skills/audit-prompt/            Skill wrapper (Codex surface)
+    skills/check-sources/           Skill wrapper (Codex surface)
     references/                     Per-model-family durable prompt guidance the audit cites
     SOURCES.md                      Source registry: discovery indexes, registered pages, outline snapshots (read by check-sources)
 code-map/                           Plugin source

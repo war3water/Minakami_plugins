@@ -1,7 +1,7 @@
 {
   "name": "minakami-plugins",
   "metadata": {
-    "version": "0.7.0",
+    "version": "0.7.1",
     "description": "Minakami's personal agent plugins for Claude Code and Codex CLI"
   },
   "owner": {

@@ -1,6 +1,6 @@
 # agent-coord-bootstrap
 
-Scaffold or upgrade the agent-coordination doc layer — fresh init for new projects, content-preserving migration for existing ones. Works in Claude Code and Codex CLI from the same plugin source (Claude Code surfaces the `/init-agent-coord` slash command; Codex CLI surfaces the same runbook as a plugin skill, since Codex loads skills rather than commands). Beyond coordination, the scaffold seeds lightweight code-health practices that keep the codebase from decaying into a cleanup project.
+Scaffold or upgrade the agent-coordination doc layer — fresh init for new projects, content-preserving migration for existing ones. Works in Claude Code and Codex CLI from the same plugin source (Claude Code surfaces the `/agent-coord-bootstrap:init-agent-coord` slash command; Codex CLI surfaces the same runbook as a plugin skill, since Codex loads skills rather than commands). Beyond coordination, the scaffold seeds lightweight code-health practices that keep the codebase from decaying into a cleanup project.
 
 ## What it creates
 

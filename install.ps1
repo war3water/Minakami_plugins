@@ -17,16 +17,18 @@ if (Get-Command claude -ErrorAction SilentlyContinue) {
     $FoundAny = $true
     Write-Host ''
     Write-Host '[claude] registering marketplace'
+    # add succeeds on an already-registered marketplace without refreshing it, so always refresh;
+    # the refresh also fails when add did not register it, which is the failure that matters
     & claude plugin marketplace add $Marketplace
-    if ($LASTEXITCODE -ne 0) {
-        # tolerate an already-registered marketplace; refresh it instead
-        & claude plugin marketplace update $MarketplaceName
-        if ($LASTEXITCODE -ne 0) { $Failures += 'claude: marketplace add/update failed' }
-    }
+    & claude plugin marketplace update $MarketplaceName
+    if ($LASTEXITCODE -ne 0) { $Failures += 'claude: marketplace add/update failed' }
     foreach ($p in $Plugins) {
         Write-Host "[claude] installing $p"
         & claude plugin install "$p@$MarketplaceName"
-        if ($LASTEXITCODE -ne 0) { $Failures += "claude: install $p failed" }
+        if ($LASTEXITCODE -ne 0) { $Failures += "claude: install $p failed"; continue }
+        # install leaves an already-installed plugin at its installed version; update brings it current
+        & claude plugin update "$p@$MarketplaceName"
+        if ($LASTEXITCODE -ne 0) { $Failures += "claude: update $p failed" }
     }
 } else {
     Write-Host '[claude] not found on PATH - skipping'
@@ -36,11 +38,10 @@ if (Get-Command codex -ErrorAction SilentlyContinue) {
     $FoundAny = $true
     Write-Host ''
     Write-Host '[codex] registering marketplace'
+    # same as above: add leaves an existing snapshot stale, so always upgrade it
     & codex plugin marketplace add $Marketplace
-    if ($LASTEXITCODE -ne 0) {
-        & codex plugin marketplace upgrade $MarketplaceName
-        if ($LASTEXITCODE -ne 0) { $Failures += 'codex: marketplace add/upgrade failed' }
-    }
+    & codex plugin marketplace upgrade $MarketplaceName
+    if ($LASTEXITCODE -ne 0) { $Failures += 'codex: marketplace add/upgrade failed' }
     foreach ($p in $Plugins) {
         Write-Host "[codex] installing $p"
         & codex plugin add "$p@$MarketplaceName"
@@ -67,7 +68,8 @@ if ($Failures.Count -gt 0) {
 }
 
 Write-Host ''
-Write-Host "Done. To scaffold or upgrade a project's coordination docs (any project root):"
+Write-Host 'Done. Restart any running Claude Code or Codex session to load the new versions.'
+Write-Host "To scaffold or upgrade a project's coordination docs (any project root):"
 Write-Host '  Claude Code: /agent-coord-bootstrap:init-agent-coord'
 Write-Host '  Codex CLI:   $agent-coord-bootstrap'
 Write-Host "To audit a prompt's effectiveness for a target coding model:"
