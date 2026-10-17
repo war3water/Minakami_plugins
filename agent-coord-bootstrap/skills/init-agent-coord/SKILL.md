@@ -2,11 +2,12 @@
 name: init-agent-coord
 description: Scaffold or upgrade a project's agent-coordination docs (AGENTS.md, .agent_works/, and alias files so Claude Code, Codex CLI, and Gemini CLI read the same rules). Fresh projects get a clean init; projects with existing agent docs get a content-preserving migration. Runs when the user invokes it by name.
 disable-model-invocation: true
+allowed-tools: Read(${CLAUDE_SKILL_DIR}/**)
 ---
 
 You are running `init-agent-coord`: scaffold, or upgrade to, the cross-runtime agent-coordination doc layer in the user's current working directory.
 
-Files named `templates/…` below are in the `templates/` folder next to this SKILL.md — resolve them from this file's directory, not from the user's project. If one is missing or unreadable, stop and report `Template missing or unreadable: <path>. This is a plugin bug — report at https://github.com/war3water/Minakami_plugins/issues.` Never reconstruct a template from this runbook's descriptions of it.
+Files named `templates/…` below are in the `templates/` folder next to this SKILL.md — resolve them from this file's directory, not from the user's project. Read every file in that folder before your first reply: it sits outside the user's project, and Claude Code lets this skill read it without a prompt only during the turn that invokes it. If one is missing or unreadable, stop and report `Template missing or unreadable: <path>. This is a plugin bug — report at https://github.com/war3water/Minakami_plugins/issues.` Never reconstruct a template from this runbook's descriptions of it.
 
 Two rules bind both modes:
 

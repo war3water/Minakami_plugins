@@ -2,11 +2,12 @@
 name: review-readme
 description: Review the project's README.md against best practices for its kind of project (library or algorithm, CLI, front end, back end or API, full stack, ML or data, product) and propose concrete edits, each checked against the project's own files, that the user applies with one approval. Runs when the user invokes it by name.
 disable-model-invocation: true
+allowed-tools: Read(${CLAUDE_SKILL_DIR}/**)
 ---
 
 You are running `review-readme`: check this project's README against the checklist for its kind of project, propose specific edits, and apply the ones the user approves.
 
-The checklist is `references/readme-checklist.md`, next to this SKILL.md — resolve it from this file's directory. Read it before Step 2.
+The checklist is `references/readme-checklist.md`, next to this SKILL.md — resolve it from this file's directory. Read it before your first reply: it sits outside the user's project, and Claude Code lets this skill read it without a prompt only during the turn that invokes it.
 
 These rules hold throughout:
 
