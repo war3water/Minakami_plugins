@@ -10,6 +10,11 @@
   created, so the next debugger doesn't reverse-engineer it.
 - Canonical hosts, ports, and env vars live in README §Debug. Check
   there before attaching; add what's missing — don't guess or hardcode.
+- When parts run together (front end + back end), README §Debug says
+  how to start both (one command, or the order), how the front end
+  reaches the back end in development (dev-server proxy, CORS setting,
+  or an API-URL env var), and which launch profile attaches to both at
+  once (VS Code `compounds`, or your IDE's equivalent).
 - Frontend local-file access during debug: temporarily expand
   `vite.config.*` `server.fs.allow` (or the equivalent) and drive
   uploads from in-page JS — native file dialogs break headless and
@@ -30,15 +35,18 @@
 ## Alias mechanics
 
 Alias files in the repo root (`CLAUDE.md`, `GEMINI.md`, legacy
-`AGENT.md`) are either symlinks with the relative target `AGENTS.md`
-(same directory, never an absolute path) or one-line pointer files
-containing exactly `@AGENTS.md` — the import syntax Claude Code and
-Gemini CLI resolve mechanically. A legacy bare `AGENTS.md` line is also
-treated as a pointer. Tools that read `AGENTS.md` directly (Codex CLI,
-Cursor) need no alias; tools with neither auto-discovery nor import
-syntax are bridged by a symlink or by their own config pointed at
-`AGENTS.md`. Duplicating content across alias files is the failure
-mode this pattern exists to prevent.
+`AGENT.md`) are one-line pointer files containing exactly `@AGENTS.md`.
+Claude Code and Gemini CLI read an `@path` line as "include that
+file's full text here", and a regular file works on every OS and git
+setting. A symlink with the relative target `AGENTS.md` also works
+where it survives, but git checks a committed symlink out as a plain
+text file on Windows clones without `core.symlinks`. A file holding
+only the bare word `AGENTS.md` is such a checkout: it loads nothing, so
+replace its content with `@AGENTS.md`. Tools that read `AGENTS.md`
+directly (Codex CLI, Cursor) need no alias; tools with neither
+auto-discovery nor imports are bridged by a symlink or by their own
+config pointed at `AGENTS.md`. Duplicating content across alias files
+is the failure mode this pattern exists to prevent.
 
 ## Paths and state
 
@@ -47,11 +55,12 @@ mode this pattern exists to prevent.
 - Genuinely environment-bound references (another local repo, a system
   service, a tool install location) carry a `(local-env)` tag so readers
   know the line will not travel.
-- `.agent_works/` is committed durable state; the dot-prefix signals
+- `.agent_works/` is durable state that travels with the repo; the dot-prefix signals
   "meta, not code" (IDE file trees hide it by default). `.local/` is
   gitignored session scratch.
-- Local model weights go in `models/` (gitignored) with a download
-  script and setup notes in README.
+- Local model weights go in the root `models/` folder (gitignored as
+  `/models/`, so a code folder such as `src/models/` is unaffected) with
+  a download script and setup notes in README.
 
 ## README vs AGENTS.md
 

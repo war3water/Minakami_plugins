@@ -71,7 +71,10 @@ Write-Host ''
 Write-Host 'Done. Restart any running Claude Code or Codex session to load the new versions.'
 Write-Host "To scaffold or upgrade a project's coordination docs (any project root):"
 Write-Host '  Claude Code: /agent-coord-bootstrap:init-agent-coord'
-Write-Host '  Codex CLI:   $agent-coord-bootstrap'
+Write-Host '  Codex CLI:   $init-agent-coord'
+Write-Host "To review a project's README against best practices for its type:"
+Write-Host '  Claude Code: /agent-coord-bootstrap:review-readme'
+Write-Host '  Codex CLI:   $review-readme'
 Write-Host "To audit a prompt's effectiveness for a target coding model:"
 Write-Host '  Claude Code: /prompt-audit:audit-prompt'
 Write-Host '  Codex CLI:   $prompt-audit'

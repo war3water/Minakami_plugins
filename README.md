@@ -6,7 +6,7 @@ Personal marketplace of cross-runtime plugins for [Claude Code](https://claude.c
 
 | Plugin | Purpose |
 |---|---|
-| `agent-coord-bootstrap` | Scaffold or upgrade an agent-coordination doc layer (`AGENTS.md` + `.agent_works/` + cross-runtime aliases). Fresh init for new projects; content-preserving migration for existing ones. Seeds lightweight code-health practices that keep the codebase maintainable. |
+| `agent-coord-bootstrap` | Scaffold or upgrade an agent-coordination doc layer (`AGENTS.md` + `.agent_works/` + cross-runtime aliases) that Claude Code, Codex CLI, and Gemini CLI all read. Fresh init for new projects; content-preserving migration for existing ones. A second skill, `review-readme`, checks a project's README against best practices for its type and proposes edits traced to the project's files. |
 | `prompt-audit` | Audit one prompt's effectiveness for a specific target coding model — token efficiency, goal clarity, confusion/hallucination triggers, capability limiting, and more. Evidence-cited findings tables, an honest verdict, prioritized refinement advice, and an optional approval-gated rewrite. A second command, `check-sources`, lists the vendors' docs indexes to catch newly published model prompting pages and reports when the official guidance has moved ahead of the plugin's reference files. |
 | `code-map` | Build an interactive, layered code map of a repository as one local HTML file — architecture overview, module dependency map, algorithm pipeline with typed data flow, and the functions inside each stage. Every node deep-links to your editor with typed inputs/outputs, hotspot flags, search, and notes; every edge cites its source line, and unconfirmed edges are marked inferred. |
 
@@ -69,12 +69,12 @@ Codex CLI loads plugin skills in interactive sessions only. `codex exec` (verifi
 .claude-plugin/marketplace.json     Claude + Codex legacy (duplicate)
 install.sh / install.ps1            One-command bootstrap
 scripts/sync-manifests.sh           Copy canonical manifests over mirrors + parity check
-agent-coord-bootstrap/              Plugin source
+agent-coord-bootstrap/              Plugin source (skills only; one SKILL.md serves both runtimes)
     .codex-plugin/plugin.json       Manifest (canonical)
     .claude-plugin/plugin.json      Manifest (duplicate)
-    commands/init-agent-coord.md    Slash command runbook (Claude Code surface)
-    skills/init-agent-coord/        Skill wrapper (Codex surface; Codex loads plugin skills, not commands)
-    templates/                      Files the command writes into the target project
+    skills/init-agent-coord/        Scaffold/upgrade runbook; templates/ holds the files it writes into the project
+    skills/review-readme/           README review runbook; references/readme-checklist.md is the per-type checklist
+    skills/check-templates/         Maintainer skill; SOURCES.md registers each template claim and its source
 prompt-audit/                       Plugin source
     .codex-plugin/plugin.json       Manifest (canonical)
     .claude-plugin/plugin.json      Manifest (duplicate)

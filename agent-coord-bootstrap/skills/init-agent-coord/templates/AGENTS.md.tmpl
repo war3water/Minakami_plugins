@@ -5,78 +5,71 @@
 
 ## 1. Hard Rules (non-negotiable)
 
-1. **Secrets stay out of git.** Never commit `.env`, `credentials.json`,
-   API keys, or any file matching `*secret*`. If one is already
-   committed, stop and ask before touching anything else.
-2. **Destructive git ops require explicit instruction.** Never run
-   `git reset --hard`, `git push --force`, `git branch -D`, or
-   `git clean -f` unless the user named the command in this session.
-3. **Project-internal references use relative paths.** Anything pointing
+1. **Secrets stay out of the repo.** Never add `.env`, `credentials.json`,
+   API keys, or any other file holding secret values (e.g. `*.pem`,
+   `secrets.json`) to version control; code that handles secrets is
+   fine. If one is already tracked, stop and ask before touching
+   anything else.
+2. **Project-internal references use relative paths.** Anything pointing
    inside this repo: no drive-letter prefixes (a letter plus colon), no
    tilde or absolute user-home paths — repo-relative or `${PROJECT_ROOT}`
    only, so the docs survive a clone. Genuinely environment-bound
    references (another local repo, a system service) are allowed with a
    `(local-env)` tag on the line.
-4. **No version control, no edits.** If the tree is not under git,
-   `git init` + a baseline commit before the first change.
-5. **Check before deleting or renaming anything public-facing** — a
+3. **Check before deleting or renaming anything public-facing** — a
    file, public symbol, shim, re-export, or registered capability.
    Search `README*`, `docs/`, configs, and registries first; if it is
    mentioned, registered anywhere (even if currently disabled), or
    possibly consumed outside this repo: keep it, flag it, and ask.
-6. **Durable agent state lives in `.agent_works/`** (committed).
-   Ephemeral scratch goes to `.local/` (gitignored). Never swap them.
-7. **Describe the system as it is today** in onboarding docs. No
-   "previously" / "no longer" / "now uses" — git history is the archive.
-   (Session state like `current_handoff.md` may narrate transitions.)
-8. **Stop and ask when blocked** by permissions, credentials, or a heavy
+4. **Durable agent state lives in `.agent_works/`.** Ephemeral scratch
+   goes to `.local/` (gitignored). Never swap them.
+5. **Describe the system as it is today** in onboarding docs. No
+   "previously" / "no longer" / "now uses" — a reader needs the current
+   system, not its history. (The handoff may narrate transitions.)
+6. **Stop and ask when blocked** by permissions, credentials, or a heavy
    setup step. Do not invent product decisions silently.
-9. **Never delete cross-agent pointer files** — `CLAUDE.md`, `GEMINI.md`,
+7. **Never delete cross-agent pointer files** — `CLAUDE.md`, `GEMINI.md`,
    `AGENT.md`, or any alias of `AGENTS.md` — unless the user explicitly
    asks; they are other runtimes' entry points.
-10. **Environment isolation.** Never install or verify in the base /
-    global environment — use the project-dedicated env (`.venv`, local
-    `node_modules`, etc.).
+8. **Environment isolation.** Never install or verify in the base /
+   global environment — use the project-dedicated env (`.venv`, local
+   `node_modules`, etc.).
 
 ## 2. Routing — Where do I write?
 
 | Intent / change | File |
 | --- | --- |
+| Where the work stands, so the next session in any tool can resume | `.agent_works/handoff.md` (snapshot: current state, next steps, open questions; rewrite it, don't append) |
 | Architecture decision | `.agent_works/decisions.md` (append-only ADR: date, context, decision, consequences) |
-| Multi-step plan / plan delta | `.agent_works/plans.md` (landed work moves to `## Done`) |
-| Requirements / scope / north star | `.agent_works/project_requirements.md` (purpose, scope in/out, success criteria) |
-| Session handoff (replace each session) | `.agent_works/handoff/current_handoff.md` |
-| Work tickets / task completion | `.agent_works/coordination/work_queue.md` (one line; detail in commit) |
+| Requirements the user states | `.agent_works/project_requirements.md` (purpose, scope in/out, success criteria — only what the user said; mark anything you inferred `(unconfirmed)`) |
 | Rule elaboration, examples, debug notes | `.agent_works/conventions.md` |
 | Skill / tool artifacts (reports, ledgers) | `.agent_works/<skill-name>/` |
 | Ephemeral scratch | `.local/<topic>/` |
-| Onboarding, features, verify commands | `README.md` |
-| Permission tweaks (Claude Code) | `.claude/settings.local.json` |
+| Onboarding, features, verify and debug commands | `README.md` |
 
 **Source-of-truth priority** (top wins on conflict): `AGENTS.md` →
-`project_requirements.md` → `decisions.md` → `plans.md` →
-`current_handoff.md` → `README.md`.
+`project_requirements.md` → `decisions.md` → `handoff.md` → `README.md`.
 
-Update docs in the same commit as the change. In a lean scaffold most
-`.agent_works/` docs don't exist yet — create one from its row here on
-first need. `README.md` is the human's entry point; this file is the
-agent's — two audiences, no overlap.
+A `.agent_works/` doc is created from its row here the first time the
+work produces that kind of content; until then it doesn't exist.
+`README.md` is the human's entry point; this file is the agent's — two
+audiences, no overlap.
 
 ## 3. Session Protocol
 
-- **Start:** read `.agent_works/handoff/current_handoff.md` and skim
-  `work_queue.md` (absent in a lean scaffold = you're at the beginning).
-  Load other docs only when the task needs them; don't preload the tree.
+- **Start:** if `.agent_works/handoff.md` exists, read it — it says where
+  the work stands. Load other docs only when the task needs them; don't
+  preload the tree.
 - **During:** restate the goal before large changes; propose structure
   before generating big code outputs; keep diffs small and reviewable.
-- **End:** replace `current_handoff.md` with active state only (a
-  snapshot, not a journal); close tickets in `work_queue.md` as
-  one-liners; append settled choices to `decisions.md`.
-- **One write-capable agent per worktree at a time** — multi-agent means
-  multiple runtimes and sequential sessions, not parallel writers. Claim
-  a ticket (Owner + date) in `work_queue.md` before starting; re-read it
-  before updating; only the owner replaces `current_handoff.md`. Parallel
-  work goes to separate git worktrees, each with its own handoff.
+- **End** (when you hand the finished task back to the user): update
+  `handoff.md` only if the next session needs something the code
+  doesn't show — unfinished work, the next step, an open question, a
+  user decision not yet in code. Append to `decisions.md` only for a
+  settled architecture choice. A task that changes nothing durable
+  leaves these files alone.
+- **One handoff per working tree.** Sessions that run in parallel work
+  in separate working trees, each with its own handoff.
 
 ## 4. Working Principles
 
@@ -85,7 +78,9 @@ agent's — two audiences, no overlap.
   work, ship the simpler one.
 - **A feature is finished when a runnable check pins it** — a test, or a
   command listed in README §Verify, hitting the real service at least
-  once. Unpinned behavior rarely survives later refactors.
+  once. Unpinned behavior rarely survives later refactors. Never weaken,
+  skip, or delete an existing check to get it green; if a check is
+  wrong, say so and ask.
 - **Every real capability is listed in README §Features** — dormant ones
   included, with how to enable them. An undocumented capability reads as
   dead code to a later maintainer.
@@ -94,7 +89,9 @@ agent's — two audiences, no overlap.
 - **Check `decisions.md` before changing settled architecture.** Propose
   a revisit with evidence; do not unilaterally flip.
 - **Debuggability is part of done.** A new entry point gets its debug
-  launch profile and its address recorded in README at creation.
+  launch profile and its address recorded in README §Debug at creation;
+  when parts run together (front end + back end), README also says how
+  to start and debug them together.
 
 ## 5. Code Conventions
 
@@ -124,10 +121,8 @@ The user does not carry your full context (worked examples: `conventions.md`):
 
 ## 7. Runtimes & Aliases
 
-- **Claude Code:** permissions live in `.claude/settings.local.json`
-  (extend `allow` as friction surfaces); skills in `.claude/skills/`.
-- **Codex CLI / Cursor:** read `AGENTS.md` directly — no alias needed;
-  Codex skills live in `.agent/skills/`.
+- **Claude Code:** reads `CLAUDE.md`, an alias of this file.
+- **Codex CLI / Cursor:** read `AGENTS.md` directly — no alias needed.
 - **Gemini CLI:** `GEMINI.md` resolves here (symlink or `@AGENTS.md`).
 - **Other tools:** symlink their expected file to `AGENTS.md`, or point
   their own config at this file.
@@ -135,20 +130,16 @@ The user does not carry your full context (worked examples: `conventions.md`):
 Never duplicate content across alias files — edit only this file
 (mechanics: `conventions.md`).
 
-## 8. File Budgets
+## 8. Keeping Docs Lean
 
-| File | Soft max | Note |
-| --- | --- | --- |
-| `AGENTS.md` (this file) | ~150 lines | Routing + rules; no specs, no rationale |
-| `conventions.md` | ~90 lines | Elaboration, one hop from here |
-| `current_handoff.md` | ~80 lines | Replace each session |
-| `decisions.md` | ~300 lines | Append-only; archive when full |
-| `plans.md` | ~400 lines | Landed milestones collapse into `## Done` |
-| `work_queue.md` | ~100 lines | Closed tickets collapse to one line |
-
-At budget, prune or archive — never just keep appending. For each line
-ask: would removing it cause a mistake? If not, cut it. Code replaces
-status, not requirements — requirements stay the finish line.
+Each doc stays short enough to be read in full by the work it serves.
+This file holds routing and rules (no specs, no rationale); elaboration
+goes one hop out to `conventions.md`. `handoff.md` is a snapshot, and
+`decisions.md` is append-only (move old entries to an appendix, never
+edit them). For each line ask: would removing it cause a mistake? If
+not, cut it — but never drop a project rule or a requirement to save
+space. Code replaces status, not requirements — requirements stay the
+finish line.
 
 ## 9. Glossary
 

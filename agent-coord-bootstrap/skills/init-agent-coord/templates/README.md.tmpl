@@ -37,6 +37,7 @@ dormant or optional ones too, with how to enable them:_
 git clone https://github.com/<your-org>/{{project_name}}.git
 cd {{project_name}}
 # language-specific install: pip install -e .  /  npm install  /  cargo build  /  go mod tidy
+# where a step differs by OS (activating a venv, setting an env var), show the Windows and macOS/Linux forms
 ```
 
 ### Configure
@@ -80,6 +81,11 @@ don't apply._
 
 Per-component VSCode launch profiles live in `.vscode/launch.json`.
 Edit / add entries when you add a new entry point.
+
+_Front end + back end only — otherwise delete this paragraph:_ start both
+with `<one command, or the order>`; in development the front end reaches
+the back end through `<dev-server proxy / CORS setting / API-URL env var>`;
+the `<compound launch profile>` attaches to both at once.
 
 ---
 
