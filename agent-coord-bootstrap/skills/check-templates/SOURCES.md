@@ -32,6 +32,9 @@ Paths in the File column are relative to the plugin's `skills/` folder.
 | S-HF-M | Hugging Face: model cards | <https://huggingface.co/docs/hub/model-cards> | 2026-10-15 |
 | S-PWC | Papers with Code: ML code completeness checklist | <https://github.com/paperswithcode/releasing-research-code> | 2026-10-15 |
 | S-PYVENV | Python docs: venv (activation per platform and shell) | <https://docs.python.org/3/library/venv.html> | 2026-10-17 |
+| S-NODE-CLI | Node.js CLI: `--env-file` | <https://nodejs.org/api/cli.html#--env-filefile> | 2026-10-18 |
+| S-FAPI | FastAPI: First Steps (interactive docs) | <https://fastapi.tiangolo.com/tutorial/first-steps/> | 2026-10-18 |
+| S-DKR | Docker: `docker container run` | <https://docs.docker.com/reference/cli/docker/container/run/> | 2026-10-18 |
 
 ## Claims
 
@@ -60,3 +63,6 @@ Paths in the File column are relative to the plugin's `skills/` folder.
 | C22 | `readme-checklist.md` ML or data | ML code completeness: dependencies, training and evaluation code, pre-trained models, results table with commands | S-PWC |
 | C23 | `init-agent-coord/SKILL.md` Steps A5, B2; `conventions.md.tmpl` Alias mechanics | Git checks a committed symlink out as a plain text file on Windows without `core.symlinks`, so the alias is a pointer file by default | S-CC-MEMORY |
 | C25 | `readme-checklist.md` Baseline; `README.md.tmpl` Install | Activating a Python virtualenv takes a different command per platform and shell | S-PYVENV |
+| C26 | `readme-checklist.md` Back end | `node --env-file=.env` loads a `.env` file into `process.env` (Node v20.6.0+) | S-NODE-CLI |
+| C27 | `readme-checklist.md` Back end | FastAPI serves its API docs at `/docs` | S-FAPI |
+| C28 | `readme-checklist.md` Back end | `docker run` publishes ports, passes an env file, mounts a volume, and reaches the host through `host.docker.internal`, which Linux needs `--add-host=host.docker.internal:host-gateway` for | S-DKR |

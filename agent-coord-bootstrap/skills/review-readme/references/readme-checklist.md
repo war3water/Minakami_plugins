@@ -19,6 +19,7 @@ Bracketed keys name the source behind an item (list at the bottom). An item mark
   - where a step differs by OS or shell (activating a virtualenv, setting an env var for one command), each form the project supports, or one form that works everywhere [PYVENV, no source for the general case]
 - Verify: the test command. [MAR, OSG]
 - Behavior a newcomer will trip over, as the code shows it: defaults, limits, error cases, and what is not supported. [CLIG, no source for the general case]
+- A short map of the main folders and entry points, when the layout isn't obvious from the root listing. [no source]
 - Development: the config or env vars to set, how to run the tests (all, and one), and how to start the project with a debugger attached. Link `CONTRIBUTING.md` if it exists. [MAR, MOZ, MS-DX, STRTMA]
 - Where to get help, how to contribute, and a license that matches the `LICENSE` file or the manifest's license field. [GH-R, SR, MAR]
 
@@ -49,12 +50,13 @@ Bracketed keys name the source behind an item (list at the bottom). An item mark
 
 ## Back end or API
 
-- Install and run, with the exact server command. [SR, MAR]
-- Configuration as env vars: each variable, whether it is required, and its default. Point to `.env.example` if one exists. [12F]
-- Backing services (database, queue) and how to start them, e.g. `docker compose up`. [DC, 12F]
-- Endpoints, or a link to the generated API docs. Note how clients authenticate. [SR, DIA]
-- Deployment artifact (Dockerfile, image) when the repo has one. [MS-PR]
+- Install and run, with the exact server command, and the development command that restarts on change when the project has one. [SR, MAR]
+- Configuration as env vars: each variable, whether it is required, and its default. Point to `.env.example` if one exists, and say how its values get loaded: the app reads the file, a flag loads it (e.g. `node --env-file=.env`), or the reader exports them. Copying `.env.example` does nothing when nothing reads it. [12F, NODE-CLI]
+- Backing services (database, queue): how to start them, e.g. `docker compose up`, and any setup step such as migrations. [DC, 12F]
+- Endpoints, or a link to the API docs the framework serves (e.g. FastAPI's `/docs`). For each endpoint: method, path, auth, an example request and its response, and the error statuses a client will see. How clients authenticate, and how to get a credential for local testing. [SR, DIA, FAPI]
+- Run in a container, when the repo has a Dockerfile or compose file: the exact build and run commands with the port mapping, how the env vars or env file are passed, and a volume for data that must outlive the container. A container reaches another compose service by its service name, and a service on the host through `host.docker.internal` (on Linux, add `--add-host=host.docker.internal:host-gateway`). [MS-PR, DKR, DC]
 - Development: start with a debugger (`node --inspect`, default 127.0.0.1:9229; `debugpy`; an attach profile whose port matches) and the health or ready URL. [NODE, VSC]
+- Troubleshooting, last: the startup errors and status codes a newcomer will hit, as the code raises them. [GL]
 
 ## Full stack
 
@@ -109,5 +111,8 @@ The front-end and back-end items apply, plus:
 - **HF-M** and **HF-D**: Hugging Face model and dataset cards. <https://huggingface.co/docs/hub/model-cards>, <https://huggingface.co/docs/hub/datasets-cards>
 - **PWC**: Papers with Code, ML code completeness checklist. <https://github.com/paperswithcode/releasing-research-code>
 - **PYVENV**: Python docs, venv: the activation command per platform and shell. <https://docs.python.org/3/library/venv.html>
+- **NODE-CLI**: Node.js CLI, `--env-file` (v20.6.0+). <https://nodejs.org/api/cli.html#--env-filefile>
+- **FAPI**: FastAPI, First Steps: interactive docs at `/docs` and `/redoc`, schema at `/openapi.json`. <https://fastapi.tiangolo.com/tutorial/first-steps/>
+- **DKR**: Docker, `docker container run`: `--publish`, `--env-file`, `--volume`, and `host-gateway` for reaching the host. <https://docs.docker.com/reference/cli/docker/container/run/>
 
 Not a source for project READMEs: `elangosundar/awesome-README-templates`, a collection of GitHub *profile* READMEs (last content commit 2020).

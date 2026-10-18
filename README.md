@@ -60,7 +60,11 @@ codex plugin add code-map@minakami-plugins
 
 ## Known limitation — Codex headless mode
 
-Codex CLI loads plugin skills in interactive sessions only. `codex exec` (verified on v0.145.0, re-verified on v0.162.0 on 2026-10-09) does not load plugin skills at all — regardless of trusted directory or `--skip-git-repo-check` — so a `$<plugin>` invocation in a script falls back to the model improvising without the runbook. Invoke these plugins from an interactive `codex` session; re-test headless support after Codex CLI upgrades. Claude Code headless works normally (`claude -p "/<plugin>:<command> ..."`).
+Codex CLI loads plugin skills in interactive sessions only. `codex exec` does not load plugin skills at all, regardless of trusted directory or `--skip-git-repo-check`. This was verified on v0.145.0, and re-verified on v0.162.1 (Windows) and v0.163.0 (Linux) on 2026-10-17.
+
+A `$<skill>` mention in a script injects nothing. A capable model may then search the disk and find the skill in the plugin cache, but that is the model improvising its way to the file, not a guarantee. Invoke these plugins from an interactive `codex` session, and re-test headless support after Codex CLI upgrades.
+
+Claude Code headless works normally: `claude -p "/<plugin>:<skill> ..."`.
 
 ## Repository layout
 

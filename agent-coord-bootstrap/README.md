@@ -87,30 +87,33 @@ The template declares **no git operations**: nothing about commits, branches, or
 
 ### What the 0.6 changes are based on
 
-These are blind runs on Opus 5.5, Fable 5.1, GPT-6.1 Sol, and GPT-6 Astra (2026-10-15). The harness and the raw results are kept outside this repo.
+These are blind runs on Opus 5.5, Fable 5.1, GPT-6.1 Sol, and GPT-6 Astra (2026-10-15 to 2026-10-17). The harness and the raw results are kept outside this repo.
 
 - **Unasked commits:** 0.5.4's "update docs in the same commit" rule produced unasked commits in 14/16 tasks. With no git rules, it was 1/16; with no `AGENTS.md` at all, 0/16.
 - **The handoff:** session 1 did part of a five-step feature, and a fresh session in the other tool was told only "continue where we left off". With no docs, it finished 0/40 of the remaining steps. With this layout, it finished 40/40, the same as the old five-doc layout, with about 45% fewer doc writes.
 - **Settings:** indirect wording led to the right settings in 16/16 runs, and all 16 confirmed before writing.
+- **Platforms:** fresh setup, upgrade, and README review passed on Windows and Linux in Claude Code and Codex CLI, and in pi. On Linux, real symlink aliases were also tested on request. macOS is untested.
 
 ## review-readme
 
 The skill names the project's type, checks each item on the checklist for that type, and proposes a table of changes with `file:line` evidence and the exact text. It applies the changes you approve.
 
 - Every command, path, port, env var, and flag it proposes comes from the project's files.
-- What only you can supply (the pitch, a screenshot, a license that isn't in the repo) becomes a marked placeholder.
-- It runs the commands it documents (tests, `--help`, the quick start) in a temporary copy, never installs anything, and reports a command it couldn't run as unverified.
+- What only you can supply (the pitch, a screenshot, a license that isn't in the repo) becomes a question in the proposal. The README gets a one-line placeholder only where a newcomer needs that section, such as License.
+- It runs the commands it documents (tests, `--help`, the quick start) in a temporary copy, never installs anything, and reports a command it couldn't run as unverified. Where a step differs by OS or shell (activating a virtualenv, setting an env var), it gives each form the project supports.
+- For a back end it covers the dev command, how `.env` values actually get loaded, migrations, example requests with their error statuses, and the `docker build` / `docker run` commands when the repo has a Dockerfile.
 
-The checklist (`skills/review-readme/references/readme-checklist.md`) cites its sources for each item: Standard Readme, Make a README, GitHub Docs, Vite, VS Code, Node.js, Hugging Face model cards, and Papers with Code.
+The checklist (`skills/review-readme/references/readme-checklist.md`) cites its sources for each item: Standard Readme, Make a README, GitHub Docs, Vite, VS Code, Node.js, Docker, FastAPI, Hugging Face model cards, and Papers with Code.
 
 **Measured:** a blind frontier panel compared this skill with a plain "improve the README" prompt, on four models.
 
-| Projects | Skill's README preferred | READMEs with an error (skill / plain) |
+| Projects (skill version) | Skill's README preferred | READMEs with an error (skill / plain) |
 |---|---|---|
-| Six project types the skill was tuned on | 15/24 | 5/24 / 12/24 |
-| Three held-out projects on new stacks: a Python CLI, a Node webhook service, Vue + Flask on docker compose | 9/12 | 1/12 / 5/12 |
+| Six project types the skill was tuned on (0.6.0) | 15/24 | 5/24 / 12/24 |
+| Three held-out projects on new stacks: a Python CLI, a Node webhook service, Vue + Flask on docker compose (0.6.0) | 9/12 | 1/12 / 5/12 |
+| Three held-out back-end services: Express + Postgres, a Python mail-queue worker, a Go API (0.6.2) | 10/12 | 2/12 / 5/12 |
 
-The held-out ship rule was fixed before the runs: preferred in at least half the pairs, with no more errors than plain.
+Each held-out ship rule was fixed before its runs. On the back-end projects, 0.6.2 was also preferred over the 0.6.1 text in 12/12 pairs. On the earlier Python CLI and compose projects it was preferred over plain in 7/8 (errors 3/8 vs 4/8), so the back-end changes cost nothing elsewhere.
 
 ## check-templates
 

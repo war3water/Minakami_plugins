@@ -1,6 +1,6 @@
 {
   "name": "agent-coord-bootstrap",
-  "version": "0.6.1",
+  "version": "0.6.2",
   "description": "Scaffold or upgrade an agent-coordination doc layer (AGENTS.md + .agent_works/ + cross-runtime aliases), and review a project's README against best practices for its type. Fresh projects get a clean init; existing projects get a content-preserving migration.",
   "author": {
     "name": "war3water",
