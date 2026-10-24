@@ -1,0 +1,11 @@
+<!-- code-map:wiki begin -->
+## Code wiki
+
+This repository keeps a code wiki: the root README and `{{wiki_dir}}/`. Start at `{{wiki_dir}}/index.md`; the rules are in `{{wiki_dir}}/SCHEMA.md`.
+
+- Before exploring the code to answer a question, read the index: the answer may already be written.
+- A change that alters behaviour, setup, commands or layout updates, in the same change, every wiki page whose `sources:` names a changed file or symbol, and the README when setup or commands change. `python {{tools_dir}}/wiki.py affected` lists them.
+- Append one entry at the end of `{{wiki_dir}}/log.md`: `## [YYYY-MM-DD] change | <title>`, then what changed, the pages updated, and the pages checked and still true, by path.
+- After editing a diagram, run `python {{tools_dir}}/wiki_browser.py render`. Before you finish, run `python {{tools_dir}}/wiki.py lint` and fix what it reports.
+- Wiki pages describe the code; they never change it.
+<!-- code-map:wiki end -->

@@ -1,6 +1,8 @@
 # Extraction method
 
-How `/code-map` turns a repository into the nodes and edges the viewer draws. The method is language-agnostic; §9 gives per-language starting points and §10 the editor link schemes. Read this before discovering scope (runbook Step 2) and keep it open while extracting (Step 3).
+How the `code-map` skill turns a repository into the nodes and edges the viewer draws. The method is language-agnostic; §9 gives per-language starting points and §10 the editor link schemes. Read this before discovering scope (runbook Step 2) and keep it open while extracting (Step 3).
+
+The plugin's `wiki` skill shares this file: §1, §2, §4, §8 and §9 find what its first build covers, the qualified names of §7 (without the `fn:` prefix) are its `path#Symbol` sources, and its viewer uses the schemes of §10, which `skills/wiki/tools/wiki.py` repeats in `EDITORS` and must keep in step with.
 
 ## 1. Languages and repository root
 

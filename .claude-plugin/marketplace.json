@@ -1,7 +1,7 @@
 {
   "name": "minakami-plugins",
   "metadata": {
-    "version": "0.7.2",
+    "version": "0.7.3",
     "description": "Minakami's personal agent plugins for Claude Code and Codex CLI"
   },
   "owner": {
@@ -41,8 +41,8 @@
     },
     {
       "name": "code-map",
-      "version": "0.1.0",
-      "description": "Build an interactive, layered code map of a repository as a local HTML file — architecture overview, module dependency map, algorithm pipeline with typed data flow, and the functions inside each stage. Every node deep-links to your editor and carries typed inputs/outputs, hotspot flags, search, and per-node notes; every edge cites the source line it was seen on, and unconfirmed edges are drawn dashed and labeled inferred.",
+      "version": "0.2.0",
+      "description": "Build an interactive, layered code map of a repository as a local HTML file, every node deep-linked to your editor and every edge citing its source line; and build a code wiki that an agent keeps current with the code: the README as front page, pages that name the source symbols they explain (checked by a lint), a run-and-debug page, rendered diagrams, executable setup commands, and a one-file viewer.",
       "category": "review",
       "source": {
         "source": "git-subdir",

@@ -1,0 +1,72 @@
+---
+title: How this wiki is kept
+kind: schema
+updated: {{date}}
+---
+
+# How this wiki is kept
+
+This wiki follows the "LLM Wiki" pattern ([Karpathy](https://gist.github.com/karpathy/442a6bf555914893e9891c11519de94f)): an agent writes and maintains it, in the same change as the code it describes, so it compounds instead of going stale. There are three layers:
+
+| Layer | What it is | Who changes it |
+|---|---|---|
+| **Sources** | {{the code, tests and captured outputs, by folder}} | developers; the wiki never edits them |
+| **Wiki** | the root `README.md` (the front page) and the pages in `{{wiki_dir}}/` | the agent, in the same change as the code |
+| **Schema** | this file: page kinds, the page template, and the update and lint rules | the maintainers and the agent, together |
+
+Each page names the code symbols it explains, as code wikis such as Google's Code Wiki and DeepWiki do, and a lint proves those symbols still exist. Pages are sorted into the four [Diátaxis](https://diataxis.fr/) kinds, so a reader knows whether they are learning, doing, looking up, or understanding.
+
+## Page kinds and folders
+
+| Kind | Folder | Answers |
+|---|---|---|
+| front page | the root `README.md` | what it is; how to set it up, run, test and debug it |
+| tutorial | `start/` | walk me through it once |
+| how-to | `howto/` | how do I … |
+| reference | `reference/`{{, and the folders for this project's subsystems}} | what exactly does X do |
+| explanation | `concepts/` | why is it built this way |
+
+## Page template
+
+```text
+---
+title: <name>
+kind: tutorial | how-to | reference | explanation
+sources: [<path>#<Symbol>, …]          # the code this page describes
+updated: YYYY-MM-DD
+---
+# <name>
+One paragraph: what this page covers and who it is for.
+## …sections…
+## Sources
+- [<symbol>](<relative path>) in <file>: what it does
+```
+
+## Rules for the agent
+
+1. **Read the index first.** Before exploring the code to answer a question, read `index.md`: the answer may already be written. When you work out something a page should say, add it.
+2. **Update in the same change.** A change that alters behaviour, setup, commands or layout updates every page whose `sources` name a changed file or symbol, and the README when setup or commands change. `affected` (below) lists them. Add renamed or new pages to `index.md`, and append one entry to `log.md`.
+3. **Point to symbols, not line numbers**, for example `{{an example path#symbol from this repository}}`. Line numbers drift; the lint checks that every named symbol still exists.
+4. **Every claim is traceable** to a source symbol or a captured output. Captured examples are copied from a real run or a file ({{where captured evidence lives}}) and say where they came from; examples that were not captured are labelled illustrative.
+5. **Diagrams.**
+   - Write each diagram as a fenced `mermaid` block whose first line is `%% id: <name>`.
+   - `wiki_browser.py render` renders it to `diagrams/<name>.svg`. Pages show the SVG and keep the source in a collapsed `details` block, because VS Code's built-in preview does not render Mermaid.
+   - Put every label in double quotes, with no semicolons or angle brackets.
+   - Re-render after every edit; the lint fails on an SVG older than its source.
+6. **Log format:** one heading per entry, `## [YYYY-MM-DD] <build|change|lint|decision> | <title>`, then one to three lines naming, by path, the pages updated and the pages checked and still true (`Updated: … Checked: …`). Naming a page records the check, so the lint stops reporting it as out of date. The log is append-only, with new entries at the end.
+7. **Commands that must keep working.** A shell block preceded by the comment `<!-- check:run -->` (in the README or any page) is run by `lint --run` in a temporary clean checkout, README first. A failing command fails the lint. Mark only blocks that are safe to repeat and that finish on their own.
+8. **The wiki describes the code; it never changes it.** A code change that would help readers, such as a trace switch, is proposed separately.
+9. **Lint** checks links and anchors, `path#symbol` sources, index coverage, current diagrams, the log, and, with `--run`, the commands. A periodic review by the agent adds what a script cannot check: claims the code no longer supports, contradictions between pages{{, and with the design documents: …}}, and orphan pages.
+
+## Commands
+
+Run from the repository root. The tools in `{{tools_dir}}/` need only Python 3.9 or later; rendering diagrams and checking the viewer also need Chrome, Edge or Python Playwright.
+
+| Task | Command |
+|---|---|
+| Which pages a change touches | `python {{tools_dir}}/wiki.py affected` |
+| Render the diagrams | `python {{tools_dir}}/wiki_browser.py render` |
+| Lint | `python {{tools_dir}}/wiki.py lint` |
+| Lint and run the documented commands | `python {{tools_dir}}/wiki.py lint --run` |
+| Build the browsable viewer | `python {{tools_dir}}/wiki.py viewer` |
+| Check the viewer like a reader | `python {{tools_dir}}/wiki_browser.py check-viewer {{wiki_dir}}/viewer.html` |
