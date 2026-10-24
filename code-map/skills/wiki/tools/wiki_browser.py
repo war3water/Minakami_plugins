@@ -232,14 +232,14 @@ def check_viewer(path: Path) -> int:
             problems.append(f"sidebar lists {buttons.count()} pages, the data holds {len(ids)}")
         for pid in ids:
             page.locator(f'#nav button[data-id="{pid}"]').click()
-            text = page.locator("#page").inner_text().strip()
+            text = page.locator("#page .wikipage:not([hidden])").inner_text().strip()
             if not text:
                 problems.append(f"{pid}: the page is empty")
             if page.evaluate("current") != pid:
                 problems.append(f"{pid}: clicking it in the sidebar did not open it")
         start = ids[0]
         page.locator(f'#nav button[data-id="{start}"]').click()
-        link = page.locator("#page a.page-link").first
+        link = page.locator("#page .wikipage:not([hidden]) a.page-link").first
         if link.count():
             before = page.evaluate("current")
             link.click()
@@ -250,7 +250,7 @@ def check_viewer(path: Path) -> int:
         zoomed = False
         for pid in ids:
             page.locator(f'#nav button[data-id="{pid}"]').click()
-            img = page.locator("#page img.zoomable").first
+            img = page.locator("#page .wikipage:not([hidden]) img.zoomable").first
             if not img.count():
                 continue
             img.scroll_into_view_if_needed()

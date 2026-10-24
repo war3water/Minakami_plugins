@@ -1425,7 +1425,12 @@ def page_images(repo: Path, pages: list[Page], link_large: bool) -> dict[str, st
     return out
 
 
-def viewer(repo: Path, wiki: Path, out: Path, editor: str, title: str | None) -> str:
+def viewer(repo: Path, wiki: Path, out: Path, editor: str, title: str | None, artifact: bool = False) -> str:
+    """Write the one-file viewer. With `artifact`, write the copy meant for publishing as a claude.ai Artifact: no
+    document wrapper (the platform adds its own), no editor links and no local paths, and the page's review comments
+    on (select text, press Comment)."""
+    if artifact:
+        editor = "none"
     report = lint(repo, wiki)
     pages = collect_pages(repo, wiki)
     data_pages = []
@@ -1455,6 +1460,11 @@ def viewer(repo: Path, wiki: Path, out: Path, editor: str, title: str | None) ->
     page = (shell.replace("__WIKI_TITLE__", html.escape(name))
                  .replace("/*MARKED*/", marked)
                  .replace("/*WIKI_DATA*/null", blob))
+    if artifact:
+        page = re.sub(r"(?is)\A\s*<!doctype html>\s*<html[^>]*>\s*<head>\s*", "", page)
+        page = re.sub(r'(?i)<meta charset="utf-8">\s*<meta name="viewport"[^>]*>\s*', "", page)
+        page = re.sub(r"(?i)</head>\s*<body>\s*", "", page, count=1)
+        page = re.sub(r"(?i)\s*</body>\s*</html>\s*\Z", "\n", page)
     out = out.resolve()
     out.parent.mkdir(parents=True, exist_ok=True)
     out.write_text(page, encoding="utf-8")
@@ -1533,6 +1543,7 @@ def main(argv: list[str] | None = None) -> int:
             s.add_argument("--out", type=Path)
             s.add_argument("--editor", default="vscode", help="vscode, vscode-insiders, cursor, windsurf, jetbrains:<ide>, a template, or none")
             s.add_argument("--title")
+            s.add_argument("--artifact", action="store_true", help="write the copy to publish as a claude.ai Artifact, with review comments")
     q = sub.add_parser("questions", help="questions asked in Claude Code and Codex sessions in this repository")
     q.add_argument("--repo", type=Path)
     q.add_argument("--wiki", type=Path)
@@ -1575,7 +1586,7 @@ def main(argv: list[str] | None = None) -> int:
         return 0
     if a.cmd == "viewer":
         print(viewer(repo, wiki, (a.out if a.out and a.out.is_absolute() else repo / (a.out or Path(posix(wiki, repo)) / "viewer.html")),
-                     a.editor, a.title))
+                     a.editor, a.title, a.artifact))
         return 0
     return 2
 

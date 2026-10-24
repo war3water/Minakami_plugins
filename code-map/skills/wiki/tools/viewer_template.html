@@ -4,6 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>__WIKI_TITLE__</title>
+<meta name="claude:viewport-fit-sides" content="cover">
 <style>
 /* One-file wiki viewer built by wiki.py viewer: README first, sidebar by page kind, search, working page links,
    source chips that open the editor, diagrams that open in a zoom and pan view, the lint result. No network access. */
@@ -23,8 +24,12 @@
 * { box-sizing: border-box; }
 body { margin: 0; background: var(--bg); color: var(--ink); font: 16px/1.6 var(--body); }
 [hidden] { display: none !important; }  /* an id rule with display would otherwise beat the hidden attribute */
-.shell { display: grid; grid-template-columns: 270px minmax(0, 1fr); gap: 28px; max-width: 1280px; margin: 0 auto; padding: 24px 16px 48px; }
-aside { display: grid; gap: 14px; align-content: start; position: sticky; top: 12px; max-height: calc(100vh - 24px); overflow: auto; }
+.shell { display: grid; grid-template-columns: 270px minmax(0, 1fr); gap: 28px; max-width: 1280px; margin: 0 auto; padding-block: 24px 48px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+aside { display: grid; gap: 14px; align-content: start; position: sticky; top: calc(env(safe-area-inset-top, 0px) + 12px); max-height: calc(100vh - 24px); overflow: auto; }
+#comment-sel { position: absolute; z-index: 40; font: 600 13px/1 var(--body); padding: 8px 12px; border-radius: 6px; border: 1px solid var(--accent); background: var(--accent); color: var(--panel); cursor: pointer; box-shadow: 0 4px 14px rgba(0,0,0,.18); }
+#comment-sel:focus-visible, .page-comment:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.chip.page-comment { border: 1px solid var(--accent); background: none; color: var(--accent); cursor: pointer; }
 .brand { font-weight: 650; font-size: 22px; line-height: 1.15; }
 .brand small { display: block; font-weight: 400; font-size: 13px; line-height: 1.4; color: var(--muted); margin-top: 4px; }
 #q { width: 100%; padding: 8px 10px; border: 1px solid var(--line); border-radius: 6px; background: var(--panel); color: var(--ink); font: inherit; }
@@ -68,7 +73,8 @@ article blockquote { margin: 0; padding: 8px 14px; border-left: 3px solid var(--
 .missing-diagram { padding: 10px 12px; border: 1px dashed var(--warn); background: var(--warn-soft); color: var(--warn); border-radius: 6px; font-size: 14px; }
 @media (max-width: 860px) { .shell { grid-template-columns: 1fr; } aside { position: static; max-height: none; } main { padding: 20px 16px; } }
 #zoom { position: fixed; inset: 0; z-index: 50; display: grid; grid-template-rows: auto minmax(0, 1fr); background: rgba(12, 16, 22, .9); }
-.zbar { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; color: #f2f5f8; padding: 10px 16px; }
+.zbar { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; color: #f2f5f8;
+  padding: calc(env(safe-area-inset-top, 0px) + 10px) max(16px, env(safe-area-inset-right, 0px)) 10px max(16px, env(safe-area-inset-left, 0px)); }
 .zbar .ztitle { flex: 1 1 auto; font-weight: 600; font-size: 17px; min-width: 0; }
 .zbar .zlevel { font: 13px var(--mono); min-width: 52px; text-align: right; }
 .zbar button { font: 600 14px/1 var(--body); padding: 8px 11px; border-radius: 6px; border: 1px solid rgba(255,255,255,.35); background: rgba(255,255,255,.1); color: #f2f5f8; cursor: pointer; }
@@ -77,7 +83,7 @@ article blockquote { margin: 0; padding: 8px 14px; border-left: 3px solid var(--
 .zstage.dragging { cursor: grabbing; }
 .zcanvas { position: absolute; left: 0; top: 0; transform-origin: 0 0; background: #ffffff; border-radius: 6px; box-shadow: 0 8px 30px rgba(0,0,0,.35); }
 .zcanvas svg { display: block; max-width: none !important; }
-.zhelp { position: absolute; left: 50%; bottom: 12px; transform: translateX(-50%); font-size: 13px; color: #c9d2db; background: rgba(0,0,0,.45); padding: 6px 10px; border-radius: 6px; pointer-events: none; white-space: nowrap; }
+.zhelp { position: absolute; left: 50%; bottom: calc(env(safe-area-inset-bottom, 0px) + 12px); transform: translateX(-50%); font-size: 13px; color: #c9d2db; background: rgba(0,0,0,.45); padding: 6px 10px; border-radius: 6px; pointer-events: none; white-space: nowrap; }
 </style>
 </head>
 <body>
@@ -89,7 +95,7 @@ article blockquote { margin: 0; padding: 8px 14px; border-left: 3px solid var(--
     <div class="status" id="status"></div>
     <button class="theme" id="theme" type="button">Theme: system</button>
   </aside>
-  <main><div class="meta" id="meta"></div><article id="page"></article></main>
+  <main id="page"></main>
 </div>
 
 <div id="zoom" hidden role="dialog" aria-modal="true" aria-label="Diagram viewer">
@@ -201,9 +207,16 @@ function nav(filter) {
   return shown;
 }
 
-function show(id, sec) {
-  const p = byId.get(id); if (!p) return; current = id;
-  try { history.replaceState(null, "", toHash(id, sec)); } catch (e) {}
+// Every page is rendered once, into its own section with a stable id, and navigation only shows and hides them:
+// the DOM under a page never changes, so anything anchored to it (a comment pin, a selection) stays put.
+const sections = new Map();
+const sectionId = id => "pg-" + id.replace(/[^A-Za-z0-9_-]+/g, "-");
+
+function build(p) {
+  const id = p.id;
+  const sect = document.createElement("section");
+  sect.className = "wikipage"; sect.id = sectionId(id); sect.hidden = true; sect.dataset.page = id;
+  sect.innerHTML = `<div class="meta"></div><article></article>`;
   const chips = [p.kind && `<span class="chip">${esc(p.kind)}</span>`, p.updated && `<span class="chip">updated ${esc(p.updated)}</span>`];
   const FEW = 6;  // a long source list would push the page below the fold; the rest open on request
   p.sources.forEach((s, i) => {
@@ -212,11 +225,12 @@ function show(id, sec) {
     chips.push(url ? `<a class="chip src${extra}" href="${esc(url)}" title="Open in editor: ${esc(title)}"${hidden}>${esc(s.ref)}</a>`
                    : `<span class="chip src${s.ok ? "" : " missing"}${extra}" title="${esc(title)}"${hidden}>${esc(s.ref)}</span>`);
   });
-  if (p.sources.length > FEW) chips.push(`<button type="button" class="chip more" id="more-src">+${p.sources.length - FEW} more sources</button>`);
-  document.getElementById("meta").innerHTML = chips.filter(Boolean).join("");
-  const more = document.getElementById("more-src");
-  if (more) more.onclick = () => { document.querySelectorAll("#meta .extra").forEach(c => c.hidden = false); more.remove(); };
-  const el = document.getElementById("page"); el.innerHTML = renderMarkdown(p.body, id);
+  if (p.sources.length > FEW) chips.push(`<button type="button" class="chip more">+${p.sources.length - FEW} more sources</button>`);
+  const meta = sect.querySelector(".meta");
+  meta.innerHTML = chips.filter(Boolean).join("");
+  const more = meta.querySelector(".more");
+  if (more) more.onclick = () => { meta.querySelectorAll(".extra").forEach(c => c.hidden = false); more.remove(); };
+  const el = sect.querySelector("article"); el.innerHTML = renderMarkdown(p.body, id);
   const seen = {};
   el.querySelectorAll("h1, h2, h3, h4, h5, h6").forEach(h => {
     const base = slugify(h.textContent), n = seen[base] || 0; seen[base] = n + 1; h.dataset.slug = n ? `${base}-${n}` : base;
@@ -257,8 +271,16 @@ function show(id, sec) {
       if (url) a.href = url; else a.addEventListener("click", e => e.preventDefault());
     }
   });
+  document.getElementById("page").appendChild(sect);
+  sections.set(id, sect);
+}
+
+function show(id, sec) {
+  if (!byId.has(id)) return; current = id;
+  try { history.replaceState(null, "", toHash(id, sec)); } catch (e) {}
+  for (const [pid, s] of sections) s.hidden = pid !== id;
   nav(document.getElementById("q").value);
-  const anchor = sec && el.querySelector(`[data-slug="${CSS.escape(sec)}"]`);
+  const anchor = sec && sections.get(id).querySelector(`[data-slug="${CSS.escape(sec)}"]`);
   if (anchor) anchor.scrollIntoView(); else window.scrollTo(0, 0);
 }
 
@@ -326,8 +348,53 @@ function fromAddress() {
   try { const [h, sec] = fromHash(location.hash); if (byId.has(h)) { show(h, sec); return; } } catch (e) {}
   show(current);
 }
+W.pages.forEach(build);
 window.addEventListener("hashchange", fromAddress);  // typed addresses and the browser's back and forward buttons
 fromAddress();
+
+// Review comments, where this page is published as an Artifact: select text in a page and press Comment, or comment
+// on the page as a whole. The platform's own comment box opens, quoting the selection; the platform stores and shows
+// every thread. Opened from a file, there is no comment service and nothing below appears.
+(async () => {
+  let comments = null;
+  try { comments = window.claude && window.claude.use ? await window.claude.use("comments") : null; } catch (e) {}
+  if (!comments) return;
+  const btn = document.createElement("button");
+  btn.type = "button"; btn.id = "comment-sel"; btn.textContent = "Comment"; btn.hidden = true;
+  document.body.appendChild(btn);
+  let range = null, timer = null;
+  const off = () => { btn.hidden = true; range = null; };
+  const place = () => {
+    const sel = document.getSelection();
+    if (!sel || sel.isCollapsed || !sel.rangeCount) return off();
+    const r = sel.getRangeAt(0);
+    if (!document.getElementById("page").contains(r.commonAncestorContainer)) return off();
+    range = r.cloneRange();
+    const box = r.getBoundingClientRect();
+    btn.style.top = Math.round(box.bottom + window.scrollY + 8) + "px";
+    btn.style.left = Math.round(Math.max(8, Math.min(box.left + window.scrollX, document.documentElement.clientWidth - 110))) + "px";
+    btn.hidden = false;
+  };
+  document.addEventListener("selectionchange", () => { clearTimeout(timer); timer = setTimeout(place, 120); });
+  btn.addEventListener("mousedown", e => e.preventDefault());  // keep the selection while pressing
+  const open = async target => {
+    try { await comments.openComposer(target); }
+    catch (e) {
+      if (e && ["unavailable", "not_granted", "forbidden", "capability_disabled", "capability_removed"].includes(e.code)) {
+        btn.remove(); document.querySelectorAll(".page-comment").forEach(b => b.remove());
+        document.getElementById("sub").textContent += " · commenting is off here";
+      }
+    }
+  };
+  btn.addEventListener("click", () => { if (range) open({ range }); off(); });
+  for (const [, sect] of sections) {  // one control per page for comments on the page as a whole
+    const b = document.createElement("button");
+    b.type = "button"; b.className = "chip page-comment"; b.textContent = "Comment on this page";
+    b.addEventListener("click", () => open({ element: sect.querySelector("article h1") || sect.querySelector("article") }));
+    sect.querySelector(".meta").appendChild(b);
+  }
+  document.getElementById("sub").textContent += " · select text to comment";
+})();
 </script>
 </body>
 </html>
