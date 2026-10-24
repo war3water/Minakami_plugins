@@ -45,6 +45,7 @@ main { min-width: 0; background: var(--panel); border: 1px solid var(--line); bo
 .chip.src { background: var(--code); color: var(--ink); }
 a.chip.src:hover { outline: 1px solid var(--accent); }
 .chip.missing { background: var(--bad-soft); color: var(--bad); }
+.chip.more { border: 1px dashed var(--line); background: none; color: var(--muted); cursor: pointer; font: 500 12px/1 var(--mono); }
 article h1 { font-size: 32px; line-height: 1.15; margin: 0 0 12px; text-wrap: balance; }
 article h2 { font-size: 23px; line-height: 1.25; margin: 30px 0 8px; }
 article h3 { font-size: 18px; margin: 22px 0 6px; }
@@ -150,11 +151,39 @@ function clean(node) {
     }
   }
 }
-function renderMarkdown(src) {
+function renderMarkdown(src, id) {
   if (!window.marked) return "<pre>" + esc(src) + "</pre>";
   const doc = new DOMParser().parseFromString("<body>" + marked.parse(src, {headerIds: false, mangle: false}) + "</body>", "text/html");
   clean(doc.body);
+  fixMedia(doc.body, id);
   return doc.body.innerHTML;
+}
+// Images are rewritten before the page is shown: their paths are relative to the page in the repository, not to
+// wherever this file was opened from, so they come embedded (or as file links) in the data.
+function fixMedia(root, id) {
+  const local = src => src && !/^[a-z][a-z0-9+.-]+:/i.test(src) && !src.startsWith("//");
+  root.querySelectorAll("source[srcset]").forEach(s => {
+    const first = s.getAttribute("srcset").trim().split(/[\s,]+/)[0];
+    if (!local(first)) return;
+    const u = W.images[resolve(id, first)];
+    if (u) s.setAttribute("srcset", u); else s.remove();
+  });
+  root.querySelectorAll("img").forEach(img => {
+    const src = img.getAttribute("src") || "";
+    if (!local(src)) return;
+    const path = resolve(id, src), svg = W.svgs[path];
+    if (svg) {
+      img.setAttribute("src", "data:image/svg+xml;charset=utf-8," + encodeURIComponent(svg));
+      img.dataset.diagram = path;
+    } else if (W.images[path]) {
+      img.setAttribute("src", W.images[path]);
+    } else {
+      const note = document.createElement("div"); note.className = "missing-diagram";
+      note.textContent = /\.svg$/i.test(path) && path.includes("/diagrams/")
+        ? `Diagram not rendered yet (${path}); its Mermaid source is below.` : `Image not in this viewer: ${path}`;
+      img.replaceWith(note);
+    }
+  });
 }
 
 function nav(filter) {
@@ -176,27 +205,24 @@ function show(id, sec) {
   const p = byId.get(id); if (!p) return; current = id;
   try { history.replaceState(null, "", toHash(id, sec)); } catch (e) {}
   const chips = [p.kind && `<span class="chip">${esc(p.kind)}</span>`, p.updated && `<span class="chip">updated ${esc(p.updated)}</span>`];
-  for (const s of p.sources) {
+  const FEW = 6;  // a long source list would push the page below the fold; the rest open on request
+  p.sources.forEach((s, i) => {
     const url = s.ok ? editorUrl(s.path, s.line) : null, title = s.ok ? `${s.path}${s.line ? ":" + s.line : ""}` : "not found in the code";
-    chips.push(url ? `<a class="chip src" href="${esc(url)}" title="Open in editor: ${esc(title)}">${esc(s.ref)}</a>`
-                   : `<span class="chip src${s.ok ? "" : " missing"}" title="${esc(title)}">${esc(s.ref)}</span>`);
-  }
+    const extra = i >= FEW ? " extra" : "", hidden = i >= FEW ? " hidden" : "";
+    chips.push(url ? `<a class="chip src${extra}" href="${esc(url)}" title="Open in editor: ${esc(title)}"${hidden}>${esc(s.ref)}</a>`
+                   : `<span class="chip src${s.ok ? "" : " missing"}${extra}" title="${esc(title)}"${hidden}>${esc(s.ref)}</span>`);
+  });
+  if (p.sources.length > FEW) chips.push(`<button type="button" class="chip more" id="more-src">+${p.sources.length - FEW} more sources</button>`);
   document.getElementById("meta").innerHTML = chips.filter(Boolean).join("");
-  const el = document.getElementById("page"); el.innerHTML = renderMarkdown(p.body);
+  const more = document.getElementById("more-src");
+  if (more) more.onclick = () => { document.querySelectorAll("#meta .extra").forEach(c => c.hidden = false); more.remove(); };
+  const el = document.getElementById("page"); el.innerHTML = renderMarkdown(p.body, id);
   const seen = {};
   el.querySelectorAll("h1, h2, h3, h4, h5, h6").forEach(h => {
     const base = slugify(h.textContent), n = seen[base] || 0; seen[base] = n + 1; h.dataset.slug = n ? `${base}-${n}` : base;
   });
-  el.querySelectorAll("img").forEach(img => {
-    const path = resolve(id, img.getAttribute("src") || ""), svg = W.svgs[path];
-    if (!svg) {
-      if (/\.svg$/i.test(path) && path.includes("/diagrams/")) {
-        const note = document.createElement("div"); note.className = "missing-diagram";
-        note.textContent = `Diagram not rendered yet (${path}); its Mermaid source is below.`; img.replaceWith(note);
-      }
-      return;
-    }
-    img.src = "data:image/svg+xml;charset=utf-8," + encodeURIComponent(svg);
+  el.querySelectorAll("img[data-diagram]").forEach(img => {
+    const path = img.dataset.diagram, svg = W.svgs[path];
     // natural size, capped at the page width: an SVG with width="100%" would otherwise be blown up to fill the column
     const natural = (svg.match(/max-width:\s*([\d.]+)px/) || svg.match(/viewBox="[-\d.]+[ ,]+[-\d.]+[ ,]+([\d.]+)/) || [])[1];
     if (natural) img.style.width = Math.round(+natural + 22) + "px";
@@ -212,7 +238,16 @@ function show(id, sec) {
     if (/^[a-z][a-z0-9+.-]+:/i.test(href) || href.startsWith("//")) { a.target = "_blank"; a.rel = "noopener"; return; }
     const [pathPart, frag] = href.split("#");
     const target = pathPart ? resolve(id, pathPart) : id;
-    if (byId.has(target)) {
+    if (target === id) {  // a section of this page
+      a.classList.add("anchor-link");
+      a.addEventListener("click", e => {
+        e.preventDefault();
+        const sec = frag ? slugify(decodeURIComponent(frag)) : "";
+        const to = sec && el.querySelector(`[data-slug="${CSS.escape(sec)}"]`);
+        try { history.replaceState(null, "", toHash(id, sec)); } catch (err) {}
+        if (to) to.scrollIntoView(); else window.scrollTo(0, 0);
+      });
+    } else if (byId.has(target)) {
       a.classList.add("page-link");
       a.addEventListener("click", e => { e.preventDefault(); show(target, frag ? slugify(decodeURIComponent(frag)) : ""); });
     } else {

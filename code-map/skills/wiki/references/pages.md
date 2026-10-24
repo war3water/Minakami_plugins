@@ -63,10 +63,21 @@ flowchart TB
 
 ## Command blocks
 
-- A fenced `bash` or `powershell` block with the comment `<!-- check:run -->` on the line above it is executed by `wiki.py lint --run`.
-- All blocks run in order, the README first and then the pages by path, in one temporary clean checkout of the current change. A later block may use what an earlier one set up, such as a virtual environment. Each block runs as one script and stops at its first failing line.
-- Mark only blocks that are safe to repeat and that finish on their own. No servers left running (start, probe and stop within one block), no deploys, no writes outside the checkout, no secrets.
-- Where a step differs by OS, give each form and mark it: `<!-- check:run os=windows -->`, `os=posix`, or `os=linux,macos`. Blocks for another OS are reported as skipped.
+Every block a reader would paste into a terminal is either checked or skipped with a reason; `wiki.py lint --strict` fails on any other.
+
+| Comment above the block | What `wiki.py lint --run` does |
+|---|---|
+| `<!-- check:run -->` | runs the `bash` or `powershell` block in a temporary clean checkout; a non-zero exit fails the lint |
+| `<!-- check:run os=windows -->` (or `os=posix`, `os=linux,macos`) | the same, on that OS only; elsewhere it is reported as skipped |
+| `<!-- check:run background ready=http://127.0.0.1:8000/health -->` | starts the block as a service and waits until the URL answers below 500, or until `ready=/regex/` appears in its output, or `wait=<seconds>` passes. The page's later blocks can probe it, and it is stopped with its page |
+| `<!-- check:output -->`, above the fenced output that follows a run block | the run block's output must contain these lines in order; `…` matches any text inside a line, and extra lines are allowed |
+| `<!-- check:skip reason="needs an OpenAI API key" -->` | not run; the reason says what the step needs that a check cannot have |
+
+- Blocks run in order, the README first and then the pages by path, in one clean checkout of the current change. A later block may use what an earlier one set up, such as a virtual environment. Each block runs as one script and stops at its first failing line.
+- With `--clean-env` the blocks run with only system variables (PATH, the home and temp folders, proxies). A step that needs a variable must set it in the block or say where the value comes from, such as copying `.env.example`.
+- Mark as `check:run` only blocks that are safe to repeat and that finish on their own, apart from `background` services: no deploys to shared systems, no writes outside the checkout, no real credentials. When a stand-in exists (a mocked test, a local server, a dry run), show it as a run block next to the skipped real step.
+- Where a step differs by OS, give each form and mark it with `os=…`.
+- Output shown under a command should be real output marked `check:output`, with values that change on every run (times, ids, temporary paths) replaced by `…`.
 - A block that installs packages needs network access; say so in the page's prerequisites.
 
 ## Run and debug

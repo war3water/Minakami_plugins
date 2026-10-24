@@ -553,35 +553,100 @@ SVG_STAMP = re.compile(r"<!--\s*code-map-wiki diagram=\"([^\"]+)\" source-sha256
 
 # ---------------------------------------------------------------- command blocks
 
-RUN_MARK = re.compile(r"^\s*<!--\s*check:run(?:\s+os=([\w,]+))?\s*-->\s*$")
+MARK = re.compile(r"^\s*<!--\s*check:(run|output|skip)\b(.*?)-->\s*$")
 SHELLS = {"bash": "bash", "sh": "bash", "shell": "bash", "zsh": "bash", "console": "bash",
           "powershell": "pwsh", "pwsh": "pwsh", "ps1": "pwsh", "ps": "pwsh"}
+COMMAND_LANGS = set(SHELLS) | {"cmd", "bat", "batch", "fish"}  # blocks a reader would paste into a terminal
 
 
 def this_os() -> str:
     return "windows" if os.name == "nt" else ("macos" if sys.platform == "darwin" else "linux")
 
 
-def run_blocks(page: Page) -> tuple[list[dict], list[tuple[int, str]]]:
-    """Command blocks marked `<!-- check:run -->` (optionally `os=windows`, `os=posix`, `os=linux,macos`)."""
+def mark_attrs(text: str) -> dict:
+    """`os=windows background ready="http://x" wait=60 reason="needs a key"` -> dict (flags map to True)."""
+    return {k.lower(): (v[1:-1] if v.startswith('"') else v) if v else True
+            for k, v in re.findall(r'(\w+)(?:=("[^"]*"|\S+))?', text)}
+
+
+def run_blocks(page: Page) -> tuple[list[dict], list[tuple[int, str]], dict]:
+    """The page's command blocks and how each is marked.
+
+    `<!-- check:run -->` above a bash or powershell block runs it (`os=windows`, `os=posix`, `os=linux,macos` limit it
+    to an OS; `background ready=<url or /regex/> wait=<s>` starts it as a server, waits until it answers, and keeps it
+    running for the page's later blocks). `<!-- check:output -->` above the next fenced block holds the output the
+    preceding run block must print: its lines must appear in order, `…` matching any text. `<!-- check:skip
+    reason="…" -->` marks a block that cannot run here, with the reason. Returns (run blocks, errors, coverage)."""
     lines = page.text.split("\n")
     opens = {start: (end, info) for start, end, info in fences(lines)}
     blocks, errors = [], []
+    marked: dict[int, str] = {}
+    last_run = None
     for i, line in enumerate(lines):
-        m = RUN_MARK.match(line)
+        m = MARK.match(line)
         if not m:
             continue
+        kind, attrs = m.group(1), mark_attrs(m.group(2))
         j = i + 1
         while j < len(lines) and not lines[j].strip():
             j += 1
-        if j not in opens or SHELLS.get(opens[j][1].split()[0].lower() if opens[j][1] else "") is None:
-            errors.append((i + 1, "check:run is not followed by a bash or powershell code block"))
+        if j not in opens:
+            errors.append((i + 1, f"check:{kind} is not followed by a code block"))
             continue
         end, info = opens[j]
-        oses = [o.strip().lower() for o in (m.group(1) or "any").split(",")]
+        lang = info.split()[0].lower() if info else ""
         body = "\n".join(lines[j + 1:end]).strip("\n")
-        blocks.append({"page": page.label, "line": j + 1, "shell": SHELLS[info.split()[0].lower()], "os": oses, "body": body})
-    return blocks, errors
+        marked[j] = kind
+        if kind == "run":
+            if lang not in SHELLS:
+                errors.append((i + 1, "check:run is not followed by a bash or powershell code block"))
+                continue
+            oses = [o.strip().lower() for o in str(attrs.get("os", "any")).split(",")]
+            last_run = {"page": page.label, "line": j + 1, "shell": SHELLS[lang], "os": oses, "body": body,
+                        "background": bool(attrs.get("background")), "ready": attrs.get("ready") if attrs.get("ready") is not True else None,
+                        "wait": int(attrs["wait"]) if str(attrs.get("wait", "")).isdigit() else None, "expect": None}
+            blocks.append(last_run)
+        elif kind == "output":
+            if not last_run or last_run["background"]:
+                errors.append((i + 1, "check:output has no check:run block above it on this page"))
+            else:
+                last_run["expect"] = body
+        elif kind == "skip" and (not isinstance(attrs.get("reason"), str) or not attrs["reason"].strip()):
+            errors.append((i + 1, 'check:skip needs reason="…": say what the block needs that a check cannot have'))
+    coverage = {"run": 0, "skip": 0, "unmarked": []}
+    for start, end, info in fences(lines):
+        lang = info.split()[0].lower() if info else ""
+        if lang not in COMMAND_LANGS:
+            continue
+        kind = marked.get(start)
+        if kind == "run":
+            coverage["run"] += 1
+        elif kind == "skip":
+            coverage["skip"] += 1
+        else:
+            coverage["unmarked"].append(start + 1)
+    return blocks, errors, coverage
+
+
+def output_mismatch(expected: str, actual: str) -> str | None:
+    """None when every expected line appears in the actual output, in order; `…` (or `...`) inside a line matches any
+    text, and runs of spaces compare as one. Otherwise the first expected line that was not found."""
+    def norm(s: str) -> str:
+        return re.sub(r"\s+", " ", s.strip())
+
+    act = [norm(line) for line in actual.replace("\r\n", "\n").split("\n")]
+    pos = 0
+    for raw in expected.replace("\r\n", "\n").split("\n"):
+        e = norm(raw)
+        if not e or e in ("…", "..."):
+            continue
+        rx = re.compile("^" + ".*".join(re.escape(part) for part in re.split(r"…|\.\.\.", e)) + "$")
+        while pos < len(act) and not rx.match(act[pos]):
+            pos += 1
+        if pos == len(act):
+            return f"expected output line not found (in order): {raw.strip()[:120]}"
+        pos += 1
+    return None
 
 
 def os_matches(oses: list[str]) -> bool:
@@ -640,19 +705,95 @@ def remove_checkout(repo: Path, tmp: Path, dest: Path) -> None:
     git(repo, "worktree", "prune", check=False)
 
 
-def execute(blocks: list[dict], cwd: Path, timeout: int, capture: Path | None = None) -> list[dict]:
-    """Run each block as one script. With `capture`, each block's output is saved there (one file per block, named
-    after its page and line), so pages can show real, dated output instead of illustrative examples."""
-    results = []
-    if capture:
-        capture.mkdir(parents=True, exist_ok=True)
-    bash, pwsh = find_bash(), find_pwsh()
-    env = dict(os.environ, WIKI_CHECK_RUN="1")
+KEEP_ENV = {"PATH", "PATHEXT", "SYSTEMROOT", "SYSTEMDRIVE", "WINDIR", "COMSPEC", "TEMP", "TMP", "TMPDIR", "HOME",
+            "USERPROFILE", "HOMEDRIVE", "HOMEPATH", "APPDATA", "LOCALAPPDATA", "PROGRAMDATA", "PROGRAMFILES",
+            "PROGRAMFILES(X86)", "PROGRAMW6432", "COMMONPROGRAMFILES", "COMMONPROGRAMFILES(X86)", "NUMBER_OF_PROCESSORS",
+            "PROCESSOR_ARCHITECTURE", "OS", "LANG", "LC_ALL", "LC_CTYPE", "TERM", "USER", "USERNAME", "LOGNAME", "SHELL",
+            "HTTP_PROXY", "HTTPS_PROXY", "NO_PROXY", "http_proxy", "https_proxy", "no_proxy", "DOCKER_HOST", "SSL_CERT_FILE"}
+
+
+def run_env(clean: bool) -> tuple[dict, list[str]]:
+    """The environment command blocks run in, and the names of variables a clean run left out. A clean run keeps only
+    what the system and the network need, so a step that silently relies on the author's own variables fails."""
+    env = dict(os.environ)
     if env.get("UV_INTERNAL__PYTHONHOME") and env.get("PYTHONHOME") == env["UV_INTERNAL__PYTHONHOME"]:
         # uv's launcher set PYTHONHOME for the interpreter running this script; the project's own python must not inherit it
         env.pop("PYTHONHOME")
         env.pop("UV_INTERNAL__PYTHONHOME")
-    for b in blocks:
+    dropped = []
+    if clean:
+        dropped = sorted(k for k in env if k.upper() not in {v.upper() for v in KEEP_ENV} and not k.upper().startswith("XDG_"))
+        env = {k: v for k, v in env.items() if k not in dropped}
+    env["WIKI_CHECK_RUN"] = "1"
+    return env, dropped
+
+
+def stop_tree(proc: subprocess.Popen) -> None:
+    if proc.poll() is not None:
+        return
+    if os.name == "nt":
+        subprocess.run(["taskkill", "/PID", str(proc.pid), "/T", "/F"], capture_output=True)
+    else:
+        import signal
+        try:
+            os.killpg(proc.pid, signal.SIGTERM)
+            proc.wait(timeout=10)
+        except (ProcessLookupError, subprocess.TimeoutExpired):
+            try:
+                os.killpg(proc.pid, signal.SIGKILL)
+            except ProcessLookupError:
+                pass
+
+
+def wait_ready(proc: subprocess.Popen, log: Path, ready, seconds: int) -> str | None:
+    """None once the service answers: `ready` is a URL that returns any status below 500, or /regex/ found in its
+    output, or, without `ready`, the process is still running after `seconds`. Otherwise why it did not."""
+    import time
+    import urllib.error
+    import urllib.request
+    deadline = time.time() + seconds
+    while time.time() < deadline:
+        if proc.poll() is not None:
+            return f"exited with {proc.returncode} before it was ready: {read(log)[-300:].strip()}"
+        if isinstance(ready, str) and ready.startswith(("http://", "https://")):
+            try:
+                with urllib.request.urlopen(ready, timeout=2):
+                    return None
+            except urllib.error.HTTPError as e:
+                if e.code < 500:
+                    return None
+            except (OSError, ValueError):
+                pass
+        elif isinstance(ready, str) and len(ready) > 2 and ready.startswith("/") and ready.endswith("/"):
+            if re.search(ready[1:-1], read(log)):
+                return None
+        time.sleep(0.5)
+    return None if not ready else f"not ready after {seconds} s ({ready}): {read(log)[-300:].strip()}"
+
+
+def execute(blocks: list[dict], cwd: Path, timeout: int, capture: Path | None = None, clean_env: bool = False) -> tuple[list[dict], list[str]]:
+    """Run each block as one script, in order. With `capture`, each block's output is saved there (one file per block,
+    named after its page and line), so pages can show real, dated output instead of illustrative examples. Background
+    blocks keep running until the last block of their page has run. Returns (results, names of variables left out)."""
+    results = []
+    if capture:
+        capture.mkdir(parents=True, exist_ok=True)
+    bash, pwsh = find_bash(), find_pwsh()
+    env, dropped = run_env(clean_env)
+    services: list[subprocess.Popen] = []
+    handles = []
+    logs = Path(tempfile.mkdtemp(prefix="wiki-logs-"))
+
+    def save(b, code, out, err):
+        if capture:
+            name = re.sub(r"[^\w.-]+", "_", f"{b['page']}-{b['line']}") + ".txt"
+            (capture / name).write_text(f"# {date.today().isoformat()} {b['page']}:{b['line']} ({b['shell']}), exit {code}\n"
+                                        f"# {cwd.name} is a clean checkout of the change\n$ {b['body']}\n\n--- stdout\n{out}"
+                                        f"\n--- stderr\n{err}", encoding="utf-8")
+            return str(capture / name)
+        return None
+
+    for k, b in enumerate(blocks):
         res = dict(b, status="ok", detail="")
         if not os_matches(b["os"]):
             res.update(status="skipped", detail=f"os={','.join(b['os'])}, this is {this_os()}")
@@ -663,36 +804,62 @@ def execute(blocks: list[dict], cwd: Path, timeout: int, capture: Path | None = 
         else:
             cmd = ([bash, "-e", "-o", "pipefail", "-c", b["body"]] if b["shell"] == "bash" else
                    [pwsh, "-NoProfile", "-NonInteractive", "-Command", "$ErrorActionPreference = 'Stop'\n" + b["body"]])
-            try:
-                r = subprocess.run(cmd, cwd=cwd, capture_output=True, text=True, encoding="utf-8", errors="replace",
-                                   timeout=timeout, env=env)
-                missing = re.search(r"(?m)([\w.+-]+): command not found\s*$", r.stderr or "")  # bash's message, any prefix
-                if r.returncode == 127 and missing:
-                    # the block needs a tool this machine lacks: not evidence that the docs are wrong, but not verified either
-                    res.update(status="unavailable", detail=f"{missing.group(1)} is not installed here")
-                elif r.returncode != 0:
-                    res.update(status="failed", detail=f"exit {r.returncode}: {(r.stderr or r.stdout).strip()[-400:]}")
-                if capture:
-                    name = re.sub(r"[^\w.-]+", "_", f"{b['page']}-{b['line']}") + ".txt"
-                    (capture / name).write_text(f"# {date.today().isoformat()} {b['page']}:{b['line']} ({b['shell']}), exit {r.returncode}\n"
-                                                f"# {cwd.name} is a clean checkout of the change\n$ {b['body']}\n\n--- stdout\n{r.stdout}"
-                                                f"\n--- stderr\n{r.stderr}", encoding="utf-8")
-                    res["captured"] = str(capture / name)
-            except subprocess.TimeoutExpired:
-                res.update(status="failed", detail=f"timeout after {timeout} s")
+            if b.get("background"):
+                log = logs / f"{k}.log"
+                fh = open(log, "w", encoding="utf-8", errors="replace")
+                handles.append(fh)
+                kw = {"creationflags": subprocess.CREATE_NEW_PROCESS_GROUP} if os.name == "nt" else {"start_new_session": True}
+                proc = subprocess.Popen(cmd, cwd=cwd, stdout=fh, stderr=subprocess.STDOUT, env=env, **kw)
+                services.append(proc)
+                why = wait_ready(proc, log, b.get("ready"), b.get("wait") or (120 if b.get("ready") else 3))
+                if why:
+                    res.update(status="failed", detail=f"service {why}")
+                else:
+                    res.update(detail=f"running in the background{' (ready: ' + b['ready'] + ')' if b.get('ready') else ''}")
+                res["captured"] = save(b, "running", read(log), "")
+            else:
+                try:
+                    r = subprocess.run(cmd, cwd=cwd, capture_output=True, text=True, encoding="utf-8", errors="replace",
+                                       timeout=timeout, env=env)
+                    missing = re.search(r"(?m)([\w.+-]+): command not found\s*$", r.stderr or "")  # bash's message, any prefix
+                    if r.returncode == 127 and missing:
+                        # the block needs a tool this machine lacks: not evidence that the docs are wrong, but not verified either
+                        res.update(status="unavailable", detail=f"{missing.group(1)} is not installed here")
+                    elif r.returncode != 0:
+                        res.update(status="failed", detail=f"exit {r.returncode}: {(r.stderr or r.stdout).strip()[-400:]}")
+                    elif b.get("expect") is not None:
+                        diff = output_mismatch(b["expect"], (r.stdout or "") + "\n" + (r.stderr or ""))
+                        if diff:
+                            res.update(status="failed", detail=diff)
+                        else:
+                            res.update(detail="output checked")
+                    res["captured"] = save(b, r.returncode, r.stdout, r.stderr)
+                except subprocess.TimeoutExpired:
+                    res.update(status="failed", detail=f"timeout after {timeout} s")
         results.append(res)
-    return results
+        if services and (k + 1 == len(blocks) or blocks[k + 1]["page"] != b["page"]):
+            for proc in services:  # a page's services end with its last block
+                stop_tree(proc)
+            services = []
+    for proc in services:
+        stop_tree(proc)
+    for fh in handles:
+        fh.close()
+    shutil.rmtree(logs, ignore_errors=True)
+    return results, dropped
 
 
 # ---------------------------------------------------------------- lint
 
-def lint(repo: Path, wiki: Path, run: bool = False, in_place: bool = False, timeout: int = 600, capture: Path | None = None) -> dict:
+def lint(repo: Path, wiki: Path, run: bool = False, in_place: bool = False, timeout: int = 600, capture: Path | None = None,
+         strict: bool = False, clean_env: bool = False) -> dict:
     pages = collect_pages(repo, wiki)
     problems: list[dict] = []
     warnings: list[dict] = []
     syms = Symbols(repo)
     report = {"repo": repo.name, "wiki": posix(wiki, repo) if wiki.exists() else str(wiki), "pages": len(pages),
-              "problems": problems, "warnings": warnings, "sources": {}, "diagrams": 0, "commands": []}
+              "problems": problems, "warnings": warnings, "sources": {}, "diagrams": 0, "commands": [],
+              "coverage": {"run": 0, "skip": 0, "unmarked": 0}}
 
     def bad(page, line, msg):
         problems.append({"page": page.label, "line": line, "msg": msg})
@@ -786,11 +953,16 @@ def lint(repo: Path, wiki: Path, run: bool = False, in_place: bool = False, time
         for i, line in enumerate(prose_lines(page.text), 1):
             for ph in re.findall(r"\{\{[^}]+\}\}", line):
                 warn(page, i, f"template placeholder left: {ph}")
-        # command blocks
-        blocks, errs = run_blocks(page)
+        # command blocks: every block a reader would paste into a terminal is either run or skipped with a reason
+        blocks, errs, cov = run_blocks(page)
         for line, msg in errs:
             bad(page, line, msg)
         all_blocks.extend(blocks)
+        report["coverage"]["run"] += cov["run"]
+        report["coverage"]["skip"] += cov["skip"]
+        for line in cov["unmarked"]:
+            report["coverage"]["unmarked"] += 1
+            (bad if strict else warn)(page, line, 'command block neither checked (check:run) nor skipped with a reason (check:skip reason="…")')
 
     # diagrams nobody uses any more
     if (wiki / "diagrams").exists():
@@ -810,15 +982,15 @@ def lint(repo: Path, wiki: Path, run: bool = False, in_place: bool = False, time
     report["commands"] = [dict(b, status="not run") for b in all_blocks]
     if run and all_blocks:
         if in_place:
-            report["commands"] = execute(all_blocks, repo, timeout, capture)
+            report["commands"], report["env_left_out"] = execute(all_blocks, repo, timeout, capture, clean_env)
             report["ran_in"] = "working tree"
         elif not is_git(repo):
             problems.append({"page": "-", "line": 0, "msg": "--run needs a git repository for its clean checkout; add --in-place to run in the working tree"})
         else:
             tmp, dest = make_checkout(repo)
             try:
-                report["commands"] = execute(all_blocks, dest, timeout, capture)
-                report["ran_in"] = "clean checkout"
+                report["commands"], report["env_left_out"] = execute(all_blocks, dest, timeout, capture, clean_env)
+                report["ran_in"] = "clean checkout" + (", clean environment" if clean_env else "")
             finally:
                 remove_checkout(repo, tmp, dest)
         for r in report["commands"]:
@@ -931,9 +1103,14 @@ def summary(report: dict) -> str:
     parts = [f"{report['pages']} pages", f"{len(report['sources'])} sources", f"{report['diagrams']} diagrams"]
     if ran:
         na = sum(c["status"] == "unavailable" for c in ran)
-        parts.append(f"{len(ran)} command blocks run in the {report.get('ran_in', '')}" + (f" ({na} need a tool not installed here)" if na else ""))
+        checked = sum(c.get("detail") == "output checked" for c in ran)
+        parts.append(f"{len(ran)} command blocks run in the {report.get('ran_in', '')}" + (f", {checked} with their output checked" if checked else "") +
+                     (f" ({na} need a tool not installed here)" if na else ""))
     elif report["commands"]:
         parts.append(f"{len(report['commands'])} command blocks (not run)")
+    cov = report.get("coverage", {})
+    if cov.get("skip") or cov.get("unmarked"):
+        parts.append(f"{cov.get('skip', 0)} skipped with a reason, {cov.get('unmarked', 0)} unmarked")
     return ", ".join(parts) + f": {len(report['problems'])} problems, {len(report['warnings'])} warnings"
 
 
@@ -1086,6 +1263,37 @@ def editor_template(name: str) -> str:
     return name
 
 
+IMAGE_TYPES = {".png": "image/png", ".jpg": "image/jpeg", ".jpeg": "image/jpeg", ".gif": "image/gif", ".webp": "image/webp"}
+EMBED_LIMIT = 2_000_000  # bytes: an image up to this size travels inside the one-file viewer; larger ones are linked
+
+
+def page_images(repo: Path, pages: list[Page], link_large: bool) -> dict[str, str]:
+    """{repository-relative path: data URI or file URI} for every raster image the pages show (img, picture source).
+    The viewer is opened from wherever it was written, so relative image paths would not resolve there."""
+    import base64
+    out: dict[str, str] = {}
+    for p in pages:
+        targets = [t for _, t in links(p.text)] + re.findall(r"""\bsrcset\s*=\s*["']([^"'\s,]+)""", p.text)
+        for t in targets:
+            if is_external(t):
+                continue
+            f = (p.path.parent / urllib.parse.unquote(t.partition("#")[0])).resolve()
+            kind = IMAGE_TYPES.get(f.suffix.lower())
+            if not kind or not f.is_file():
+                continue
+            try:
+                rel = posix(f, repo)
+            except ValueError:
+                continue
+            if rel in out:
+                continue
+            if f.stat().st_size <= EMBED_LIMIT:
+                out[rel] = f"data:{kind};base64," + base64.b64encode(f.read_bytes()).decode("ascii")
+            elif link_large:
+                out[rel] = f.as_uri()
+    return out
+
+
 def viewer(repo: Path, wiki: Path, out: Path, editor: str, title: str | None) -> str:
     report = lint(repo, wiki)
     pages = collect_pages(repo, wiki)
@@ -1100,11 +1308,12 @@ def viewer(repo: Path, wiki: Path, out: Path, editor: str, title: str | None) ->
     if (wiki / "diagrams").exists():
         svgs = {posix(svg, repo): SVG_STAMP.sub("", read(svg)).strip() for svg in sorted((wiki / "diagrams").glob("*.svg"))}
     template = editor_template(editor)
+    images = page_images(repo, pages, link_large=bool(template))
     data = {
         "repo": repo.name, "wiki": posix(wiki, repo), "generated": date.today().isoformat(), "toolsVersion": TOOLS_VERSION,
         "editor": template, "repoRoot": repo.resolve().as_posix() if template else "",
         "lint": {"summary": summary(report), "problems": report["problems"], "warnings": report["warnings"]},
-        "pages": data_pages, "svgs": svgs,
+        "pages": data_pages, "svgs": svgs, "images": images,
         "symbols": {k: v["line"] for k, v in report["sources"].items() if v.get("ok")},
     }
     shell = read(HERE / "viewer_template.html")
@@ -1185,6 +1394,8 @@ def main(argv: list[str] | None = None) -> int:
             s.add_argument("--timeout", type=int, default=600, help="seconds per command block")
             s.add_argument("--list-run", action="store_true", help="print the check:run blocks without running them")
             s.add_argument("--capture", type=Path, help="with --run: save each block's output in this folder (outside the repository)")
+            s.add_argument("--strict", action="store_true", help="a command block neither checked nor skipped with a reason is a problem")
+            s.add_argument("--clean-env", action="store_true", help="with --run: run with only system variables, as a newcomer would")
         if name == "affected":
             s.add_argument("--since", help="compare every page with this commit instead of its own last commit")
         if name == "viewer":
@@ -1213,7 +1424,9 @@ def main(argv: list[str] | None = None) -> int:
             print(f"{len(blocks)} command blocks")
             return 0
         report = lint(repo, wiki, run=a.run, in_place=a.in_place, timeout=a.timeout,
-                      capture=a.capture.resolve() if a.capture else None)
+                      capture=a.capture.resolve() if a.capture else None, strict=a.strict, clean_env=a.clean_env)
+        if report.get("env_left_out") and not a.json:
+            print("clean environment left out: " + ", ".join(report["env_left_out"]))  # names only, never values
         print(json.dumps(report, indent=2, ensure_ascii=False)) if a.json else print_lint(report)
         return 1 if report["problems"] else 0
     if a.cmd == "affected":

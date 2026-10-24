@@ -81,7 +81,7 @@ The wiki follows Andrej Karpathy's ["LLM Wiki" pattern](https://gist.github.com/
 | `SCHEMA.md`, `index.md`, `log.md` | the rules, the catalog (● marks written pages), and the append-only log (`## [YYYY-MM-DD] kind \| title`) |
 | `sources:` front matter | `path#Symbol` for every symbol a page explains, never line numbers; the lint proves each one still exists |
 | Diagrams | Mermaid source in the page, rendered to SVG so it shows where Mermaid is not supported (VS Code's built-in preview); the lint fails on an SVG older than its source |
-| Executable docs | a bash or powershell block marked `<!-- check:run -->` runs in a temporary clean checkout under `lint --run`; a failing step fails the lint |
+| Executable docs | every command block is either run or skipped with a reason. `lint --run --strict --clean-env` runs the blocks in a temporary clean checkout with only system environment variables. It starts and probes servers (`background ready=<url>`), and checks shown output against the real output (`check:output`). An unmarked block, a failing step or output that changed fails the lint. Steps that could touch your own containers, volumes or data are isolated or skipped, never run as written |
 | Viewer | one offline HTML file: README first, sidebar by page kind, search, page links, source chips that open your editor at the symbol, diagrams with zoom and pan, and the lint result |
 | Tools in the repository | `wiki.py` and `wiki_browser.py`, copied into the repository (default `tools/wiki/`) so people, CI and other agents run the same checks without this plugin |
 | Rules block | a short section for `AGENTS.md` (proposed, written only on approval) that tells every agent to update affected pages in the same change and run the lint |
@@ -105,7 +105,7 @@ $wiki                                # Codex CLI: the same modes as arguments
 | `--wiki <dir>` | wiki folder | `docs/wiki`, or the repository's documentation home |
 | `--tools <dir>` | where the copied tools live | the repository's dev-scripts folder plus `/wiki`, else `tools/wiki` |
 | `--since <ref>` | update: the commit to compare with | each page's own last commit |
-| `--run` | lint: execute the `check:run` blocks | on in build, off in lint |
+| `--run` | lint: execute the `check:run` blocks (with `--strict --clean-env`) | on in build, off in lint |
 | `--editor <name>` | viewer editor links, as for `code-map`, or `none` | `vscode` |
 | `--lang <language>` | language of the prose | the existing docs' language, else English |
 

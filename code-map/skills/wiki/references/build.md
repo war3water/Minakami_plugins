@@ -70,9 +70,16 @@ Run each check from the repository root and fix what it finds before the next on
 
 1. `python <skill folder>/tools/wiki_browser.py render`. A diagram that does not parse is fixed in the page (`pages.md` §Diagrams), never dropped. Exit code 3 means there is no browser or no Mermaid file: keep the Mermaid source in the page, and say so in the report.
 2. `python <skill folder>/tools/wiki.py lint`. Fix every problem, and read every warning: fix it, or say in the report why it stays.
-3. `python <skill folder>/tools/wiki.py lint --run --capture <a temporary folder outside the repository>`. This executes the approved command blocks, README first, in one temporary clean checkout, and saves each block's output. Replace every illustrative output whose command ran with the captured one, shortened where it is long and labelled with the command and the date. A failing block means the documentation is wrong or the step needs something it does not state. Fix the text, for example a missing prerequisite or a per-OS form; never weaken or unmark the block to make it pass. A block whose tool is not installed on this machine (for example no Go toolchain) is reported as not verified here. Make sure the page names that prerequisite, and report the block as unverified.
+3. `python <skill folder>/tools/wiki.py lint --run --strict --clean-env --capture <a temporary folder outside the repository>`. This is the proof that a reader can follow the pages without changing anything:
+   - The approved command blocks run, README first, in one temporary clean checkout, with only system environment variables. A step that relies on something the page does not state, such as a variable set on your machine, an installed tool, or a file outside git, fails here.
+   - Each block's output is saved. Put the real output under the command, shortened where it is long and labelled with the command and the date. Mark it `check:output` wherever the reader will compare their own output with it, so the next lint fails if the program's output changes.
+   - A server, `docker compose up` or watcher is started with `check:run background ready=<url or /log regex/>`, probed by the next blocks (a health URL, a request, a CLI call against it), and stopped with its page. A deployment step is verified the same way, as far as the machine allows: build the image, start it, request its health URL.
+   - **Shared resources.** A clean checkout isolates files, not names. Before a block starts containers, creates volumes or databases, binds ports or writes to a service, check whether those names are fixed (a Compose `container_name`, a volume with `name:`, a fixed port, a database URL from the user's config). Check whether they could reach the user's own containers or data. If they could, do not run the block as written. Run it isolated (another project name, port and volume, given as a verification-only variant on the page), or ask the user, or skip it with that reason. A check must never touch the user's real data.
+   - `--strict` fails on any command block that is neither run nor marked `check:skip reason="…"`. A skip says exactly what the step needs that a check cannot have, for example an API key, a phone, production credentials or a paid service. Wherever a skipped step has a safe stand-in (offline tests with a mocked client, a local server, a dry-run flag), document the stand-in as a run block next to it.
+   - A failing block means the documentation is wrong or the step needs something it does not state. Fix the text, for example a missing prerequisite, an environment variable to set, or a per-OS form; never weaken, skip or unmark a block to make it pass.
+   - A block whose tool is not installed on this machine (for example no Go toolchain) is reported as not verified here. Make sure the page names that prerequisite, and report the block as unverified.
 4. `python <skill folder>/tools/wiki.py viewer`, then `python <skill folder>/tools/wiki_browser.py check-viewer <viewer file>`. The check needs Python Playwright; without it, say that the viewer was not opened.
-5. Read each page once more as a newcomer would. Every claim should trace to a source symbol, a captured output, or the user.
+5. **Audit the claims.** List every concrete claim a reader will act on: commands, versions, defaults, limits, flags, ports, environment variables, exit codes, error messages, file locations, and the behaviour of requests and responses. Verify each one, either by a `check:run` block (with `check:output` where the page shows output) or by the line of code it comes from. A claim you can verify neither way is removed, or labelled as unverified with what would verify it. Report the counts: verified by running, verified in the code, unverified.
 
 ## 6. Report
 
@@ -80,7 +87,8 @@ Reply briefly; the files carry the detail:
 
 - the files written, and the planned pages left for later;
 - the lint result: problems (should be none), and the warnings left with their reasons;
-- the command blocks run, and those skipped on this OS;
+- the command blocks run (in the clean checkout and clean environment), those with their output checked, those skipped on this OS or as not installed here, and every `check:skip` with its reason;
+- the claim audit: how many claims were verified by running, how many in the code, and which are unverified;
 - the diagrams rendered, or why not;
 - the viewer path;
 - what you could not verify, the recommendations you did not apply, and open questions;

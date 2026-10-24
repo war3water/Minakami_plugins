@@ -14,7 +14,7 @@ The goal: every page tells the truth about the code as it is now, and the change
    The extras the first build wrote are part of the wiki and are updated the same way: CodeTour steps (the lint checks that each `pattern` still matches), debug configurations, and the rules block.
 4. **Uncovered code.** For each changed file no page names, decide: an existing page should cover it (add it to that page's `sources:` and text), it needs a new page (write it and add it to `index.md`), or readers do not need it (say so in the report). A planned page in the index that the change now makes necessary is written now.
 5. **Log.** Append one entry at the end of `log.md`: `## [YYYY-MM-DD] change | <title>`, then one to three lines on what changed. Name, by path, the pages updated and the pages checked and still true, for example `Updated: README.md, howto/run-and-debug.md. Checked: reference/cache.md.`
-6. **Verify.** Render the diagrams you edited (`wiki_browser.py render`), run `wiki.py lint`, and run `wiki.py lint --run` when setup, commands or command blocks changed. Rebuild the viewer if the repository keeps one. Fix what fails, as in `build.md` §5.
+6. **Verify.** Render the diagrams you edited (`wiki_browser.py render`) and run `wiki.py lint --strict`. When setup, commands, command blocks, or output shown as `check:output` may have changed, run `wiki.py lint --run --strict --clean-env --capture <folder>` and update the captured outputs. Rebuild the viewer if the repository keeps one. Fix what fails, as in `build.md` §5.
 7. **Report.** List the pages updated and why, the pages confirmed unchanged, new pages, uncovered code left out and why, the lint result, and the command blocks run.
 
 ## Lint
