@@ -30,6 +30,22 @@ Then review what a script cannot check, as Karpathy's lint does:
 
 Report the findings as a table, `# | Page | Problem | Evidence | Fix`, with evidence as a `path#symbol`, a file and line, or a command and its output. Then ask: apply all, some (by number), or none. Apply only what is approved; when you cannot get an answer, the report is the deliverable. Fixes stay inside the wiki.
 
+## Questions
+
+The goal: questions people actually ask about this repository get answered once, in the wiki, instead of being worked out again in every session. This follows Karpathy's "query" operation, where good answers are filed back. Only the answering costs tokens; finding the questions does not.
+
+1. **Harvest.** Run `python <skill folder>/tools/wiki.py questions`, adding `--since YYYY-MM-DD` when the user names a starting day. It reads the local transcripts of Claude Code and Codex sessions whose working folder is inside this repository, and keeps only what people typed. It picks out the sentences that ask something, masks anything that looks like a key, and groups questions that ask the same thing. Questions `questions.md` already holds are dropped. The output is ranked: asked in the most sessions first, then most often, then most recent. Claude Code deletes transcripts older than its `cleanupPeriodDays` setting (30 days by default), so older questions may be gone.
+2. **Choose.** The list is found by plain rules, so it includes noise: fragments of pasted text, questions the agent asked and the user quoted back, and one-off task questions ("which prompt should I use?"). Keep a question only when all three hold:
+   - it is about how this repository works or how to use it;
+   - someone would ask it again: asked in more than one session, or it took real exploration to answer;
+   - the wiki does not already answer it (check the index and the page it would belong to).
+   Name what you left out in a single line, by kind, not one by one.
+3. **Answer.** For each kept question, find the answer in the code and the wiki, under the same rules as any page: traceable, with captured output or `path#Symbol`. Decide where the full answer belongs. Usually that is a section of an existing page, improved or added. Otherwise it is a new page listed in the index.
+4. **Propose (approval gate).** Show a table: `# | Question (as asked) | Short answer | Where the full answer goes | Asked`. Also show the exact text of each page change. Ask: apply all, some (by number), or none. Without an answer, the proposal is the deliverable.
+5. **Apply.** Create `questions.md` from `templates/questions.md.tmpl` on first use and add it to the index. Add one entry per question, with its link and its sources. Make the page edits, append a `questions` entry to the log naming the pages, then run `wiki.py lint --strict`.
+
+The rules block adds the other trigger. An agent that answers such a question during normal work adds it in the same session, so most good questions never need the harvest.
+
 ## View
 
 1. `python <skill folder>/tools/wiki.py viewer [--editor <name>] [--out <file>]` writes one HTML file: README first, a sidebar by page kind, search, links between pages, source chips that open the editor at the symbol, diagrams that open in a zoom and pan view, and the lint result. It needs no network.

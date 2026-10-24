@@ -16,6 +16,8 @@ Use `../../references/extraction.md` §1, §2, §4, §8 and §9 for the language
 | Docs | the README, `docs/`, `ARCHITECTURE.md`, `CONTRIBUTING.md`, design notes and decision records, any existing wiki or documentation site, `AGENTS.md` and `CLAUDE.md`, `.gitignore` |
 | Evidence | captured outputs already in the repository: fixtures, golden files, snapshots, benchmark results |
 
+Run `python <skill folder>/tools/wiki.py questions` as well. The questions people have already asked in sessions here show which pages a newcomer needs first. Recurring ones can seed `questions.md` (`update.md`, "Questions"), proposed with the rest in step 3.
+
 In a temporary copy of the repository, run the commands you will document that need nothing beyond what is installed: `--help`, the test command, a sample run, with the trace switch on if the code has one. Keep their output for the pages, labelled with the command and the date. Install nothing in this step; a command that needs an install is checked later by `lint --run`, after approval.
 
 ## 2. Plan

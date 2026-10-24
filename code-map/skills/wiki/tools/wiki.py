@@ -7,6 +7,7 @@ any coding agent) can run it without the plugin. Standard library only, Python 3
 
   python wiki.py lint       [--repo R] [--wiki W] [--run [--in-place] [--timeout S] [--capture DIR]] [--list-run] [--json]
   python wiki.py affected   [--repo R] [--wiki W] [--since REF] [--json]
+  python wiki.py questions  [--repo R] [--wiki W] [--since YYYY-MM-DD] [--json]
   python wiki.py viewer     [--repo R] [--wiki W] [--out FILE] [--editor NAME|TEMPLATE|none] [--title T]
   python wiki.py copy-tools DEST [--force] [--check]
   python wiki.py version
@@ -1243,6 +1244,136 @@ def print_affected(res: dict) -> None:
         print("\nPages not committed yet: " + ", ".join(res["new_pages"]))
 
 
+# ---------------------------------------------------------------- questions
+
+ASK_EN = re.compile(r"(?i)^(how|why|what|where|which|when|who|whose|is|are|does|do|did|can|could|should|would|will|was|were|has|have|isn't|doesn't|don't)\b")
+REQUEST = re.compile(r"(?i)^(can|could|would|will) (you|u)\b|^please\b|^(let's|lets)\b")  # asks to do something, not about the code
+ASK_ZH = re.compile(r"(为什么|怎么|如何|哪里|哪个|哪些|什么|是否|能否|能不能|可不可以|多少|吗|呢)")
+SECRET = re.compile(r"(?i)\b(?:sk|pk|rk|ghp|gho|github_pat|xox[abprs])[-_][A-Za-z0-9_\-]{12,}|\b[A-Za-z0-9+/_\-]{32,}\b")
+CODE_LIKE = re.compile(r"[{};]|=>|[=!]==?|\?\?|^\s*[(.]|^\s*(export|import|const|let|var|def|return|function|class|if \(|for \(|<\w)|\w\(.*\)\s*\?$")
+
+
+def within(path: str | None, repo: Path) -> bool:
+    if not path:
+        return False
+    try:
+        Path(path).resolve().relative_to(repo.resolve())
+        return True
+    except (ValueError, OSError):
+        return False
+
+
+def typed_messages(repo: Path, since: str | None):
+    """(runtime, session id, ISO time, text) for every message a person typed in a Claude Code or Codex session whose
+    working folder is inside this repository. Reads the local transcripts only; nothing leaves the machine."""
+    claude = Path(os.environ.get("CLAUDE_CONFIG_DIR") or Path.home() / ".claude") / "projects"
+    encoded = re.sub(r"[^A-Za-z0-9]", "-", str(repo.resolve()))
+    if claude.is_dir():
+        for d in sorted(claude.iterdir()):
+            if not (d.name == encoded or d.name.startswith(encoded + "-")):
+                continue
+            for f in sorted(d.glob("*.jsonl")):
+                for line in read(f).splitlines():
+                    try:
+                        e = json.loads(line)
+                    except ValueError:
+                        continue
+                    if e.get("type") != "user" or e.get("isMeta") or e.get("promptSource", "typed") != "typed" or not within(e.get("cwd"), repo):
+                        continue
+                    content = (e.get("message") or {}).get("content")
+                    text = content if isinstance(content, str) else " ".join(
+                        c.get("text", "") for c in content or [] if isinstance(c, dict) and c.get("type") == "text")
+                    ts = str(e.get("timestamp", ""))
+                    if text and (not since or ts[:10] >= since):
+                        yield "claude", str(e.get("sessionId", f.stem)), ts, text
+    codex = Path(os.environ.get("CODEX_HOME") or Path.home() / ".codex") / "sessions"
+    if codex.is_dir():
+        for f in sorted(codex.rglob("rollout-*.jsonl")):
+            lines = read(f).splitlines()
+            try:
+                meta = json.loads(lines[0]).get("payload", {}) if lines else {}
+            except ValueError:
+                continue
+            if not within(meta.get("cwd"), repo):
+                continue
+            for line in lines[1:]:
+                try:
+                    e = json.loads(line)
+                except ValueError:
+                    continue
+                p = e.get("payload") or {}
+                if e.get("type") != "response_item" or p.get("type") != "message" or p.get("role") != "user":
+                    continue
+                text = " ".join(c.get("text", "") for c in p.get("content") or [] if isinstance(c, dict) and c.get("type") == "input_text")
+                ts = str(e.get("timestamp", meta.get("timestamp", "")))
+                if text and not text.lstrip().startswith(("<", "# AGENTS.md")) and (not since or ts[:10] >= since):
+                    yield "codex", str(meta.get("id", f.stem)), ts, text
+
+
+def question_sentences(text: str) -> list[str]:
+    """The sentences of a message that ask something, as far as plain rules can tell. Commands, skill invocations and
+    requests to do something are left out; secrets that look like keys or tokens are masked."""
+    if text.lstrip().startswith(("/", "$", "<", "!")):
+        return []
+    out = []
+    for part in re.split(r"(?<=[?？])\s+|\n+", text):
+        s = re.sub(r"\s+", " ", part).strip(" -*>\t")
+        if not s or len(s) > 300 or REQUEST.match(s) or s.count("`") > 6 or CODE_LIKE.search(s):
+            continue  # pasted code (a ternary, `??`) ends in a question mark too
+        ends = s.endswith(("?", "？"))
+        if (ends and (ASK_EN.match(s) or ASK_ZH.search(s) or len(s.split()) >= 3)) or (ASK_ZH.search(s) and s.endswith(("吗", "呢"))):
+            out.append(SECRET.sub("[masked]", s))
+    return out
+
+
+def qnorm(s: str) -> set[str]:
+    words = re.findall(r"[a-z0-9_]+|[一-鿿]", s.lower())
+    return {w for w in words if w not in {"the", "a", "an", "is", "are", "do", "does", "to", "of", "in", "it", "this", "that", "and", "or"}}
+
+
+def similar(a: set[str], b: set[str]) -> bool:
+    return bool(a and b) and len(a & b) / len(a | b) >= 0.6
+
+
+def questions(repo: Path, wiki: Path, since: str | None) -> dict:
+    """Questions people asked in sessions in this repository, grouped when they ask the same thing, most asked first;
+    questions the wiki's questions.md already holds are left out."""
+    answered = []
+    qpage = wiki / "questions.md"
+    if qpage.exists():
+        answered = [qnorm(m) for m in re.findall(r"^#{2,3}\s+(.+?)\s*$", read(qpage), re.M)]
+    groups: list[dict] = []
+    seen_sessions, runtimes, skipped = set(), {"claude": set(), "codex": set()}, 0
+    for runtime, session, ts, text in typed_messages(repo, since):
+        seen_sessions.add((runtime, session))
+        runtimes[runtime].add(session)
+        for q in question_sentences(text):
+            key = qnorm(q)
+            if any(similar(key, a) for a in answered):
+                skipped += 1
+                continue
+            g = next((g for g in groups if similar(key, g["key"])), None)
+            if g is None:
+                g = {"question": q, "key": key, "count": 0, "sessions": set(), "last": ""}
+                groups.append(g)
+            g["count"] += 1
+            g["sessions"].add(f"{runtime}:{session}")
+            g["last"] = max(g["last"], ts[:10])
+    groups.sort(key=lambda g: (len(g["sessions"]), g["count"], g["last"]), reverse=True)  # asked most widely, then most often, then latest
+    return {"sessions": len(seen_sessions), "claude_sessions": len(runtimes["claude"]), "codex_sessions": len(runtimes["codex"]),
+            "since": since, "already_answered": skipped,
+            "questions": [{"question": g["question"], "count": g["count"], "sessions": len(g["sessions"]), "last": g["last"],
+                           "from": sorted(g["sessions"])} for g in groups]}
+
+
+def print_questions(res: dict) -> None:
+    print(f"{len(res['questions'])} question candidates from {res['sessions']} sessions in this repository "
+          f"(Claude Code {res['claude_sessions']}, Codex {res['codex_sessions']})" + (f" since {res['since']}" if res["since"] else "") +
+          (f"; {res['already_answered']} already in questions.md were left out" if res["already_answered"] else ""))
+    for q in res["questions"]:
+        print(f"  {q['count']}x in {q['sessions']} session(s), last {q['last'] or '?'}: {q['question']}")
+
+
 # ---------------------------------------------------------------- viewer
 
 EDITORS = {  # the same schemes as code-map's references/extraction.md section 10
@@ -1402,6 +1533,11 @@ def main(argv: list[str] | None = None) -> int:
             s.add_argument("--out", type=Path)
             s.add_argument("--editor", default="vscode", help="vscode, vscode-insiders, cursor, windsurf, jetbrains:<ide>, a template, or none")
             s.add_argument("--title")
+    q = sub.add_parser("questions", help="questions asked in Claude Code and Codex sessions in this repository")
+    q.add_argument("--repo", type=Path)
+    q.add_argument("--wiki", type=Path)
+    q.add_argument("--since", help="YYYY-MM-DD: only messages from this day on")
+    q.add_argument("--json", action="store_true")
     c = sub.add_parser("copy-tools")
     c.add_argument("dest", type=Path)
     c.add_argument("--force", action="store_true")
@@ -1429,6 +1565,10 @@ def main(argv: list[str] | None = None) -> int:
             print("clean environment left out: " + ", ".join(report["env_left_out"]))  # names only, never values
         print(json.dumps(report, indent=2, ensure_ascii=False)) if a.json else print_lint(report)
         return 1 if report["problems"] else 0
+    if a.cmd == "questions":
+        res = questions(repo, wiki, a.since)
+        print(json.dumps(res, indent=2, ensure_ascii=False)) if a.json else print_questions(res)
+        return 0
     if a.cmd == "affected":
         res = affected(repo, wiki, a.since)
         print(json.dumps(res, indent=2, ensure_ascii=False)) if a.json else print_affected(res)

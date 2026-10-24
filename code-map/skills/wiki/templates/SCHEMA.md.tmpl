@@ -44,7 +44,7 @@ One paragraph: what this page covers and who it is for.
 
 ## Rules for the agent
 
-1. **Read the index first.** Before exploring the code to answer a question, read `index.md`: the answer may already be written. When you work out something a page should say, add it.
+1. **Read the index first, and keep good answers.** Before exploring the code to answer a question, read `index.md`: the answer may already be written. When you answer a question the wiki did not cover and it is likely to come up again, write the answer into the page it belongs on, and add the question to `questions.md` with a link there. `wiki.py questions` lists the questions people asked in Claude Code and Codex sessions in this repository that `questions.md` does not hold yet.
 2. **Update in the same change.** A change that alters behaviour, setup, commands or layout updates every page whose `sources` name a changed file or symbol, and the README when setup or commands change. `affected` (below) lists them. Add renamed or new pages to `index.md`, and append one entry to `log.md`.
 3. **Point to symbols, not line numbers**, for example `{{an example path#symbol from this repository}}`. Line numbers drift; the lint checks that every named symbol still exists.
 4. **Every claim is traceable** to a source symbol or a captured output. Captured examples are copied from a real run or a file ({{where captured evidence lives}}) and say where they came from; examples that were not captured are labelled illustrative.
@@ -70,6 +70,7 @@ Run from the repository root. The tools in `{{tools_dir}}/` need only Python 3.9
 | Task | Command |
 |---|---|
 | Which pages a change touches | `python {{tools_dir}}/wiki.py affected` |
+| Questions asked in sessions here, not answered yet | `python {{tools_dir}}/wiki.py questions` |
 | Render the diagrams | `python {{tools_dir}}/wiki_browser.py render` |
 | Lint | `python {{tools_dir}}/wiki.py lint --strict` |
 | Lint and run the documented commands as a newcomer would | `python {{tools_dir}}/wiki.py lint --run --strict --clean-env` |

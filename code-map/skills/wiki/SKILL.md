@@ -1,8 +1,8 @@
 ---
 name: wiki
-description: Build a code wiki for the current repository and keep it current with the code. The README becomes the front page; pages link to the source symbols they explain, and a lint proves those symbols still exist; a run-and-debug page gives the call chain, breakpoints, trace switch and symptoms; Mermaid diagrams are rendered to SVG; marked command blocks are executed so setup steps cannot go stale; a one-file viewer makes it browsable. Modes build, update, lint, view. USER-INVOKED ONLY — run solely when the user names this skill ($wiki in Codex, /code-map:wiki in Claude Code).
+description: Build a code wiki for the current repository and keep it current with the code. The README becomes the front page; pages link to the source symbols they explain, and a lint proves those symbols still exist; a run-and-debug page gives the call chain, breakpoints, trace switch and symptoms; Mermaid diagrams are rendered to SVG; marked command blocks are executed so setup steps cannot go stale; a one-file viewer makes it browsable; questions asked in sessions are collected and answered into the wiki. Modes build, update, lint, view, questions. USER-INVOKED ONLY — run solely when the user names this skill ($wiki in Codex, /code-map:wiki in Claude Code).
 disable-model-invocation: true
-argument-hint: "[build|update|lint|view] [--wiki <dir>] [--tools <dir>] [--since <ref>] [--run] [--editor <name>] [--lang <language>] [free-text wishes]"
+argument-hint: "[build|update|lint|view|questions] [--wiki <dir>] [--tools <dir>] [--since <ref>] [--run] [--editor <name>] [--lang <language>] [free-text wishes]"
 allowed-tools:
   - Read(${CLAUDE_SKILL_DIR}/**)
   - Read(${CLAUDE_PLUGIN_ROOT}/references/**)
@@ -29,7 +29,7 @@ The pattern is Karpathy's "LLM Wiki" (three layers: the sources nobody edits thr
 | Mode | Read first |
 |---|---|
 | build | `references/build.md`, `references/pages.md`, `references/readme.md`, every file in `templates/`, `../../references/extraction.md` |
-| update | `references/update.md`, `references/pages.md` |
+| update, questions | `references/update.md`, `references/pages.md`, and for questions `templates/questions.md.tmpl` |
 | lint, view | `references/update.md` |
 
 **Tools.** `tools/wiki.py` (standard library only: lint, affected pages, viewer, copying the tools) and `tools/wiki_browser.py` (diagram rendering and a viewer check, which need a browser). The runbooks write `<skill folder>` for this folder, so their commands are:
@@ -54,7 +54,7 @@ The invocation arguments are: `$ARGUMENTS`
 
 | Argument | Meaning | Default |
 |---|---|---|
-| `build`, `update`, `lint`, `view` | the mode | `update` when a wiki exists (a `SCHEMA.md` with `kind: schema`, normally `docs/wiki/`), otherwise `build` |
+| `build`, `update`, `lint`, `view`, `questions` | the mode | `update` when a wiki exists (a `SCHEMA.md` with `kind: schema`, normally `docs/wiki/`), otherwise `build` |
 | `--wiki <dir>` | wiki folder, relative to the repository root | `docs/wiki`, or the repository's documentation home |
 | `--tools <dir>` | where the copied tools live | the repository's dev-scripts folder plus `/wiki`, else `tools/wiki` |
 | `--since <ref>` | update: compare every page with this commit instead of its own last commit | each page's last commit |
@@ -71,6 +71,7 @@ The repository root is the nearest ancestor of the working directory with a VCS 
 - **update** — follow `references/update.md`, "Update".
 - **lint** — follow `references/update.md`, "Lint".
 - **view** — follow `references/update.md`, "View".
+- **questions** — follow `references/update.md`, "Questions".
 
 ## Done when
 
@@ -78,5 +79,6 @@ The repository root is the nearest ancestor of the working directory with a VCS 
 - update: every page `affected` listed is either updated or confirmed unchanged; the log has one new entry; lint passes.
 - lint: the findings are reported, and the approved fixes are applied.
 - view: the viewer file is written and checked.
+- questions: the kept questions are answered in the pages they belong to and listed in `questions.md`, or the proposal is delivered; what was left out is named by kind.
 
 Do not commit anything to git; leave that to the user.

@@ -84,6 +84,7 @@ The wiki follows Andrej Karpathy's ["LLM Wiki" pattern](https://gist.github.com/
 | Executable docs | every command block is either run or skipped with a reason. `lint --run --strict --clean-env` runs the blocks in a temporary clean checkout with only system environment variables. It starts and probes servers (`background ready=<url>`), and checks shown output against the real output (`check:output`). An unmarked block, a failing step or output that changed fails the lint. Steps that could touch your own containers, volumes or data are isolated or skipped, never run as written |
 | Viewer | one offline HTML file: README first, sidebar by page kind, search, page links, source chips that open your editor at the symbol, diagrams with zoom and pan, and the lint result |
 | Tools in the repository | `wiki.py` and `wiki_browser.py`, copied into the repository (default `tools/wiki/`) so people, CI and other agents run the same checks without this plugin |
+| Questions | `questions.md`: real questions from Claude Code and Codex sessions in the repository, each answered in the page it belongs to and linked from here. An agent adds one when it answers a question the wiki did not cover; `wiki.py questions` finds the rest in the local transcripts without spending tokens |
 | Rules block | a short section for `AGENTS.md` (proposed, written only on approval) that tells every agent to update affected pages in the same change and run the lint |
 
 ### Usage
@@ -96,12 +97,13 @@ The wiki follows Andrej Karpathy's ["LLM Wiki" pattern](https://gist.github.com/
 /code-map:wiki update --since main   # compare with a branch point instead of each page's last commit
 /code-map:wiki lint --run            # mechanical checks, documented commands, and a review of the claims
 /code-map:wiki view --editor cursor  # build and check the one-file viewer
+/code-map:wiki questions             # answer the questions people asked in sessions here
 $wiki                                # Codex CLI: the same modes as arguments
 ```
 
 | Argument | Meaning | Default |
 |---|---|---|
-| `build`, `update`, `lint`, `view` | the mode | `update` when a wiki exists, else `build` |
+| `build`, `update`, `lint`, `view`, `questions` | the mode | `update` when a wiki exists, else `build` |
 | `--wiki <dir>` | wiki folder | `docs/wiki`, or the repository's documentation home |
 | `--tools <dir>` | where the copied tools live | the repository's dev-scripts folder plus `/wiki`, else `tools/wiki` |
 | `--since <ref>` | update: the commit to compare with | each page's own last commit |
