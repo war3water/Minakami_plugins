@@ -9,6 +9,7 @@ Personal marketplace of cross-runtime plugins for [Claude Code](https://claude.c
 | `agent-coord-bootstrap` | Scaffold or upgrade an agent-coordination doc layer (`AGENTS.md` + `.agent_works/` + cross-runtime aliases) that Claude Code, Codex CLI, and Gemini CLI all read. Fresh init for new projects; content-preserving migration for existing ones. A second skill, `review-readme`, checks a project's README against best practices for its type and proposes edits traced to the project's files. |
 | `prompt-audit` | Audit one prompt's effectiveness for a specific target coding model — token efficiency, goal clarity, confusion/hallucination triggers, capability limiting, and more. Evidence-cited findings tables, an honest verdict, prioritized refinement advice, and an optional approval-gated rewrite. A second command, `check-sources`, lists the vendors' docs indexes to catch newly published model prompting pages and reports when the official guidance has moved ahead of the plugin's reference files. |
 | `code-map` | Build an interactive, layered code map of a repository as one local HTML file — architecture overview, module dependency map, algorithm pipeline with typed data flow, and the functions inside each stage. Every node deep-links to your editor with typed inputs/outputs, hotspot flags, search, and notes; every edge cites its source line, and unconfirmed edges are marked inferred. |
+| `code-cleanup` | Clean up a codebase so a maintainer can read, debug, and change it, without changing what it does — from one targeted change, to removing dead code and junk, to flattening call paths that jump through needless layers and splitting god functions, to a full overhaul, or a map and plan only. An empty or vague request gets a short survey and one question about the level. Its README lists the tested one-line requests for each need. |
 
 ## Install on a new device
 
@@ -33,14 +34,18 @@ claude plugin marketplace add war3water/Minakami_plugins
 claude plugin install agent-coord-bootstrap@minakami-plugins
 claude plugin install prompt-audit@minakami-plugins
 claude plugin install code-map@minakami-plugins
+claude plugin install code-cleanup@minakami-plugins
 
 codex plugin marketplace add war3water/Minakami_plugins
 codex plugin add agent-coord-bootstrap@minakami-plugins
 codex plugin add prompt-audit@minakami-plugins
 codex plugin add code-map@minakami-plugins
+codex plugin add code-cleanup@minakami-plugins
 ```
 
 Note the asymmetry: Claude Code uses `plugin install`, Codex CLI uses `plugin add`. Both take the `<plugin>@<marketplace>` form. The marketplace source is the bare `owner/repo` GitHub shorthand — `github:`-prefixed forms are rejected by both CLIs.
+
+Grok Build loads the plugins installed in Claude Code (its Claude compatibility is on by default), so a Claude Code install covers it too. Without Claude Code, install a plugin in Grok from its subfolder, for example `grok plugin install war3water/Minakami_plugins#code-cleanup`.
 
 ## Update
 
@@ -50,12 +55,14 @@ claude plugin marketplace update minakami-plugins
 claude plugin update agent-coord-bootstrap@minakami-plugins
 claude plugin update prompt-audit@minakami-plugins
 claude plugin update code-map@minakami-plugins
+claude plugin update code-cleanup@minakami-plugins
 
 # Codex CLI: refresh the marketplace, then re-add the plugins
 codex plugin marketplace upgrade minakami-plugins
 codex plugin add agent-coord-bootstrap@minakami-plugins
 codex plugin add prompt-audit@minakami-plugins
 codex plugin add code-map@minakami-plugins
+codex plugin add code-cleanup@minakami-plugins
 ```
 
 ## Known limitation — Codex headless mode
@@ -95,6 +102,10 @@ code-map/                           Plugin source
     skills/code-map/                Skill wrapper (Codex surface)
     references/                     Extraction method, data contract, editor link schemes
     templates/viewer.html           Reference viewer the run fills with data
+code-cleanup/                       Plugin source (skills only; one SKILL.md serves every runtime)
+    .codex-plugin/plugin.json       Manifest (canonical)
+    .claude-plugin/plugin.json      Manifest (duplicate)
+    skills/code-cleanup/            SKILL.md, plus references/ (campaign mode), assets/ (ledger template), scripts/ (helpers)
 ```
 
 The two `marketplace.json` files and the two `plugin.json` files are **duplicated, not symlinked** — Windows + Git symlinks are unreliable. Edit `.agents/plugins/marketplace.json` and `.codex-plugin/plugin.json` as canonical, then run `bash scripts/sync-manifests.sh` before committing.

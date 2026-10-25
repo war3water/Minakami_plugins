@@ -1,0 +1,17 @@
+{
+  "name": "code-cleanup",
+  "version": "4.2.0",
+  "description": "Clean up a codebase so a maintainer can read, debug, and change it, without changing what it does — from one targeted change, to removing dead code and junk, to flattening call paths that jump through needless layers and splitting god functions, to a full overhaul, or a map and plan only. An empty or vague request gets a short survey and one question about the level.",
+  "author": {
+    "name": "war3water",
+    "url": "https://github.com/war3water/Minakami_plugins"
+  },
+  "skills": "./skills",
+  "interface": {
+    "displayName": "Code Cleanup",
+    "category": "refactoring",
+    "defaultPrompt": [
+      "Run /code-cleanup:code-cleanup (Claude Code) or $code-cleanup (Codex) in the repository, followed by what hurts in your own words — or nothing, and it surveys the project and asks which level to do."
+    ]
+  }
+}
