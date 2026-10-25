@@ -1,0 +1,11 @@
+{
+  "name": "minakami-plugins",
+  "private": true,
+  "description": "Minakami's agent plugins. Claude Code, Codex CLI and Grok Build install them from the marketplace manifests; pi installs this repository as a package and loads every plugin's skills.",
+  "license": "UNLICENSED",
+  "repository": "github:war3water/Minakami_plugins",
+  "keywords": ["pi-package"],
+  "pi": {
+    "skills": ["./*/skills"]
+  }
+}

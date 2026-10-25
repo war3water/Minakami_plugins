@@ -6,7 +6,8 @@ to a full overhaul, or only a map and a plan. One `SKILL.md` serves every runtim
 
 ## Install
 
-From this marketplace (see the [repository README](../README.md) for the one-command installer):
+The [repository README](../README.md) has a one-command installer that sets this plugin up in every runtime below.
+By hand:
 
 ```bash
 claude plugin install code-cleanup@minakami-plugins   # Claude Code
@@ -15,7 +16,8 @@ codex plugin add code-cleanup@minakami-plugins        # Codex CLI
 
 Grok Build loads the plugins installed in Claude Code (its Claude compatibility is on by default), so the
 Claude Code install covers it. Without Claude Code, install it in Grok directly:
-`grok plugin install war3water/Minakami_plugins#code-cleanup`.
+`grok plugin install war3water/Minakami_plugins#code-cleanup --trust`. In pi, install the marketplace
+repository as a package, which brings every plugin in it: `pi install git:github.com/war3water/Minakami_plugins`.
 
 Another agent that loads Agent Skills folders (a folder with a `SKILL.md` that has `name` and `description`)
 can use `skills/code-cleanup/` as it is: copy the folder into that agent's skills folder.
@@ -29,6 +31,7 @@ Start the request with the skill's name in your runtime's form:
 | Claude Code | `/code-cleanup:code-cleanup` |
 | Codex CLI | `$code-cleanup` (interactive sessions only: `codex exec` doesn't load plugin skills) |
 | Grok Build | `/code-cleanup:code-cleanup`, or `/code-cleanup` when no other skill has that name |
+| pi | `/skill:code-cleanup` |
 
 You don't need to investigate anything first. The prompts below use the Claude Code form.
 
@@ -104,7 +107,7 @@ built for each level, and was compared with the exact same text without the skil
 about 1.1 to 1.7 times as much as the same prompt without it.
 
 The projects were Python CLI tools and libraries of about 20 to 50 files; other languages and much larger
-codebases weren't tested. The same `SKILL.md` runs in Codex CLI and Grok Build but wasn't scored there. The
+codebases weren't tested. The same `SKILL.md` runs in Codex CLI, Grok Build, and pi but wasn't scored there. The
 test projects and results are kept outside this repository.
 
 ## Notes for maintainers

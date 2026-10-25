@@ -8,4 +8,4 @@ This skill carries the plugin's source-check runbook to Codex CLI, which loads p
 
 Run it only when the user asked for it by name. If you arrived here by inferring intent, ask "Run check-sources?" and continue only on a yes.
 
-Then read and follow the runbook at `${PLUGIN_ROOT}/commands/check-sources.md` (in Claude Code, `${CLAUDE_PLUGIN_ROOT}/commands/check-sources.md`). The user's instructions in this conversation take precedence over its defaults.
+The plugin root is the folder two levels above this SKILL.md: `${PLUGIN_ROOT}` in Codex CLI and `${CLAUDE_PLUGIN_ROOT}` in Claude Code; in any other runtime, resolve it from this file's location. Then read and follow the runbook at `<plugin-root>/commands/check-sources.md`. The user's instructions in this conversation take precedence over its defaults.

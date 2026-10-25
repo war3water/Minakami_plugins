@@ -1,6 +1,6 @@
 # Minakami Plugins
 
-Personal marketplace of cross-runtime plugins for [Claude Code](https://claude.com/claude-code) and [Codex CLI](https://developers.openai.com/codex). One plugin source serves both runtimes.
+Personal marketplace of cross-runtime plugins for [Claude Code](https://claude.com/claude-code), [Codex CLI](https://developers.openai.com/codex), Grok Build, and [pi](https://pi.dev). One plugin source serves every runtime.
 
 ## Plugins in this marketplace
 
@@ -13,19 +13,38 @@ Personal marketplace of cross-runtime plugins for [Claude Code](https://claude.c
 
 ## Install on a new device
 
-### One-command (recommended)
+### One command (recommended)
 
 ```bash
-# POSIX (macOS / Linux / Git Bash on Windows)
+# macOS, Linux, or Git Bash on Windows
 curl -fsSL https://raw.githubusercontent.com/war3water/Minakami_plugins/main/install.sh | bash
 ```
 
 ```powershell
-# Windows PowerShell
+# Windows PowerShell 5.1 or PowerShell 7
 iwr -useb https://raw.githubusercontent.com/war3water/Minakami_plugins/main/install.ps1 | iex
 ```
 
-The script detects which of Claude Code / Codex CLI you have installed, registers this marketplace with each, installs every plugin listed above, and reports any step that failed. Re-running it on a device that already has the plugins brings each one to its latest version.
+The installer puts every plugin above into each agent runtime it finds on PATH, and reports any step that failed:
+
+| Runtime | What the installer does |
+|---|---|
+| Claude Code | registers this marketplace, then installs or updates each plugin |
+| Codex CLI | registers this marketplace, then installs or updates each plugin |
+| Grok Build | skips each plugin Grok already loads from Claude Code (its Claude compatibility, on by default), and installs or updates the rest from this repository, so no skill loads twice |
+| pi | installs or updates this repository as one pi package; its `package.json` points pi at every plugin's skills |
+
+Re-running it brings every plugin to its latest version. It also warns about personal skill folders, such as `~/.claude/skills/code-cleanup`, that share a name with a plugin skill: a runtime may load those instead of the plugin, or both.
+
+To install into some runtimes only, set `MINAKAMI_RUNTIMES` to a comma-separated list of `claude`, `codex`, `grok`, and `pi`:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/war3water/Minakami_plugins/main/install.sh | MINAKAMI_RUNTIMES=claude,pi bash
+```
+
+```powershell
+$env:MINAKAMI_RUNTIMES = 'claude,pi'; iwr -useb https://raw.githubusercontent.com/war3water/Minakami_plugins/main/install.ps1 | iex
+```
 
 ### Manual
 
@@ -41,13 +60,22 @@ codex plugin add agent-coord-bootstrap@minakami-plugins
 codex plugin add prompt-audit@minakami-plugins
 codex plugin add code-map@minakami-plugins
 codex plugin add code-cleanup@minakami-plugins
+
+# Grok Build: only for plugins it doesn't already load from Claude Code
+grok plugin install war3water/Minakami_plugins#agent-coord-bootstrap --trust
+grok plugin install war3water/Minakami_plugins#prompt-audit --trust
+grok plugin install war3water/Minakami_plugins#code-map --trust
+grok plugin install war3water/Minakami_plugins#code-cleanup --trust
+
+# pi: the whole repository is one package
+pi install git:github.com/war3water/Minakami_plugins
 ```
 
 Note the asymmetry: Claude Code uses `plugin install`, Codex CLI uses `plugin add`. Both take the `<plugin>@<marketplace>` form. The marketplace source is the bare `owner/repo` GitHub shorthand — `github:`-prefixed forms are rejected by both CLIs.
 
-Grok Build loads the plugins installed in Claude Code (its Claude compatibility is on by default), so a Claude Code install covers it too. Without Claude Code, install a plugin in Grok from its subfolder, for example `grok plugin install war3water/Minakami_plugins#code-cleanup`.
-
 ## Update
+
+Re-run the one-command installer. By hand:
 
 ```bash
 # Claude Code: refresh the marketplace, then update the plugins
@@ -63,7 +91,24 @@ codex plugin add agent-coord-bootstrap@minakami-plugins
 codex plugin add prompt-audit@minakami-plugins
 codex plugin add code-map@minakami-plugins
 codex plugin add code-cleanup@minakami-plugins
+
+# Grok Build: plugins installed into Grok itself
+grok plugin update
+
+# pi
+pi update git:github.com/war3water/Minakami_plugins
 ```
+
+## Start a skill
+
+Restart any running session after installing or updating. Each plugin's README describes its skills.
+
+| Runtime | Form | Example |
+|---|---|---|
+| Claude Code | `/<plugin>:<skill>` | `/code-cleanup:code-cleanup` |
+| Codex CLI | type `$` and pick the skill (interactive sessions only, see below) | `$code-cleanup` |
+| Grok Build | `/<skill>`, or `/<plugin>:<skill>` when two skills share a name | `/code-cleanup` |
+| pi | `/skill:<skill>` | `/skill:code-cleanup` |
 
 ## Known limitation — Codex headless mode
 
@@ -78,9 +123,11 @@ Claude Code headless works normally: `claude -p "/<plugin>:<skill> ..."`.
 ```text
 .agents/plugins/marketplace.json    Codex canonical
 .claude-plugin/marketplace.json     Claude + Codex legacy (duplicate)
-install.sh / install.ps1            One-command bootstrap
-scripts/sync-manifests.sh           Copy canonical manifests over mirrors + parity check
-agent-coord-bootstrap/              Plugin source (skills only; one SKILL.md serves both runtimes)
+package.json                        pi package manifest: loads every <plugin>/skills/ folder
+install.sh / install.ps1            One-command installer for Claude Code, Codex CLI, Grok Build, and pi
+scripts/sync-manifests.sh           Mirrors the canonical manifests, regenerates the installers' plugin lists, checks registration
+.gitattributes                      Keeps shell scripts LF in every checkout
+agent-coord-bootstrap/              Plugin source (skills only; one SKILL.md serves every runtime)
     .codex-plugin/plugin.json       Manifest (canonical)
     .claude-plugin/plugin.json      Manifest (duplicate)
     skills/init-agent-coord/        Scaffold/upgrade runbook; templates/ holds the files it writes into the project
@@ -91,15 +138,15 @@ prompt-audit/                       Plugin source
     .claude-plugin/plugin.json      Manifest (duplicate)
     commands/audit-prompt.md        Slash command runbook (Claude Code surface)
     commands/check-sources.md       Maintainer command: checks vendor docs indexes against the references
-    skills/audit-prompt/            Skill wrapper (Codex surface)
-    skills/check-sources/           Skill wrapper (Codex surface)
+    skills/audit-prompt/            Skill wrapper (Codex, Grok, and pi surface)
+    skills/check-sources/           Skill wrapper (Codex, Grok, and pi surface)
     references/                     Per-model-family durable prompt guidance the audit cites
     SOURCES.md                      Source registry: discovery indexes, registered pages, outline snapshots (read by check-sources)
 code-map/                           Plugin source
     .codex-plugin/plugin.json       Manifest (canonical)
     .claude-plugin/plugin.json      Manifest (duplicate)
     commands/code-map.md            Slash command runbook (Claude Code surface)
-    skills/code-map/                Skill wrapper (Codex surface)
+    skills/code-map/                Skill wrapper (Codex, Grok, and pi surface)
     references/                     Extraction method, data contract, editor link schemes
     templates/viewer.html           Reference viewer the run fills with data
 code-cleanup/                       Plugin source (skills only; one SKILL.md serves every runtime)
@@ -108,11 +155,13 @@ code-cleanup/                       Plugin source (skills only; one SKILL.md ser
     skills/code-cleanup/            SKILL.md, plus references/ (campaign mode), assets/ (ledger template), scripts/ (helpers)
 ```
 
-The two `marketplace.json` files and the two `plugin.json` files are **duplicated, not symlinked** — Windows + Git symlinks are unreliable. Edit `.agents/plugins/marketplace.json` and `.codex-plugin/plugin.json` as canonical, then run `bash scripts/sync-manifests.sh` before committing.
+The two `marketplace.json` files and the two `plugin.json` files are **duplicated, not symlinked** — Windows + Git symlinks are unreliable. Edit `.agents/plugins/marketplace.json` and `.codex-plugin/plugin.json` as canonical, then run `bash scripts/sync-manifests.sh` before committing. The script also rewrites the generated plugin and skill lists in both installers, and fails when a plugin folder isn't registered in the marketplace.
 
 ## Release process
 
-- A plugin release bumps that plugin's `version` in four places at once: both of its `plugin.json` copies and its entry in both `marketplace.json` copies (via the canonical-then-sync flow above). `metadata.version` is the marketplace's own release train — bumped only for marketplace-level events (new plugin, installer changes), never for per-plugin releases.
-- Ship criteria: `npx markdownlint-cli2 "**/*.md"` clean, manifest pairs in sync, no absolute paths in plugin content.
+- **Adding a plugin:** create its folder with `.codex-plugin/plugin.json` and a `skills/` folder, register it in `.agents/plugins/marketplace.json`, and run `bash scripts/sync-manifests.sh`. The installers and the pi package pick it up with no other change.
+- **Portable skills:** a skill finds its bundled files relative to its own `SKILL.md`. Where it names `${CLAUDE_PLUGIN_ROOT}` or `${PLUGIN_ROOT}`, it also says how to find the plugin root without them, because Grok Build and pi define neither.
+- **Versions:** a plugin release bumps that plugin's `version` in four places at once: both of its `plugin.json` copies and its entry in both `marketplace.json` copies (via the canonical-then-sync flow above). `metadata.version` is the marketplace's own release train — bumped only for marketplace-level events (new plugin, installer changes), never for per-plugin releases.
+- **Ship criteria:** `npx markdownlint-cli2 "**/*.md"` clean, `bash scripts/sync-manifests.sh` passes, no absolute paths in plugin content.
 - `prompt-audit` releases that change its audit runbook or `references/` content additionally run its five-case eval sweep before shipping — see that plugin's README §Maintenance. Eval fixtures, expectations, and sweep results live in the maintainer's external test workspace, never in this repo. Its `/prompt-audit:check-sources` command lists the vendors' docs indexes for new model prompting pages, reports when the official guidance has moved ahead of the reference files, and emits the `SOURCES.md` patch a refresh release starts from.
 - The commit log is the changelog: `<type>: v<x.y.z> — <summary>` for releases, scoped conventional style otherwise.

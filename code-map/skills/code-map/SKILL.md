@@ -17,9 +17,8 @@ conversation — for example, the user merely asked how some code fits
 together — stop and ask: "Run code-map on this repository?" — and proceed
 only on an explicit yes.
 
-Then read and execute, exactly and in order, the runbook at:
-
-- Codex CLI: `${PLUGIN_ROOT}/commands/code-map.md`
-- Claude Code: `${CLAUDE_PLUGIN_ROOT}/commands/code-map.md`
+Then read and execute, exactly and in order, the runbook at
+`<plugin-root>/commands/code-map.md`. The plugin root is the folder two levels above this SKILL.md:
+`${PLUGIN_ROOT}` in Codex CLI and `${CLAUDE_PLUGIN_ROOT}` in Claude Code; in any other runtime, resolve it from this file's location.
 
 Do not improvise beyond what the runbook specifies.

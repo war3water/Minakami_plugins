@@ -8,4 +8,4 @@ This skill carries the plugin's audit runbook to Codex CLI, which loads plugin s
 
 Run it only when the user asked for it by name. If you arrived here by inferring intent — say, the user complained about a prompt — ask "Run audit-prompt on it?" and continue only on a yes.
 
-Then read and follow the runbook at `${PLUGIN_ROOT}/commands/audit-prompt.md` (in Claude Code, `${CLAUDE_PLUGIN_ROOT}/commands/audit-prompt.md`). The user's instructions in this conversation — for example, report only — take precedence over its defaults.
+The plugin root is the folder two levels above this SKILL.md: `${PLUGIN_ROOT}` in Codex CLI and `${CLAUDE_PLUGIN_ROOT}` in Claude Code; in any other runtime, resolve it from this file's location. Then read and follow the runbook at `<plugin-root>/commands/audit-prompt.md`. The user's instructions in this conversation — for example, report only — take precedence over its defaults.
