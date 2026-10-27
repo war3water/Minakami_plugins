@@ -1,0 +1,17 @@
+{
+  "name": "decision-brief",
+  "version": "0.1.0",
+  "description": "Turn a task's open questions into one decision page a newcomer can answer in one pass: every short name and codename explained in a glossary, one card per question with plain-words background, a vivid real example, options with what each changes and a labelled recommendation, plus Other answers, notes, and comment threads the agent answers live; then read every answer back at once. A local page for Claude Code, Codex CLI, Grok Build and pi, or a claude.ai Artifact when you pick one.",
+  "author": {
+    "name": "war3water",
+    "url": "https://github.com/war3water/Minakami_plugins"
+  },
+  "skills": "./skills",
+  "interface": {
+    "displayName": "Decision Brief",
+    "category": "productivity",
+    "defaultPrompt": [
+      "Run /decision-brief:decision-brief (Claude Code) or $decision-brief (Codex) when a task has open questions for you: it puts them all on one page in plain words, answers your comments there, and reads your answers back."
+    ]
+  }
+}

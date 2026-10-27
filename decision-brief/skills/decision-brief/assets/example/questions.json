@@ -1,0 +1,87 @@
+{
+  "title": "Pantry decisions",
+  "project": "Pantry (example)",
+  "lang": "en",
+  "glossary": [
+    {
+      "term": "PANTRY-nn",
+      "meaning": "A **ticket** in this project's work list: one piece of work with a number, an owner and a status."
+    },
+    {
+      "term": "localStorage",
+      "meaning": "A small store **inside the web browser** where a page keeps text between visits. It lives on one device and one browser, and clearing the browser's data erases it.",
+      "sources": [{"label": "Window.localStorage (MDN)", "url": "https://developer.mozilla.org/en-US/docs/Web/API/Window/localStorage"}]
+    },
+    {
+      "term": "WCAG 2.2 AA",
+      "aka": ["WCAG"],
+      "meaning": "The **Web Content Accessibility Guidelines**, version 2.2, level AA: the accessibility level most public websites aim for. Normal-size text needs a contrast ratio of at least 4.5 to 1 against its background.",
+      "sources": [
+        {"label": "WCAG 2.2 (W3C)", "url": "https://www.w3.org/TR/WCAG22/"},
+        {"label": "Understanding 1.4.3 Contrast (Minimum)", "url": "https://www.w3.org/WAI/WCAG22/Understanding/contrast-minimum.html"}
+      ]
+    },
+    {
+      "term": "Contrast ratio",
+      "meaning": "How much lighter the background is than the text, from 1 to 1 (no difference) to 21 to 1 (black on white). Low-contrast text is hard to read in sunlight and for people with weaker eyesight.",
+      "sources": [{"label": "Understanding 1.4.3 Contrast (Minimum)", "url": "https://www.w3.org/WAI/WCAG22/Understanding/contrast-minimum.html"}]
+    }
+  ],
+  "questions": [
+    {
+      "id": "storage",
+      "ref": "PANTRY-12",
+      "title": "Where should a shopping list be kept?",
+      "plain": "Today every list is kept only in the browser that created it, in its [localStorage](#g-localstorage). Nothing is sent anywhere, so nobody else can read the lists. But a list made on your phone is not on your laptop, and clearing the browser's data deletes every list without a warning.",
+      "table": {
+        "head": ["Where the list lives", "Survives clearing browser data", "Same list on phone and laptop", "Needs an account"],
+        "rows": [
+          ["Browser only (today)", "no", "no", "no"],
+          ["On the server", "yes", "yes", "yes"],
+          ["Browser, plus a file you export", "only the exported copy", "by importing the file", "no"]
+        ]
+      },
+      "example": "Sam writes the weekend list on the laptop on Friday. On Saturday in the shop, the phone shows last week's list, because the two browsers keep separate lists.",
+      "options": [
+        {"id": "server", "label": "Keep lists on the server.", "effect": "Lists follow you to every device and survive clearing the browser. Everyone signs in once with an email link; about a week of work.", "recommended": true},
+        {"id": "browser", "label": "Keep lists in the browser only.", "effect": "Nothing changes, and no account is needed; the lost-list problem in the example remains."},
+        {"id": "export", "label": "Browser only, plus Export and Import buttons.", "effect": "No account; you move a list by hand as a file, and a copy you exported survives clearing the browser."}
+      ]
+    },
+    {
+      "id": "contrast",
+      "title": "Make the grey hint text darker?",
+      "plain": "The hint inside the empty input (\"Add an item, e.g. 2 lemons\") is light grey on white, a [contrast ratio](#g-contrast-ratio) of about 2.2 to 1. [WCAG 2.2 AA](#g-wcag-2-2-aa) asks for at least 4.5 to 1 for text of this size. Compare the two versions below.",
+      "figures": [
+        {"src": "shots/hint-before.svg", "alt": "The list screen with a very light grey hint in the empty input", "label": "Before", "caption": "Hint text in light grey, about 2.2 to 1."},
+        {"src": "shots/hint-after.svg", "alt": "The same screen with a darker grey hint that is easy to read", "label": "After", "caption": "Hint text in darker grey, 4.5 to 1."}
+      ],
+      "options": [
+        {"id": "darker", "label": "Use the darker grey.", "effect": "Readable outdoors and meets WCAG 2.2 AA; the hint looks a little heavier.", "recommended": true},
+        {"id": "keep", "label": "Keep the light grey.", "effect": "Lighter look; hard to read in sunlight or with weaker eyesight."}
+      ]
+    }
+  ],
+  "progress": [
+    {
+      "id": "units",
+      "title": "Quantities in grams and cups, built",
+      "status": "built, please check",
+      "text": "You asked for quantities in both metric units and cups and ounces. Each item now takes an amount and a unit, and a switch in the list's menu converts every amount at once. Tests cover the conversions for flour, sugar, butter and milk.",
+      "action": "open any list, press the menu, and try **Units: metric / cups and ounces** on a list with flour and milk.",
+      "questions": [
+        {
+          "id": "unit-default",
+          "title": "Which units should a new list start with?",
+          "plain": "A new list needs a starting unit system before anyone touches the switch.",
+          "example": "A visitor from Chicago opens the app for the first time and adds \"sugar\". With metric first, the amount box says grams; with the browser's region, it says cups.",
+          "options": [
+            {"id": "region", "label": "Follow the browser's region.", "effect": "Visitors in the United States get cups and ounces; everyone else gets grams and millilitres. Usually right; wrong for a traveller.", "recommended": true},
+            {"id": "metric", "label": "Always metric.", "effect": "The same for everyone; visitors used to cups switch once."},
+            {"id": "ask", "label": "Ask on the first visit.", "effect": "Always right, at the cost of one extra question before the first list."}
+          ]
+        }
+      ]
+    }
+  ]
+}

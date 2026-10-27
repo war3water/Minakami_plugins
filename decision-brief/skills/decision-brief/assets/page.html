@@ -1,0 +1,876 @@
+<title>__BRIEF_TITLE__</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<style>
+/* decision-brief page. One reading column; the accent marks what needs the reader's answer.
+   Light and dark follow the system; [data-theme] on the root element forces one. */
+:root {
+  --bg: #f7f4f5; --panel: #ffffff; --ink: #1d1a1c; --muted: #655b61; --line: #e2d9dd;
+  --accent: #a8175a; --accent-soft: #fbe4ee; --ok: #1d6f47; --ok-soft: #e1f3ea; --wait: #7d5200; --wait-soft: #fbf0d9;
+  --body: "Segoe UI", system-ui, -apple-system, Roboto, "Noto Sans", "PingFang SC", "Microsoft YaHei", sans-serif;
+  --mono: ui-monospace, "Cascadia Mono", Consolas, "SF Mono", Menlo, monospace;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --bg: #161214; --panel: #201a1d; --ink: #f1eaee; --muted: #b3a6ad; --line: #3a2f35;
+  --accent: #ff6aa8; --accent-soft: #3d1a2a; --ok: #6fd3a0; --ok-soft: #163126; --wait: #f0c060; --wait-soft: #3a2d10; color-scheme: dark } }
+:root[data-theme="dark"] {
+  --bg: #161214; --panel: #201a1d; --ink: #f1eaee; --muted: #b3a6ad; --line: #3a2f35;
+  --accent: #ff6aa8; --accent-soft: #3d1a2a; --ok: #6fd3a0; --ok-soft: #163126; --wait: #f0c060; --wait-soft: #3a2d10; color-scheme: dark }
+body { margin: 0; background: var(--bg); color: var(--ink); font: 17px/1.55 var(--body); }
+.wrap { max-width: 860px; margin: 0 auto; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); padding-block: 32px 64px; display: grid; gap: 28px; }
+h1, h2, h3 { line-height: 1.2; text-wrap: balance; margin: 0; }
+h1 { font-size: 2.1rem; font-weight: 800; }
+h2 { font-size: 1.45rem; font-weight: 800; padding-top: 8px; }
+h3 { font-size: 1.15rem; font-weight: 650; }
+p { margin: 0; }
+ul, ol { margin: 0; padding-left: 1.2em; display: grid; gap: 4px; }
+a { color: var(--accent); text-underline-offset: 2px; }
+a:focus-visible, button:focus-visible, input:focus-visible, textarea:focus-visible, summary:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+code { font-family: var(--mono); font-size: 0.86em; background: var(--accent-soft); padding: 1px 5px; border-radius: 4px; }
+section { display: grid; gap: 16px; }
+[hidden] { display: none !important; }
+.label { font-weight: 650; font-size: 0.8rem; letter-spacing: 0.06em; color: var(--muted); text-transform: uppercase; }
+.lede { color: var(--muted); max-width: 64ch; }
+.how { display: grid; gap: 8px; background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 14px 16px; }
+.counter { font-weight: 600; }
+.saved { color: var(--muted); font-size: 0.88rem; }
+.saved.bad { color: var(--accent); font-weight: 600; }
+.conn { font-size: 0.92rem; }
+.conn.live::before { content: "\25CF  "; color: var(--ok); }
+.donebar { display: flex; flex-wrap: wrap; gap: 8px 14px; align-items: center; }
+.backup { display: grid; gap: 8px; border-top: 1px solid var(--line); padding-top: 10px; }
+.backup .buttons, .composer .buttons { display: flex; flex-wrap: wrap; gap: 8px; }
+.gloss { display: grid; margin: 0; border: 1px solid var(--line); border-radius: 10px; background: var(--panel); overflow: hidden; }
+.gloss > div { display: grid; grid-template-columns: minmax(130px, 190px) minmax(0, 1fr); gap: 4px 16px; padding: 10px 14px; border-top: 1px solid var(--line); scroll-margin-top: 16px; }
+.gloss > div:first-child { border-top: 0; }
+.gloss dt { font-family: var(--mono); font-size: 0.86rem; padding-top: 3px; overflow-wrap: anywhere; }
+.gloss dd { margin: 0; min-width: 0; display: grid; gap: 4px; }
+.gloss .src { color: var(--muted); font-size: 0.92rem; }
+.q { background: var(--panel); border: 1px solid var(--line); border-left: 4px solid var(--accent); border-radius: 10px; padding: 18px 18px 16px; display: grid; gap: 12px; scroll-margin-top: 16px; min-width: 0; }
+.q.is-done { border-left-color: var(--ok); }
+.q.is-changed, .q.report { border-left-color: var(--wait); }
+.q.report.is-built { border-left-color: var(--ok); }
+.qhead { display: flex; flex-wrap: wrap; gap: 8px 12px; align-items: baseline; justify-content: space-between; }
+.qhead .ref { font-family: var(--mono); font-size: 0.8rem; font-weight: 500; color: var(--muted); margin-left: 6px; white-space: nowrap; }
+.chip { font: 650 0.78rem/1 var(--body); letter-spacing: 0.04em; padding: 5px 8px; border-radius: 999px; white-space: nowrap; }
+.chip.need { background: var(--accent-soft); color: var(--accent); }
+.chip.done { background: var(--ok-soft); color: var(--ok); }
+.chip.changed, .chip.progress { background: var(--wait-soft); color: var(--wait); }
+.block { display: grid; gap: 6px; min-width: 0; }
+.example { border-left: 3px solid var(--line); padding: 2px 0 2px 12px; }
+.outcome { background: var(--ok-soft); border-radius: 8px; padding: 10px 12px; }
+.notice { background: var(--wait-soft); color: var(--ink); border-radius: 8px; padding: 10px 12px; font-size: 0.95rem; }
+fieldset.opts { border: 0; margin: 0; padding: 0; display: grid; gap: 8px; min-width: 0; }
+fieldset.opts legend { padding: 0; margin-bottom: 8px; }
+.opt { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 10px; align-items: start; padding: 10px 12px; border: 1px solid var(--line); border-radius: 8px; cursor: pointer; }
+.opt:hover { border-color: var(--accent); }
+.opt input[type="radio"] { margin: 5px 0 0; width: 1.05em; height: 1.05em; accent-color: var(--accent); }
+.opt b { display: block; }
+.opt .rec { display: block; color: var(--accent); font-weight: 650; font-size: 0.88rem; margin-top: 2px; }
+.opt.on { border-color: var(--accent); background: var(--accent-soft); }
+.opt .other-body { display: grid; gap: 6px; }
+input.other-text, textarea { font: inherit; font-size: 0.95rem; color: var(--ink); background: var(--bg); border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; width: 100%; box-sizing: border-box; }
+textarea { min-height: 64px; resize: vertical; }
+.answer { display: grid; gap: 6px; }
+.row { display: flex; flex-wrap: wrap; gap: 8px 14px; align-items: center; justify-content: space-between; }
+button.ghost, button.solid { font: 600 0.9rem var(--body); border-radius: 8px; padding: 7px 12px; cursor: pointer; min-height: 36px; }
+button.ghost { color: var(--accent); background: transparent; border: 1px solid var(--accent); }
+button.solid { color: var(--panel); background: var(--accent); border: 1px solid var(--accent); }
+button.ghost:disabled, button.solid:disabled { opacity: 0.45; cursor: default; }
+.pair { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+.single { display: grid; gap: 12px; }
+figure { margin: 0; display: grid; gap: 6px; align-content: start; }
+figure img { border: 1px solid var(--line); border-radius: 8px; width: 100%; height: auto; }
+figcaption { font-size: 0.9rem; color: var(--muted); }
+.scroll { overflow-x: auto; }
+table.mini { border-collapse: collapse; font-size: 0.93rem; width: 100%; }
+table.mini th, table.mini td { text-align: left; padding: 6px 8px; border-top: 1px solid var(--line); vertical-align: top; }
+.threads { display: grid; gap: 10px; border-top: 1px dashed var(--line); padding-top: 10px; min-width: 0; }
+.thread { display: grid; gap: 6px; border-left: 3px solid var(--line); padding-left: 10px; min-width: 0; }
+.quote { margin: 0; padding: 4px 10px; border-left: 3px solid var(--accent); background: var(--accent-soft); font-size: 0.92rem; white-space: pre-wrap; overflow-wrap: anywhere; }
+.msgs { list-style: none; padding: 0; margin: 0; display: grid; gap: 6px; }
+.msg { border-radius: 8px; padding: 6px 10px; background: var(--bg); display: grid; gap: 2px; overflow-wrap: anywhere; }
+.msg.from-agent { background: var(--ok-soft); }
+.msg.pending { color: var(--muted); font-style: italic; background: transparent; padding-left: 0; }
+.msg .who { font-size: 0.82rem; color: var(--muted); }
+.msg .who b { color: var(--ink); }
+.msg.from-user .text { white-space: pre-wrap; }
+.msg .text { display: grid; gap: 6px; }
+.composer { display: grid; gap: 6px; }
+.composer textarea { min-height: 56px; }
+.sel-btn { position: absolute; z-index: 10; font: 600 0.9rem var(--body); color: var(--panel); background: var(--accent); border: 0; border-radius: 999px; padding: 8px 14px; box-shadow: 0 2px 10px rgb(0 0 0 / 0.25); cursor: pointer; }
+footer { color: var(--muted); font-size: 0.85rem; }
+@media (max-width: 620px) {
+  body { font-size: 16px; }
+  .gloss > div { grid-template-columns: minmax(0, 1fr); }
+  .pair { grid-template-columns: minmax(0, 1fr); }
+  h1 { font-size: 1.7rem; }
+  .q { padding: 14px 12px; }
+}
+@media (prefers-reduced-motion: no-preference) { .opt { transition: border-color .15s, background .15s; } html { scroll-behavior: smooth; } }
+</style>
+<!-- brief:body -->
+<div class="wrap" id="brief">
+  <noscript><p>This page needs JavaScript to show the questions and save your answers. Please answer in the chat instead.</p></noscript>
+</div>
+<button type="button" class="sel-btn" id="sel-comment" hidden></button>
+<script type="application/json" id="brief-data">__BRIEF_DATA__</script>
+<script type="application/json" id="brief-config">__BRIEF_CONFIG__</script>
+<script>
+(function () {
+  "use strict";
+  var DATA = JSON.parse(document.getElementById("brief-data").textContent);
+  var CONFIG = JSON.parse(document.getElementById("brief-config").textContent);
+
+  // Interface text: English, and Simplified Chinese for a page whose "lang" starts with zh.
+  // "ui" in questions.json replaces any of these, for other languages or other wording.
+  var EN = {
+    eyebrow: "open questions for you",
+    lede: "Each card below is one choice only you can make. It explains the background in plain words, shows a real example, lists the options with what each one changes, and says what I recommend. Short names are explained in the glossary first, with a link to where each comes from.",
+    how_title: "How to answer",
+    how_pick: "Pick an option on a card, or write your own answer under Other. Clear choice takes a choice back.",
+    how_note: "Add a note if you want me to know something about your choice.",
+    how_comment: "Select any text on the page, or press Comment on this, to ask about it or discuss it.",
+    how_done: "Press I'm done when you have answered (or tell me in the chat). I read every answer at once and continue from them.",
+    glossary_title: "Words and short names used here",
+    glossary_source: "Source:",
+    questions_title: "Questions",
+    progress_title: "Your requests in progress",
+    plain: "In plain words",
+    example: "Example",
+    outcome: "What I did",
+    choice: "Your choice",
+    recommended: "I recommend this.",
+    other: "Other",
+    other_hint: "Your own answer",
+    clear: "Clear choice",
+    note: "Your note (optional)",
+    note_hint: "Anything you want me to know about this choice",
+    comment: "Comment on this",
+    comment_sel: "Comment",
+    comment_send: "Post comment",
+    comment_label: "Your comment",
+    comment_hint: "Your question or remark",
+    reply: "Reply",
+    reply_hint: "Reply in this thread",
+    you: "You",
+    agent: "Agent",
+    asking: "Asking {name}; this usually takes a minute or two...",
+    ask_now: "Ask {name} now",
+    chip_need: "needs your answer",
+    chip_answered: "answered",
+    chip_done: "answered, acted on",
+    chip_changed: "changed since I read it",
+    chip_report: "built, please check",
+    action: "One action for you:",
+    counter: "{n} of {total} open questions answered.",
+    next_open: "Go to the next open question",
+    all_answered: "Every open question has an answer. Press I'm done, or tell me in the chat.",
+    none_open: "No open questions on this page.",
+    saving: "Saving...",
+    saved: "Saved {time}",
+    typing: "Typing...",
+    not_saved: "Not saved ({why}). Use the buttons at the top to keep your answers, or reply in the chat.",
+    status_connecting: "Connecting to the answer store...",
+    status_artifact: "Your answers save to this page as you go; I read them from here.",
+    status_local: "Your answers save as you go to a file on your computer that I read.",
+    status_local_down: "The local answer server does not respond, so new answers are not saved. Keep this tab open, and use the buttons below or reply in the chat.",
+    status_static: "This copy of the page cannot send answers to me. Your answers are kept in this browser; when you are done, press Download answers.json and save it next to this page, or press Copy answers and paste them into the chat.",
+    status_static_volatile: "This copy of the page cannot send answers to me, and this browser does not keep them after a reload. When you are done, press Copy answers and paste them into the chat, or Download answers.json and save it next to this page.",
+    status_no_db: "This view cannot save answers (signed out, or saving is not allowed here). Use the buttons below, or reply in the chat.",
+    conn_listening: "{name} is reading this page live: comments get an answer here.",
+    conn_working: "{name} is working on your comments; answers appear here.",
+    conn_away: "No agent is reading along right now. Your comments are kept, and the agent reads them when you press I'm done or tell it in the chat.",
+    conn_ask: "For an answer right away, press Ask {name} now on a comment: it runs {name} read-only on your own account, usually for a minute or two.",
+    conn_artifact: "Comments go to this page's comment threads. Press Send to Claude in the comment box to bring Claude in.",
+    done: "I'm done",
+    done_sent_live: "{name} has been told and is reading your answers.",
+    done_sent: "Noted. Tell the agent in the chat that you are done, or it sees this the next time it reads the page.",
+    done_text: "I'm done with the decision page; please read my answers.",
+    done_failed: "Not sent ({why}). Tell me in the chat that you are done.",
+    backup_title: "Keep your answers yourself",
+    download: "Download answers.json",
+    copy: "Copy answers",
+    copied: "Copied. Paste it into the chat.",
+    copy_failed: "Copying is blocked here. Select the text below and copy it.",
+    show_text: "Show answers as text",
+    no_choice: "no choice",
+    built_with: "Made with decision-brief"
+  };
+  var ZH = {
+    eyebrow: "等你决定的问题",
+    lede: "下面每张卡片都是一个只有你能做的选择。卡片先用大白话讲背景，再给一个真实的例子，列出每个选项会带来什么变化，并标出我的建议。页面里的简称和术语都先在词汇表里解释，并附上出处链接。",
+    how_title: "怎么回答",
+    how_pick: "在卡片上选一个选项，或在“其他”里写你自己的答案。“清除选择”可以撤回选择。",
+    how_note: "想让我知道什么，就写在备注里。",
+    how_comment: "选中页面上的任意文字，或按“评论这张卡片”，就能就它提问或讨论。",
+    how_done: "答完后按“我答完了”（或在对话里告诉我），我会一次读完所有回答再继续。",
+    glossary_title: "本页用到的词和简称",
+    glossary_source: "出处：",
+    questions_title: "问题",
+    progress_title: "你提的需求进展",
+    plain: "大白话",
+    example: "例子",
+    outcome: "我做了什么",
+    choice: "你的选择",
+    recommended: "我推荐这个。",
+    other: "其他",
+    other_hint: "你自己的答案",
+    clear: "清除选择",
+    note: "备注（可选）",
+    note_hint: "关于这个选择，想让我知道的任何事",
+    comment: "评论这张卡片",
+    comment_sel: "评论",
+    comment_send: "发表评论",
+    comment_label: "你的评论",
+    comment_hint: "写下你的问题或意见",
+    reply: "回复",
+    reply_hint: "在这条讨论里回复",
+    you: "你",
+    agent: "助手",
+    asking: "正在询问 {name}，通常需要一两分钟……",
+    ask_now: "现在问 {name}",
+    chip_need: "等你回答",
+    chip_answered: "已回答",
+    chip_done: "已回答，已处理",
+    chip_changed: "我读过后你改了",
+    chip_report: "已完成，请检查",
+    action: "需要你做一件事：",
+    counter: "{total} 个待答问题中已回答 {n} 个。",
+    next_open: "跳到下一个未答的问题",
+    all_answered: "所有待答问题都有答案了。按“我答完了”，或在对话里告诉我。",
+    none_open: "本页没有待答的问题。",
+    saving: "正在保存……",
+    saved: "已保存 {time}",
+    typing: "正在输入……",
+    not_saved: "没有保存（{why}）。请用页面顶部的按钮自己留一份，或在对话里回复。",
+    status_connecting: "正在连接答案存储……",
+    status_artifact: "你的回答会随时保存在这个页面上，我从这里读取。",
+    status_local: "你的回答会随时保存到你电脑上的一个文件里，我从那里读取。",
+    status_local_down: "本地答案服务没有响应，新的回答不会被保存。请保持此页打开，用下面的按钮自己留一份，或在对话里回复。",
+    status_static: "这份页面没法把回答直接发给我。回答先保存在这个浏览器里；答完后按“下载 answers.json”并存到这个页面旁边，或按“复制回答”贴到对话里。",
+    status_static_volatile: "这份页面没法把回答直接发给我，而且这个浏览器刷新后不会保留它们。答完后按“复制回答”贴到对话里，或按“下载 answers.json”存到这个页面旁边。",
+    status_no_db: "这个视图不能保存回答（未登录，或这里不允许保存）。请用下面的按钮，或在对话里回复。",
+    conn_listening: "{name} 正在实时看这个页面：评论会在这里得到回答。",
+    conn_working: "{name} 正在处理你的评论，回答会出现在这里。",
+    conn_away: "现在没有助手在实时看这个页面。你的评论会保留，等你按“我答完了”或在对话里告诉助手时，它会一起读。",
+    conn_ask: "想马上得到回答，就在评论上按“现在问 {name}”：它会用你自己的账号以只读方式运行 {name}，通常需要一两分钟。",
+    conn_artifact: "评论会进入这个页面的评论区。在评论框里按 Send to Claude，就能把 Claude 拉进讨论。",
+    done: "我答完了",
+    done_sent_live: "已通知 {name}，它正在读你的回答。",
+    done_sent: "已记下。请在对话里告诉助手你答完了，或等它下次来读这个页面。",
+    done_text: "我答完了这个决策页面，请读取我的回答。",
+    done_failed: "没能发送（{why}）。请在对话里告诉我你答完了。",
+    backup_title: "自己保留一份回答",
+    download: "下载 answers.json",
+    copy: "复制回答",
+    copied: "已复制，请贴到对话里。",
+    copy_failed: "这里不允许复制。请选中下面的文字自行复制。",
+    show_text: "以文字显示回答",
+    no_choice: "未选择",
+    built_with: "由 decision-brief 生成"
+  };
+  var T = Object.assign({}, EN, String(DATA.lang || "en").toLowerCase().indexOf("zh") === 0 ? ZH : {}, DATA.ui || {});
+  var fill = function (s, vars) { return String(s).replace(/\{(\w+)\}/g, function (m, k) { return vars[k] != null ? vars[k] : m; }); };
+
+  // ---------- markup: a small, safe subset (paragraphs, "- " lists, **bold**, `code`, [text](https://... or #anchor))
+  var ESC = { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" };
+  function esc(s) { return String(s).replace(/[&<>"']/g, function (c) { return ESC[c]; }); }
+  function inline(s) {
+    return String(s).split(/(`[^`\n]+`)/).map(function (part) {
+      if (/^`[^`\n]+`$/.test(part)) return "<code>" + esc(part.slice(1, -1)) + "</code>";
+      return esc(part)
+        .replace(/\[([^\]\n]+)\]\(((?:https?:\/\/(?:[^\s()]|\([^\s()]*\))+)|#[A-Za-z0-9_-]+)\)/g, function (m, text, url) {
+          return url.charAt(0) === "#" ? '<a href="' + url + '">' + text + "</a>"
+            : '<a href="' + url + '" target="_blank" rel="noopener noreferrer">' + text + "</a>";
+        })
+        .replace(/\*\*([^*\n]+)\*\*/g, "<b>$1</b>");
+    }).join("");
+  }
+  function blocks(text) {
+    var frag = document.createDocumentFragment();
+    if (text == null || text === "") return frag;
+    var src = Array.isArray(text) ? text.join("\n\n") : String(text);
+    src.split(/\n\s*\n/).forEach(function (para) {
+      var lines = para.split("\n").filter(function (l) { return l.trim(); });
+      if (!lines.length) return;
+      if (lines.every(function (l) { return /^\s*[-*] /.test(l); })) {
+        frag.append(el("ul", { html: lines.map(function (l) { return "<li>" + inline(l.replace(/^\s*[-*] /, "")) + "</li>"; }).join("") }));
+      } else if (lines.every(function (l) { return /^\s*\d+[.)] /.test(l); })) {
+        frag.append(el("ol", { html: lines.map(function (l) { return "<li>" + inline(l.replace(/^\s*\d+[.)] /, "")) + "</li>"; }).join("") }));
+      } else {
+        frag.append(el("p", { html: lines.map(inline).join("<br>") }));
+      }
+    });
+    return frag;
+  }
+  function el(tag, attrs) {
+    var node = document.createElement(tag);
+    Object.keys(attrs || {}).forEach(function (k) {
+      var v = attrs[k];
+      if (v == null || v === false) return;
+      if (k === "class") node.className = v;
+      else if (k === "html") node.innerHTML = v;
+      else if (k === "text") node.textContent = v;
+      else if (k.slice(0, 2) === "on") node.addEventListener(k.slice(2), v);
+      else node.setAttribute(k, v === true ? "" : v);
+    });
+    for (var i = 2; i < arguments.length; i++) {
+      var kid = arguments[i];
+      if (Array.isArray(kid)) kid.forEach(function (k) { if (k != null && k !== false) node.append(k); });
+      else if (kid != null && kid !== false) node.append(kid);
+    }
+    return node;
+  }
+  function table(t) {
+    if (!t || !t.rows) return "";
+    var head = t.head ? el("thead", {}, el("tr", {}, t.head.map(function (h) { return el("th", { html: inline(h) }); }))) : null;
+    var body = el("tbody", {}, t.rows.map(function (r) { return el("tr", {}, r.map(function (c) { return el("td", { html: inline(c) }); })); }));
+    return el("div", { class: "scroll" }, el("table", { class: "mini" }, head, body));
+  }
+  function figures(list) {
+    if (!list || !list.length) return "";
+    return el("div", { class: list.length > 1 ? "pair" : "single" }, list.map(function (f) {
+      var cap = (f.label ? "<b>" + esc(f.label) + ".</b> " : "") + inline(f.caption || "");
+      return el("figure", {}, el("img", { src: f.src, alt: f.alt || "", loading: "lazy" }), cap.trim() ? el("figcaption", { html: cap }) : null);
+    }));
+  }
+  function section(label, cls) {
+    var box = el("div", { class: "block" + (cls ? " " + cls : "") });
+    if (label) box.append(el("span", { class: "label", text: label }));
+    return box;
+  }
+  function clock(iso) {
+    var d = iso ? new Date(iso) : new Date();
+    return isNaN(d) ? "" : d.toLocaleString([], { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" });
+  }
+
+  // ---------- state
+  var cards = {};      // question id -> { q, root, chip, radios, other, note, clear, saved }
+  var order = [];      // question ids in page order
+  var dirty = {};      // id -> true while a local edit waits to be saved
+  var edits = {};      // id -> edit counter, so a slow save never clears a newer edit's dirty flag
+  var timers = {}, stamps = {}, chains = {};
+  var boxes = {};      // comment target -> its thread box (local mode)
+  var places = {};     // comment target -> the element a comment on it anchors to
+  var comments = [];   // local mode: every comment, in order
+  var live = { agent: { state: "away", name: "" }, ask: null };
+  var store = null;
+  var ui = {};
+
+  function current(id) {
+    var c = cards[id], choice = null;
+    c.radios.forEach(function (r) { if (r.checked) choice = r.value; });
+    return { choice: choice, other: c.other.value, note: c.note.value };
+  }
+  function same(a, b) {
+    if (!a || !b) return false;
+    return (a.choice == null ? null : a.choice) === (b.choice == null ? null : b.choice)
+      && (a.other || "") === (b.other || "") && (a.note || "") === (b.note || "");
+  }
+  function paint(id) {
+    var c = cards[id], now = current(id), q = c.q;
+    c.radios.forEach(function (r) { r.closest(".opt").classList.toggle("on", r.checked); });
+    c.clear.disabled = now.choice == null;
+    var kind, text;
+    if (q.state === "answered") {
+      if (q.read && !same(q.read, now)) { kind = "changed"; text = T.chip_changed; }
+      else { kind = "done"; text = T.chip_done; }
+    } else if (now.choice != null) { kind = "done"; text = T.chip_answered; }
+    else { kind = "need"; text = T.chip_need; }
+    c.chip.className = "chip " + kind;
+    c.chip.textContent = text;
+    c.root.classList.toggle("is-done", kind === "done");
+    c.root.classList.toggle("is-changed", kind === "changed");
+    count();
+  }
+  function count() {
+    if (!ui.counter) return;
+    var open = order.filter(function (id) { return cards[id].q.state !== "answered"; });
+    var waiting = open.filter(function (id) { return current(id).choice == null; });
+    if (!open.length) { ui.counter.textContent = T.none_open; ui.next.hidden = true; return; }
+    ui.counter.textContent = waiting.length ? fill(T.counter, { n: open.length - waiting.length, total: open.length }) : T.all_answered;
+    ui.next.hidden = !waiting.length;
+    if (waiting.length) ui.next.setAttribute("href", "#q-" + waiting[0]);
+    if (ui.dump) ui.dump.value = answersText();
+  }
+  function savedText(id, text, bad) {
+    var s = cards[id] && cards[id].saved;
+    if (!s) return;
+    s.textContent = text;
+    s.classList.toggle("bad", !!bad);
+  }
+
+  // One write at a time per answer, each carrying the card's state when it is sent.
+  function save(id) {
+    clearTimeout(timers[id]);
+    savedText(id, T.saving);
+    chains[id] = (chains[id] || Promise.resolve()).then(function () {
+      var doc = current(id), edit = edits[id];
+      doc.at = new Date().toISOString();
+      if (store && store.by && store.by()) doc.by = store.by();
+      var sent = store ? store.save(id, doc) : Promise.reject({ code: "no store" });
+      return Promise.resolve(sent).then(function () {
+        if (edits[id] === edit) dirty[id] = false;
+        stamps[id] = doc.at;
+        savedText(id, fill(T.saved, { time: clock(doc.at) }));
+        count();
+      }, function (e) {
+        savedText(id, fill(T.not_saved, { why: (e && (e.code || e.message)) || "error" }), true);
+        showBackup();
+      });
+    });
+  }
+  function later(id) {
+    dirty[id] = true;
+    edits[id] = (edits[id] || 0) + 1;
+    clearTimeout(timers[id]);
+    savedText(id, T.typing);
+    timers[id] = setTimeout(function () { save(id); }, 900);
+  }
+  function applyRemote(id, doc) {
+    var c = cards[id];
+    if (!c || !doc || dirty[id]) return;
+    c.radios.forEach(function (r) { r.checked = doc.choice != null && r.value === doc.choice; });
+    if (document.activeElement !== c.other && typeof doc.other === "string") c.other.value = doc.other;
+    if (document.activeElement !== c.note && typeof doc.note === "string") c.note.value = doc.note;
+    if (doc.at) { stamps[id] = doc.at; savedText(id, fill(T.saved, { time: clock(doc.at) })); }
+    paint(id);
+  }
+
+  // ---------- rendering
+  function place(target, node) {
+    node.setAttribute("data-target", target);
+    node.setAttribute("data-comment-target", "");  // the claude.ai comment mode anchors clicks inside to the whole card
+    places[target] = node;
+    var box = el("div", { class: "threads", "data-threads": target, hidden: true });
+    boxes[target] = box;
+    return box;
+  }
+  function commentButton(target) {
+    var btn = el("button", { type: "button", class: "ghost", text: T.comment, "data-comment": target, hidden: true });
+    btn.addEventListener("click", function () { if (store && store.comment) store.comment(target, null, ""); });
+    return el("div", { class: "row" }, el("span"), btn);
+  }
+  function questionCard(q) {
+    var id = q.id, name = "choice-" + id;
+    var root = el("article", { class: "q", id: "q-" + id, "data-q": id, "aria-labelledby": "t-" + id });
+    var box = place("q-" + id, root);
+    var chip = el("span", { class: "chip need", text: T.chip_need });
+    root.append(el("div", { class: "qhead" },
+      el("h3", { id: "t-" + id }, q.title, q.ref ? el("span", { class: "ref", text: q.ref }) : null), chip));
+    if (q.state === "answered" && q.outcome) { var o = section(T.outcome, "outcome"); o.append(blocks(q.outcome)); root.append(o); }
+    var plain = section(T.plain);
+    plain.append(blocks(q.plain));
+    root.append(plain, table(q.table), figures(q.figures));
+    if (q.example) {
+      var ex = typeof q.example === "string" ? { text: q.example } : q.example;
+      var exBox = section(ex.label || T.example, "example");
+      exBox.append(blocks(ex.text), table(ex.table), figures(ex.figures));
+      root.append(exBox);
+    }
+    var radios = [];
+    var fs = el("fieldset", { class: "opts" }, el("legend", { class: "label", text: T.choice }));
+    (q.options || []).forEach(function (opt) {
+      var r = el("input", { type: "radio", name: name, value: opt.id });
+      radios.push(r);
+      var rec = opt.recommended ? el("span", { class: "rec", text: typeof opt.recommended === "string" ? opt.recommended : T.recommended }) : null;
+      var effect = opt.effect ? el("span", { html: inline(opt.effect) }) : null;
+      fs.append(el("label", { class: "opt" }, r, el("span", {}, el("b", { html: inline(opt.label) }), effect, rec)));
+    });
+    var otherRadio = el("input", { type: "radio", name: name, value: "other", "aria-label": T.other });
+    radios.push(otherRadio);
+    var other = el("input", { type: "text", class: "other-text", placeholder: T.other_hint, "aria-label": T.other_hint + ": " + q.title });
+    fs.append(el("label", { class: "opt other" }, otherRadio, el("span", { class: "other-body" }, el("b", { text: T.other }), other)));
+    root.append(fs);
+    var clear = el("button", { type: "button", class: "ghost", text: T.clear, disabled: true });
+    var saved = el("span", { class: "saved", "aria-live": "polite" });
+    root.append(el("div", { class: "row" }, saved, clear));
+    var note = el("textarea", { id: "note-" + id, placeholder: T.note_hint });
+    root.append(el("div", { class: "answer" }, el("label", { class: "label", for: "note-" + id, text: T.note }), note));
+    root.append(commentButton("q-" + id), box);
+
+    cards[id] = { q: q, root: root, chip: chip, radios: radios, other: other, note: note, clear: clear, saved: saved };
+    order.push(id);
+    radios.forEach(function (r) { r.addEventListener("change", function () { edits[id] = (edits[id] || 0) + 1; dirty[id] = true; paint(id); save(id); }); });
+    other.addEventListener("input", function () {
+      if (other.value.trim() && !otherRadio.checked) { otherRadio.checked = true; paint(id); }
+      later(id);
+    });
+    other.addEventListener("blur", function () { if (dirty[id]) save(id); });
+    note.addEventListener("input", function () { later(id); });
+    note.addEventListener("blur", function () { if (dirty[id]) save(id); });
+    clear.addEventListener("click", function () {
+      radios.forEach(function (r) { r.checked = false; });
+      edits[id] = (edits[id] || 0) + 1; dirty[id] = true;
+      paint(id); save(id);
+      (radios[0] || other).focus();
+    });
+    return root;
+  }
+  function reportCard(p) {
+    var root = el("article", { class: "q report" + (p.done === false ? "" : " is-built"), id: "p-" + p.id, "aria-labelledby": "t-p-" + p.id });
+    var box = place("p-" + p.id, root);
+    root.append(el("div", { class: "qhead" }, el("h3", { id: "t-p-" + p.id, text: p.title }),
+      el("span", { class: "chip " + (p.done === false ? "progress" : "done"), text: p.status || T.chip_report })));
+    var body = section(null);
+    body.append(blocks(p.text));
+    root.append(body, table(p.table), figures(p.figures));
+    if (p.action) root.append(el("div", { class: "notice", html: "<b>" + esc(T.action) + "</b> " + inline(p.action) }));
+    root.append(commentButton("p-" + p.id), box);
+    return root;
+  }
+
+  function render() {
+    var app = document.getElementById("brief");
+    app.textContent = "";
+    ui.status = el("p", { class: "saved", role: "status", text: T.status_connecting });
+    ui.counter = el("span");
+    ui.next = el("a", { href: "#", text: T.next_open });
+    ui.conn = el("p", { class: "conn", hidden: true, "aria-live": "polite" });
+    ui.done = el("button", { type: "button", class: "solid", text: T.done, hidden: true });
+    ui.doneMsg = el("span", { class: "saved", "aria-live": "polite" });
+    var how = el("div", { class: "how" }, el("b", { text: T.how_title }),
+      el("ol", {}, el("li", { text: T.how_pick }), el("li", { text: T.how_note }),
+        el("li", { text: T.how_comment, "data-needs-comments": "", hidden: true }), el("li", { text: T.how_done })),
+      el("p", { class: "counter" }, ui.counter, " ", ui.next), ui.conn, ui.status,
+      el("div", { class: "donebar" }, ui.done, ui.doneMsg), backupPanel());
+    var header = el("header", { class: "block", style: "gap:10px" },
+      el("div", { class: "label", text: (DATA.project ? DATA.project + " · " : "") + T.eyebrow }),
+      el("h1", { text: DATA.title }), el("p", { class: "lede", html: inline(DATA.intro || T.lede) }), how);
+    var pageBox = place("page", header);
+    header.append(pageBox);
+    app.append(header);
+
+    if (DATA.glossary && DATA.glossary.length) {
+      var dl = el("dl", { class: "gloss" });
+      DATA.glossary.forEach(function (g) {
+        var dd = el("dd", {});
+        dd.append(blocks(g.meaning));
+        if (g.sources && g.sources.length) {
+          dd.append(el("span", { class: "src", html: esc(T.glossary_source) + " " + g.sources.map(function (s) {
+            return '<a href="' + esc(s.url) + '" target="_blank" rel="noopener noreferrer">' + esc(s.label || s.url) + "</a>" + (s.note ? " " + inline(s.note) : "");
+          }).join(" · ") }));
+        }
+        var row = el("div", { id: "g-" + g.anchor }, el("dt", { text: g.term }), dd);
+        dd.append(place("g-" + g.anchor, row));
+        dl.append(row);
+      });
+      app.append(el("section", { "aria-labelledby": "h-gloss" }, el("h2", { id: "h-gloss", text: T.glossary_title }), dl));
+    }
+    if (DATA.questions && DATA.questions.length) {
+      app.append(el("section", { "aria-labelledby": "h-qs" }, el("h2", { id: "h-qs", text: DATA.questions_title || T.questions_title }),
+        DATA.questions.map(questionCard)));
+    }
+    if (DATA.progress && DATA.progress.length) {
+      var items = [];
+      DATA.progress.forEach(function (p) { items.push(reportCard(p)); (p.questions || []).forEach(function (q) { items.push(questionCard(q)); }); });
+      app.append(el("section", { "aria-labelledby": "h-prog" }, el("h2", { id: "h-prog", text: DATA.progress_title || T.progress_title }), items));
+    }
+    app.append(el("footer", { text: T.built_with + (DATA.generated ? " · " + clock(DATA.generated) : "") }));
+    ui.next.addEventListener("click", function (e) {
+      var id = (ui.next.getAttribute("href") || "").replace(/^#q-/, "");
+      if (!cards[id]) return;
+      e.preventDefault();
+      cards[id].root.scrollIntoView({ block: "start" });
+      (cards[id].radios[0] || cards[id].other).focus({ preventScroll: true });
+    });
+    ui.done.addEventListener("click", function () {
+      ui.done.disabled = true;
+      Promise.resolve(store.done()).then(function (text) { ui.doneMsg.textContent = text; ui.doneMsg.classList.remove("bad"); },
+        function (e) { ui.doneMsg.textContent = fill(T.done_failed, { why: (e && (e.code || e.message)) || "error" }); ui.doneMsg.classList.add("bad"); })
+        .then(function () { ui.done.disabled = false; });
+    });
+    order.forEach(paint);
+  }
+
+  // ---------- comment threads on the local page
+  function rootOf(c, byId) {
+    while (c && c.parent && byId[c.parent]) c = byId[c.parent];
+    return c;
+  }
+  function drawThreads() {
+    var byId = {}, groups = {}, roots = [];
+    comments.forEach(function (c) { byId[c.id] = c; });
+    comments.forEach(function (c) {
+      var r = rootOf(c, byId);
+      if (!r) return;
+      if (!groups[r.id]) { groups[r.id] = []; roots.push(r); }
+      groups[r.id].push(c);
+    });
+    Object.keys(boxes).forEach(function (target) {
+      var box = boxes[target];
+      roots.filter(function (r) { return r.target === target; }).forEach(function (r) {
+        var t = box.querySelector('[data-root="' + r.id + '"]');
+        if (!t) {
+          t = el("div", { class: "thread", "data-root": r.id }, r.quote ? el("blockquote", { class: "quote", text: r.quote }) : null,
+            el("ul", { class: "msgs" }), composer(target, r.id, ""));
+          box.insertBefore(t, box.querySelector(":scope > .composer"));
+        }
+        messages(t.querySelector(".msgs"), groups[r.id]);
+      });
+      box.hidden = !box.children.length;
+    });
+    paintAsk();
+  }
+  function messages(ul, msgs) {
+    ul.textContent = "";
+    msgs.forEach(function (m) {
+      var mine = m.by === "user";
+      var text = el("div", { class: "text" });
+      if (mine) text.textContent = m.text; else text.append(blocks(m.text));
+      ul.append(el("li", { class: "msg " + (mine ? "from-user" : "from-agent") },
+        el("div", { class: "who" }, el("b", { text: mine ? T.you : (m.name || T.agent) }), " " + clock(m.at)), text));
+      if (m.ask === "pending") ul.append(el("li", { class: "msg pending", text: fill(T.asking, { name: live.ask ? live.ask.name : T.agent }) }));
+    });
+  }
+  // A form that starts a thread on target (root empty) or replies in thread root.
+  function composer(target, root, quote) {
+    var ta = el("textarea", { rows: 2, "aria-label": root ? T.reply_hint : T.comment_label, placeholder: root ? T.reply_hint : T.comment_hint });
+    var send = el("button", { type: "submit", class: "ghost", text: root ? T.reply : T.comment_send });
+    var ask = el("button", { type: "button", class: "ghost", "data-ask": "", hidden: true });
+    var msg = el("span", { class: "saved", "aria-live": "polite" });
+    var form = el("form", { class: "composer" }, quote ? el("blockquote", { class: "quote", text: quote }) : null, ta,
+      el("div", { class: "row" }, msg, el("span", { class: "buttons" }, ask, send)));
+    function post(withAsk) {
+      if (!ta.value.trim()) { ta.focus(); return; }
+      msg.textContent = T.saving; msg.classList.remove("bad");
+      var body = { text: ta.value, ask: !!withAsk };
+      if (root) body.parent = root; else { body.target = target; if (quote) body.quote = quote; }
+      store.post(body).then(function (c) {
+        ta.value = ""; msg.textContent = "";
+        comments.push(c);
+        if (!root) form.remove();
+        drawThreads();
+      }, function (e) { msg.textContent = fill(T.not_saved, { why: (e && e.code) || "error" }); msg.classList.add("bad"); });
+    }
+    form.addEventListener("submit", function (e) { e.preventDefault(); post(false); });
+    ask.addEventListener("click", function () { post(true); });
+    return form;
+  }
+  function openLocalComposer(target, quote) {
+    var box = boxes[target] || boxes.page;
+    var form = box.querySelector(":scope > .composer");
+    if (form && !quote) { form.querySelector("textarea").focus(); return; }
+    if (form) form.remove();
+    form = composer(target, "", quote);
+    box.append(form);
+    box.hidden = false;
+    paintAsk();
+    form.querySelector("textarea").focus();
+  }
+  function paintAsk() {
+    var show = !!(live.ask && live.agent.state !== "listening");
+    document.querySelectorAll("[data-ask]").forEach(function (b) {
+      b.hidden = !show;
+      if (live.ask) b.textContent = fill(T.ask_now, { name: live.ask.name });
+    });
+  }
+  function paintConnection() {
+    var a = live.agent || {}, name = a.name || T.agent;
+    var text = a.state === "listening" ? fill(T.conn_listening, { name: name })
+      : a.state === "working" ? fill(T.conn_working, { name: name }) : T.conn_away;
+    if (live.ask && a.state !== "listening") text += " " + fill(T.conn_ask, { name: live.ask.name });
+    ui.conn.textContent = text;
+    ui.conn.classList.toggle("live", a.state === "listening");
+    ui.conn.hidden = false;
+    paintAsk();
+  }
+
+  // ---------- select text to comment on it
+  var selBtn = document.getElementById("sel-comment"), selRange = null, selTimer = null;
+  selBtn.textContent = T.comment_sel;
+  function hideSel() { selBtn.hidden = true; selRange = null; }
+  function targetOf(node) {
+    var e = node && (node.nodeType === 1 ? node : node.parentElement);
+    var hit = e && e.closest("[data-target]");
+    return hit ? hit.getAttribute("data-target") : "page";
+  }
+  function placeSel() {
+    var sel = document.getSelection();
+    if (!store || !store.canComment || !sel || sel.isCollapsed || !sel.rangeCount) return hideSel();
+    var r = sel.getRangeAt(0), host = r.commonAncestorContainer;
+    host = host.nodeType === 1 ? host : host.parentElement;
+    if (!host || !document.getElementById("brief").contains(host) || host.closest("textarea, input, form, .threads, button")) return hideSel();
+    if (!sel.toString().trim()) return hideSel();
+    selRange = r.cloneRange();
+    var box = r.getBoundingClientRect();
+    selBtn.style.top = Math.round(box.bottom + window.scrollY + 8) + "px";
+    selBtn.style.left = Math.round(Math.max(8, Math.min(box.left + window.scrollX, document.documentElement.clientWidth - 140))) + "px";
+    selBtn.hidden = false;
+  }
+  document.addEventListener("selectionchange", function () { clearTimeout(selTimer); selTimer = setTimeout(placeSel, 150); });
+  selBtn.addEventListener("mousedown", function (e) { e.preventDefault(); });  // keep the selection while pressing
+  selBtn.addEventListener("click", function () {
+    if (!selRange || !store) return;
+    var target = targetOf(selRange.commonAncestorContainer);
+    store.comment(target, selRange, selRange.toString().replace(/\s+/g, " ").trim());
+    hideSel();
+  });
+
+  // ---------- keeping answers without a store: download, copy, text
+  function answersDoc() {
+    var out = {};
+    order.forEach(function (id) { var a = current(id); a.at = stamps[id] || null; out[id] = a; });
+    return { app: "decision-brief", format: 2, title: DATA.title, page_id: DATA.page_id, saved: new Date().toISOString(), answers: out, comments: comments };
+  }
+  function answersText() {
+    var lines = ["Answers from the decision page: " + DATA.title];
+    order.forEach(function (id) {
+      var c = cards[id], a = current(id), what;
+      if (a.choice == null) what = T.no_choice;
+      else if (a.choice === "other") what = T.other + ": " + a.other;
+      else {
+        var opt = (c.q.options || []).filter(function (o) { return o.id === a.choice; })[0];
+        what = (opt ? opt.label.replace(/[*`]/g, "") : a.choice) + " (" + a.choice + ")";
+      }
+      lines.push("[" + id + "] " + c.q.title + " -> " + what + (a.note.trim() ? " | note: " + a.note.trim() : ""));
+    });
+    return lines.join("\n");
+  }
+  function backupPanel() {
+    var msg = el("span", { class: "saved", "aria-live": "polite" });
+    ui.dump = el("textarea", { readonly: true, rows: 6, "aria-label": T.show_text });
+    // inside claude.ai the frame blocks downloads a page starts, so there only Copy and the text are offered
+    var dl = el("button", { type: "button", class: "ghost", text: T.download, hidden: !!window.claude });
+    dl.addEventListener("click", function () {
+      var blob = new Blob([JSON.stringify(answersDoc(), null, 2) + "\n"], { type: "application/json" });
+      var a = el("a", { href: URL.createObjectURL(blob), download: "answers.json" });
+      document.body.append(a); a.click(); a.remove();
+      setTimeout(function () { URL.revokeObjectURL(a.href); }, 4000);
+    });
+    var cp = el("button", { type: "button", class: "ghost", text: T.copy });
+    var details = el("details", {}, el("summary", { text: T.show_text }), ui.dump);
+    cp.addEventListener("click", function () {
+      var text = answersText();
+      var p = navigator.clipboard && navigator.clipboard.writeText ? navigator.clipboard.writeText(text) : Promise.reject();
+      p.then(function () { msg.textContent = T.copied; }, function () {
+        msg.textContent = T.copy_failed; details.open = true; ui.dump.value = text; ui.dump.focus(); ui.dump.select();
+      });
+    });
+    ui.backup = el("div", { class: "backup", hidden: true }, el("span", { class: "label", text: T.backup_title }),
+      el("div", { class: "buttons" }, dl, cp), msg, details);
+    return ui.backup;
+  }
+  function showBackup() { if (ui.backup) { ui.backup.hidden = false; ui.dump.value = answersText(); } }
+  function setStatus(text, bad) { ui.status.textContent = text; ui.status.classList.toggle("bad", !!bad); }
+
+  // ---------- answer stores: claude.ai Artifact storage, the local server, or this browser only
+  function use(name) {
+    return Promise.resolve().then(function () { return window.claude.use(name); }).catch(function () { return null; });
+  }
+  function artifactStore() {
+    if (!window.claude || typeof window.claude.use !== "function") return Promise.resolve(null);
+    return Promise.all([use("db"), use("comments"), use("user")]).then(function (caps) {
+      var db = caps[0], cm = caps[1], user = caps[2], me = null;
+      if (!db) return { failed: T.status_no_db };
+      if (user && user.id) Promise.resolve(user.id()).then(function (v) { me = v; }, function () {});
+      var off = ["unavailable", "not_granted", "forbidden", "capability_disabled", "capability_removed"];
+      var s = {
+        status: T.status_artifact,
+        canComment: !!cm,
+        by: function () { return me; },
+        start: function () {
+          db.collection("answers").onSnapshot(function (snap) {
+            snap.docs.forEach(function (d) { applyRemote(d.id, d.data()); });
+          }, function (e) { setStatus(fill(T.not_saved, { why: (e && e.code) || "error" }), true); showBackup(); });
+          if (cm) { ui.conn.textContent = T.conn_artifact; ui.conn.hidden = false; }
+          if (cm && cm.canSendToClaude) {
+            Promise.resolve(cm.canSendToClaude()).then(function (v) { ui.done.hidden = v !== "available"; }, function () {});
+          }
+        },
+        save: function (id, doc) { return db.doc("answers/" + id).set(doc); },
+        comment: function (target, range) {
+          var where = range ? { range: range } : { element: places[target] || places.page };
+          return Promise.resolve(cm.openComposer(where)).catch(function (e) {
+            if (e && off.indexOf(e.code) >= 0) document.querySelectorAll("[data-comment]").forEach(function (b) { b.hidden = true; });
+          });
+        },
+        done: function () {
+          return Promise.resolve(cm.anchorFor(places.page)).then(function (anchor) {
+            return cm.sendToClaude({ anchor: anchor, text: T.done_text });
+          }).then(function () { return fill(T.done_sent_live, { name: "Claude" }); });
+        }
+      };
+      return s;
+    });
+  }
+  function localStore() {
+    var rev = -1, up = true;
+    function api(path, opts) {
+      opts = opts || {};
+      opts.cache = "no-store";
+      opts.headers = { "Content-Type": "application/json", "X-Brief-Token": CONFIG.token };
+      return fetch(CONFIG.api + path, opts).then(function (r) {
+        return r.json().catch(function () { return {}; }).then(function (body) {
+          if (!r.ok) throw { code: body.error || "HTTP " + r.status };
+          return body;
+        });
+      });
+    }
+    function apply(state) {
+      rev = state.rev;
+      Object.keys(state.answers || {}).forEach(function (id) { applyRemote(id, state.answers[id]); });
+      comments = state.comments || [];
+      live.agent = state.agent || live.agent;
+      live.ask = state.ask || null;
+      drawThreads();
+      paintConnection();
+    }
+    function loop() {  // the server holds each request until something changes, so updates arrive at once
+      api("state?since=" + rev + "&agent=" + encodeURIComponent((live.agent && live.agent.state) || "")).then(function (state) {
+        if (!up) { up = true; setStatus(T.status_local); }
+        apply(state);
+        loop();
+      }, function () {
+        if (up) { up = false; setStatus(T.status_local_down, true); showBackup(); }
+        setTimeout(loop, 3000);
+      });
+    }
+    return api("state?since=-1").then(function (state) {
+      apply(state);
+      return {
+        status: T.status_local,
+        canComment: true,
+        start: function () { ui.done.hidden = false; loop(); },
+        save: function (id, doc) { return api("answers/" + encodeURIComponent(id), { method: "PUT", body: JSON.stringify(doc) }); },
+        post: function (body) { return api("comments", { method: "POST", body: JSON.stringify(body) }); },
+        comment: function (target, range, quote) { openLocalComposer(target, quote); },
+        done: function () {
+          return api("done", { method: "POST", body: JSON.stringify({}) }).then(function () {
+            var a = live.agent || {};
+            return a.state === "listening" ? fill(T.done_sent_live, { name: a.name || T.agent }) : T.done_sent;
+          });
+        }
+      };
+    }, function () { return { failed: T.status_local_down }; });
+  }
+  function staticStore() {
+    var key = "decision-brief:" + DATA.page_id, kept = { answers: {} }, lasting = true;
+    try { kept = JSON.parse(localStorage.getItem(key) || "null") || kept; } catch (e) { lasting = false; }
+    return {
+      status: lasting ? T.status_static : T.status_static_volatile,
+      canComment: false,
+      start: function () { Object.keys(kept.answers || {}).forEach(function (id) { applyRemote(id, kept.answers[id]); }); },
+      save: function (id, doc) {
+        kept.answers[id] = doc;
+        try { localStorage.setItem(key, JSON.stringify(kept)); } catch (e) { /* kept for this visit only */ }
+        return Promise.resolve();
+      }
+    };
+  }
+
+  render();
+  var pick = CONFIG.mode === "local" ? localStore() : artifactStore();
+  pick.then(function (s) {
+    var why = null;
+    if (s && s.failed) { why = s.failed; s = null; }
+    store = s || staticStore();
+    setStatus(why || store.status, !!why);
+    if (!s) showBackup();
+    document.querySelectorAll("[data-comment]").forEach(function (b) { b.hidden = !store.canComment; });
+    document.querySelectorAll("[data-needs-comments]").forEach(function (li) { li.hidden = !store.canComment; });
+    store.start();
+  });
+})();
+</script>

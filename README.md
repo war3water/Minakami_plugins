@@ -10,6 +10,7 @@ Personal marketplace of cross-runtime plugins for [Claude Code](https://claude.c
 | `prompt-audit` | Audit one prompt's effectiveness for a specific target coding model — token efficiency, goal clarity, confusion/hallucination triggers, capability limiting, and more. Evidence-cited findings tables, an honest verdict, prioritized refinement advice, and an optional approval-gated rewrite. A second command, `check-sources`, lists the vendors' docs indexes to catch newly published model prompting pages and reports when the official guidance has moved ahead of the plugin's reference files. |
 | `code-map` | Build an interactive, layered code map of a repository as one local HTML file — architecture overview, module dependency map, algorithm pipeline with typed data flow, and the functions inside each stage. Every node deep-links to your editor with typed inputs/outputs, hotspot flags, search, and notes; every edge cites its source line, and unconfirmed edges are marked inferred. |
 | `code-cleanup` | Clean up a codebase so a maintainer can read, debug, and change it, without changing what it does — from one targeted change, to removing dead code and junk, to flattening call paths that jump through needless layers and splitting god functions, to a full overhaul, or a map and plan only. An empty or vague request gets a short survey and one question about the level. Its README lists the tested one-line requests for each need. |
+| `decision-brief` | Put every open question of a task on one page a newcomer can answer in one pass: every short name and codename explained in a glossary with its source, then one card per question with plain-words background, a real example, options with what each changes, and a labelled recommendation, plus an Other answer and a note. Select any text to comment; the agent answers in the thread while it reads along, or a read-only headless agent answers on request. When you press I'm done, the agent reads every answer at once, acts, and updates the page. A local page served from 127.0.0.1 in every runtime, or a claude.ai Artifact when you pick one. |
 
 ## Install on a new device
 
@@ -54,18 +55,21 @@ claude plugin install agent-coord-bootstrap@minakami-plugins
 claude plugin install prompt-audit@minakami-plugins
 claude plugin install code-map@minakami-plugins
 claude plugin install code-cleanup@minakami-plugins
+claude plugin install decision-brief@minakami-plugins
 
 codex plugin marketplace add war3water/Minakami_plugins
 codex plugin add agent-coord-bootstrap@minakami-plugins
 codex plugin add prompt-audit@minakami-plugins
 codex plugin add code-map@minakami-plugins
 codex plugin add code-cleanup@minakami-plugins
+codex plugin add decision-brief@minakami-plugins
 
 # Grok Build: only for plugins it doesn't already load from Claude Code
 grok plugin install war3water/Minakami_plugins#agent-coord-bootstrap --trust
 grok plugin install war3water/Minakami_plugins#prompt-audit --trust
 grok plugin install war3water/Minakami_plugins#code-map --trust
 grok plugin install war3water/Minakami_plugins#code-cleanup --trust
+grok plugin install war3water/Minakami_plugins#decision-brief --trust
 
 # pi: the whole repository is one package
 pi install git:github.com/war3water/Minakami_plugins
@@ -84,6 +88,7 @@ claude plugin update agent-coord-bootstrap@minakami-plugins
 claude plugin update prompt-audit@minakami-plugins
 claude plugin update code-map@minakami-plugins
 claude plugin update code-cleanup@minakami-plugins
+claude plugin update decision-brief@minakami-plugins
 
 # Codex CLI: refresh the marketplace, then re-add the plugins
 codex plugin marketplace upgrade minakami-plugins
@@ -91,6 +96,7 @@ codex plugin add agent-coord-bootstrap@minakami-plugins
 codex plugin add prompt-audit@minakami-plugins
 codex plugin add code-map@minakami-plugins
 codex plugin add code-cleanup@minakami-plugins
+codex plugin add decision-brief@minakami-plugins
 
 # Grok Build: plugins installed into Grok itself
 grok plugin update
@@ -153,6 +159,10 @@ code-cleanup/                       Plugin source (skills only; one SKILL.md ser
     .codex-plugin/plugin.json       Manifest (canonical)
     .claude-plugin/plugin.json      Manifest (duplicate)
     skills/code-cleanup/            SKILL.md, plus references/ (campaign mode), assets/ (ledger template), scripts/ (helpers)
+decision-brief/                     Plugin source (skills only; one SKILL.md serves every runtime)
+    .codex-plugin/plugin.json       Manifest (canonical)
+    .claude-plugin/plugin.json      Manifest (duplicate)
+    skills/decision-brief/          SKILL.md, references/ (questions.json format), assets/ (page template, example), scripts/brief.py (build, local server with live comments, read-back)
 ```
 
 The two `marketplace.json` files and the two `plugin.json` files are **duplicated, not symlinked** — Windows + Git symlinks are unreliable. Edit `.agents/plugins/marketplace.json` and `.codex-plugin/plugin.json` as canonical, then run `bash scripts/sync-manifests.sh` before committing. The script also rewrites the generated plugin and skill lists in both installers, and fails when a plugin folder isn't registered in the marketplace.
