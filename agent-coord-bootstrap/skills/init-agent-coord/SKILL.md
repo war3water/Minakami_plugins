@@ -168,8 +168,12 @@ Special cases:
 - **`CLAUDE.md` / `GEMINI.md` / `AGENT.md` is a real file with content** → its unique content merges into `AGENTS.md`; the file then becomes an alias.
 - **An alias already points correctly at `AGENTS.md`** (a symlink, or an `@AGENTS.md` line) → leave it; note "already correct". A file holding only the bare word `AGENTS.md` is a symlink that git checked out as text and loads nothing → convert to alias.
 - **Legacy `agent_works/` (no dot)** → contents move to `.agent_works/`; the old directory is removed once every file is moved or parked.
-- **Docs from earlier versions of this plugin:** `handoff/current_handoff.md` moves to `.agent_works/handoff.md`. `plans.md` and `coordination/work_queue.md` are no longer part of the layout: their open items (active plan steps, open tickets) merge into the handoff's next steps, settled choices into `decisions.md`, and anything else is parked.
+- **Docs from earlier versions of this plugin:** `handoff/current_handoff.md` moves to `.agent_works/handoff.md`. `plans.md` and `coordination/work_queue.md` are no longer part of the layout: their open items (active plan steps, open tickets) merge into the handoff's next steps, settled choices into `decisions.md`, and anything else is parked. Rules that an earlier template seeded word for word, such as 0.6.x's "Durable agent state lives in `.agent_works/`" and its routing row "Skill / tool artifacts → `.agent_works/<skill-name>/`", are bucket 1, not conflicts. An edited version is the project's own rule.
 - **Legacy `.agent/skills/`** (Codex never scans it) → each skill moves to `.agents/skills/`; the old directory is removed once it holds nothing but a `.gitkeep`.
+- **Working files in `.agent_works/`**: any file or folder there that the template's §2 doesn't route there (a task's audit notes, a skill's reports, screenshots, transcripts, run outputs). Search the tracked files outside `.agent_works/` for its path, one row per top-level entry:
+  - referenced from code, tests, configs, or `README.md` → `keep (untouched)`, and list each reference in the report. Moving it changes project files, which is the user's call;
+  - holding something a later session needs (an unfixed finding, a settled choice, a pending user decision) → `merge into` the handoff or `decisions.md` (the sentence it needs, not the file), then `move`;
+  - otherwise → `move` to `.local/agent_works-archive/<same path>`. Nothing is deleted; the user clears the archive.
 - **Style-guide, debug-notes, communication-guideline content** (elaboration, not binding rules) → `.agent_works/conventions.md`.
 - **Tool settings** (`.claude/settings*.json`, `.codex/`, `.gemini/settings.json`) → not touched and not inventoried; they belong to the user.
 
@@ -195,7 +199,7 @@ Present the plan as a table, one action per row. Allowed actions: `merge into`, 
 | 9 | CLAUDE.md §"deployment checklist" (no obvious home) | park | .agent_works/upgrade_parking.md |
 ```
 
-The plan MUST include: one row per bucket-1 drop with the dropped text quoted verbatim; one row per alias (created, converted, or verified); a create row for `.agent_works/conventions.md` if missing and for each `.agent_works/` doc that receives migrated content (never an empty one); and the exact `.gitignore` lines to append.
+The plan MUST include: one row per bucket-1 drop with the dropped text quoted verbatim; one row per alias (created, converted, or verified); a create row for `.agent_works/conventions.md` if missing and for each `.agent_works/` doc that receives migrated content (never an empty one); one row per working-file entry in `.agent_works/`; and the exact `.gitignore` lines to append.
 
 List every conflict from B2 below the table with a recommendation. Then ask the user to approve, amend, or pause. Only a reply to this plan approves it — the Step 1 Upgrade choice does not. **Write nothing until approval.**
 
@@ -232,6 +236,9 @@ Preserved verbatim:
 Parked (needs your review):
   .agent_works/upgrade_parking.md — <n> blocks
 
+Working files left in .agent_works/ because project files reference them:
+  <path> — referenced from <file>:<line>, …
+
 Portability warnings (from your original content — consider making relative):
   <file>:<line>: <pattern>
 
@@ -245,6 +252,7 @@ Next steps:
   1. Review .agent_works/upgrade_parking.md and re-home or delete each block.
   2. Read the merged AGENTS.md once end to end — confirm the folded-in rules read correctly.
   3. README.md was not touched — run this plugin's review-readme skill to check it against best practices for this kind of project.
+  4. <only if working files moved> .local/agent_works-archive/ holds the working files moved out of .agent_works/ — delete what you no longer need. <only if any were kept> Move each kept working file next to the code that uses it and update its references.
 ```
 
 Done. Do not perform any additional actions.

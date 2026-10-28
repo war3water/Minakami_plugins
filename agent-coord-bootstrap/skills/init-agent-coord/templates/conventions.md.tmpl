@@ -55,9 +55,20 @@ is the failure mode this pattern exists to prevent.
 - Genuinely environment-bound references (another local repo, a system
   service, a tool install location) carry a `(local-env)` tag so readers
   know the line will not travel.
-- `.agent_works/` is durable state that travels with the repo; the dot-prefix signals
-  "meta, not code" (IDE file trees hide it by default). `.local/` is
-  gitignored session scratch.
+- `.agent_works/` holds only the docs `AGENTS.md` §2 routes there, and
+  they travel with the repo. Anything else kept there shows up in
+  every search beside live code, describes the project as it was, and
+  carries no rank that tells a later session to distrust it.
+- When working files go: a review written for the user to choose from
+  stays in `.local/` until they choose, then the unfixed findings
+  become handoff lines and the file goes; a benchmark script and its
+  data go once the answer is given; screenshots, logs, and run
+  transcripts go once the result is reported. A script that generates
+  an image the app ships is product code (`scripts/`), not a working
+  file.
+- `.local/` stays on this machine. If unfinished work that reads a
+  working file will continue on another clone, say so and ask whether
+  to commit the file under `docs/`.
 - Local model weights go in the root `models/` folder (gitignored as
   `/models/`, so a code folder such as `src/models/` is unaffected) with
   a download script and setup notes in README.

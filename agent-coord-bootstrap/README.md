@@ -47,6 +47,8 @@ Three more docs are created by agents later, the first time the work produces th
 - `.agent_works/decisions.md`: settled architecture choices, append-only.
 - `.agent_works/project_requirements.md`: what you said the project must do. An agent marks anything it inferred `(unconfirmed)`.
 
+`.agent_works/` holds only these docs and `conventions.md`. Everything a task produces along the way goes to `.local/<topic>/`, which is gitignored: review findings, benchmark scripts and their data, screenshots, logs, transcripts, and skill reports. The agent deletes those files when the task is done. Before it deletes them, it writes what a later session needs into the handoff (an unfixed finding, say) or the decisions log. A report you haven't decided on yet stays until you decide, and the handoff names its path so the next session can find it. A script that builds something the project ships is code and lives next to the code. A document you'll keep or share goes in `docs/`.
+
 ### Settings: inferred, then confirmed once
 
 The skill works out three settings from what you say and what the project shows: `project_name`, `runtime_targets` (`claude`, `codex`, `gemini`), and `alias_style`. It then sends one confirmation that lists each setting with its source ("you said …", "from package.json", "default"). Nothing is written before you confirm, and if you stated every setting, there is no confirmation round.
@@ -71,6 +73,12 @@ Upgrading from 0.5.x:
 - Open items in `plans.md` and `coordination/work_queue.md` go to the handoff's next steps, and settled choices go to `decisions.md`.
 - Skills in `.agent/skills/`, a folder Codex never scans, move to `.agents/skills/`.
 
+Upgrading from 0.6.x: anything else in `.agent_works/` (old audit folders, skill reports, screenshots, transcripts) is a working file.
+
+- One that your code, tests, configs, or `README.md` refer to stays where it is, and the report lists each reference so you can move it next to the code that uses it.
+- For the others, what a later session needs (an unfixed finding, a pending decision) goes into the handoff or decisions log, and the file moves to `.local/agent_works-archive/`.
+- Nothing is deleted. You clear the archive yourself.
+
 ### What the template says, and what it leaves out
 
 `AGENTS.md` carries the rules that keep a codebase from decaying:
@@ -79,7 +87,8 @@ Upgrading from 0.5.x:
 - every capability, dormant ones included, is listed in README §Features;
 - check before deleting anything public-facing;
 - every layer earns its existence; one implementation per behavior;
-- debug profiles are recorded at creation, including how to start and debug a front end and a back end together.
+- debug profiles are recorded at creation, including how to start and debug a front end and a back end together;
+- a task's working files live in `.local/` and are deleted when the task is done, so old notes don't show up in later searches next to live code.
 
 The rules are one line each where the decision happens, and `conventions.md` holds the examples.
 
@@ -93,6 +102,16 @@ These are blind runs on Opus 5.5, Fable 5.1, GPT-6.1 Sol, and GPT-6 Astra (2026-
 - **The handoff:** session 1 did part of a five-step feature, and a fresh session in the other tool was told only "continue where we left off". With no docs, it finished 0/40 of the remaining steps. With this layout, it finished 40/40, the same as the old five-doc layout, with about 45% fewer doc writes.
 - **Settings:** indirect wording led to the right settings in 16/16 runs, and all 16 confirmed before writing.
 - **Platforms:** fresh setup, upgrade, and README review passed on Windows and Linux in Claude Code and Codex CLI, and in pi. On Linux, real symlink aliases were also tested on request. macOS is untested.
+
+### What the 0.7 changes are based on
+
+These runs used the same four models, compared 0.6.2 with 0.7.0 and with no `AGENTS.md` (2026-10-26), and were scored from file and git state. The harness and raw results are kept outside this repo.
+
+- **Benchmark scratch:** asked to measure a command with 20,000 tasks, 0.6.2 left files behind in 8/8 runs (170 MB in total, partly in new `.agent_works/` folders). With no `AGENTS.md` it was 4/8. With 0.7.0 it was 0/8.
+- **A bug review across a handoff:** session 1 wrote the review for the user to decide on. A fresh session in the other tool was then told to fix the worst bug. With 0.7.0 the review went to `.local/` in 8/8 runs (0.6.2: a new `.agent_works/` folder in 7/8). Session 2 found it 8/8 (0.6.2: 7/8), and the unfixed findings went into the handoff 8/8 (6/8). The review was gone afterwards in 5/8 (0.6.2 kept it in all 7 runs that wrote one). Of the other three, two were Codex sessions whose deletes Windows refused, and in one the user hadn't decided on the rest yet. All 24 pairs fixed the bug.
+- **Nothing useful was cleaned away:** a script that regenerates demo data stayed as project code in 4/4 runs, and a guide for a teammate was kept in 4/4.
+- **Upgrade:** on a 0.6.2 project with old working files in `.agent_works/`, 8/8 runs moved them to `.local/agent_works-archive/` with no file lost. The unfixed finding went into the handoff, and the logo script that `README.md` points at stayed where it was. 0.6.2 left all of them in place in 4/4 runs.
+- **No regressions:** in the handoff experiment above, 0.7.0 finished 20/20 of the remaining steps, the same as 0.6.2. code-cleanup's working files were removed after every run inside both templates.
 
 ## review-readme
 

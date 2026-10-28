@@ -21,8 +21,10 @@
    Search `README*`, `docs/`, configs, and registries first; if it is
    mentioned, registered anywhere (even if currently disabled), or
    possibly consumed outside this repo: keep it, flag it, and ask.
-4. **Durable agent state lives in `.agent_works/`.** Ephemeral scratch
-   goes to `.local/` (gitignored). Never swap them.
+4. **`.agent_works/` holds only the docs §2 routes there.** A task's
+   working files — what it produces on the way to its result, or for
+   the user to decide from — go to `.local/<topic>/` (gitignored) and
+   are deleted when the task is done (§3).
 5. **Describe the system as it is today** in onboarding docs. No
    "previously" / "no longer" / "now uses" — a reader needs the current
    system, not its history. (The handoff may narrate transitions.)
@@ -43,15 +45,19 @@
 | Architecture decision | `.agent_works/decisions.md` (append-only ADR: date, context, decision, consequences) |
 | Requirements the user states | `.agent_works/project_requirements.md` (purpose, scope in/out, success criteria — only what the user said; mark anything you inferred `(unconfirmed)`) |
 | Rule elaboration, examples, debug notes | `.agent_works/conventions.md` |
-| Skill / tool artifacts (reports, ledgers) | `.agent_works/<skill-name>/` |
-| Ephemeral scratch | `.local/<topic>/` |
+| Working files of a task, skill, or tool run (review findings, reports, ledgers, screenshots, transcripts, run outputs, throwaway scripts) | `.local/<topic>/`, deleted when the task is done (§3). A skill that says where its files go, or that it writes none, is followed |
+| A script or source that produces something the project ships | next to the code it serves (e.g. `scripts/`), like any other code |
+| A document the user will keep or share (a design write-up, a guide) | `docs/`, unless they name a path |
 | Onboarding, features, verify and debug commands | `README.md` |
 
 **Source-of-truth priority** (top wins on conflict): `AGENTS.md` →
 `project_requirements.md` → `decisions.md` → `handoff.md` → `README.md`.
 
 A `.agent_works/` doc is created from its row here the first time the
-work produces that kind of content; until then it doesn't exist.
+work produces that kind of content; until then it doesn't exist. To
+decide whether something outlives its task, ask: would a later session
+do worse work without it? If so, write what that session needs into
+the doc it belongs in; the file itself is still a working file.
 `README.md` is the human's entry point; this file is the agent's — two
 audiences, no overlap.
 
@@ -68,6 +74,14 @@ audiences, no overlap.
   user decision not yet in code. Append to `decisions.md` only for a
   settled architecture choice. A task that changes nothing durable
   leaves these files alone.
+- **Clean up** at the same point: delete the task's working files,
+  including any that landed outside `.local/`. First carry what a
+  later session needs into the doc it belongs in — an unfixed finding
+  becomes a line in `handoff.md`, a settled choice an entry in
+  `decisions.md`. Keep a working file only while unfinished work still
+  reads it (a report the user hasn't decided on yet), and name its
+  path in `handoff.md` so the session that finishes that work deletes
+  it.
 - **One handoff per working tree.** Sessions that run in parallel work
   in separate working trees, each with its own handoff.
 
