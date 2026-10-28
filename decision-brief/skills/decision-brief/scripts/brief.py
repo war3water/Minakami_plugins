@@ -7,12 +7,13 @@ started with --ask, a read-only headless agent (claude -p, codex exec, grok -p, 
 when the user presses "Ask now".
 
 Usage:
+    python scripts/brief.py new   SLUG [--images FILE ...] [--root DIR]
     python scripts/brief.py build QUESTIONS [--mode artifact|static] [--out PAGE] [--inline-images]
     python scripts/brief.py serve QUESTIONS [--ask claude|codex|grok|pi|COMMAND] [--port N] [--open] [--foreground]
     python scripts/brief.py wait  QUESTIONS [--timeout SECONDS] [--answers-too] [--name AGENT]
     python scripts/brief.py reply QUESTIONS TARGET [TEXT | - | --file FILE] [--name AGENT]
     python scripts/brief.py read  QUESTIONS [--answers FILE] [--json]
-    python scripts/brief.py mark  QUESTIONS [--answers FILE] [--ids ID,ID] [--reopen]
+    python scripts/brief.py mark  QUESTIONS [--answers FILE] [--ids ID,ID] [--reports ID,ID] [--round TEXT] [--reopen]
     python scripts/brief.py stop  QUESTIONS
     python scripts/brief.py links QUESTIONS
     python scripts/brief.py example DIR
@@ -25,6 +26,7 @@ QUESTIONS is the task's questions.json (format: references/questions-format.md).
     server.json    the running local server's address and process id (serve writes it, stop removes it)
     server.log     the local server's log
 
+new      creates .decision-brief/SLUG/ with shots/ (copying the images named) and the .gitignore, in one step.
 build    checks questions.json and writes the page. Errors stop the build; warnings (short names missing from
          the glossary, a card without a recommendation, a term without an origin link) are for the agent to act on.
 serve    starts the local server in the background and prints its address. The page is rebuilt from
@@ -34,7 +36,8 @@ wait     blocks until the user comments, replies, or presses "I'm done", prints 
 reply    posts the agent's answer: TARGET is a comment id (c7) to answer in its thread, or a card anchor (q-<id>,
          p-<id>, g-<term>, page) to start a thread there.
 read     prints every answer and comment thread in one pass, and marks them seen.
-mark     sets "state": "answered" on the cards you acted on and keeps the answer you read, so a later change shows.
+mark     moves the cards you acted on to the Decided tab (state "answered", the answer you read kept so a later
+         change shows) and, with --reports, archives finished progress reports there; --round names the heading.
 links    lists every link in questions.json with where it appears, to check each one before publishing.
 example  copies the worked example (assets/example/) into a new folder.
 """
@@ -78,7 +81,8 @@ WORKING_FRESH = 900           # seconds after the agent last read or replied tha
 ASK_TIMEOUT = 600             # seconds a headless answer may take
 ID_RE = re.compile(r"^[a-z0-9][a-z0-9-]*$")
 LINK_RE = re.compile(r"\[([^\]\n]+)\]\(([^()\s]*(?:\([^()\s]*\)[^()\s]*)*)\)")
-ABBR_RE = re.compile(r"(?<![\w-])[A-Z][A-Z0-9]*[A-Z0-9](?:[-/][A-Z0-9]+)*(?![\w-])")
+ABBR_RE = re.compile(r"(?<![\w-])[A-Z][A-Z0-9]*[A-Z0-9](?:[-/][A-Z0-9]+)*(?![\w-])"
+                     r"|(?<![\w-])[A-Z][A-Z0-9]+(?:-[A-Za-z0-9]+)+(?![\w-])")  # also codes such as WF-flat, SW-cache
 IMAGE_TYPES = {".png": "image/png", ".jpg": "image/jpeg", ".jpeg": "image/jpeg", ".gif": "image/gif",
                ".webp": "image/webp", ".svg": "image/svg+xml", ".avif": "image/avif"}
 
@@ -196,6 +200,8 @@ def texts(data: dict):
     for q in all_questions(data):
         w = f"question {q.get('id')}"
         yield w, q.get("title")
+        yield w, q.get("group")
+        yield w, q.get("round")
         yield w, q.get("plain")
         yield w, q.get("outcome")
         ex = q.get("example")
@@ -212,9 +218,13 @@ def texts(data: dict):
             yield w, o.get("effect")
             if isinstance(o.get("recommended"), str):
                 yield w, o["recommended"]
+            if isinstance(o.get("figure"), dict):
+                yield w, o["figure"].get("caption")
     for p in data.get("progress") or []:
         w = f"report {p.get('id')}"
         yield w, p.get("title")
+        yield w, p.get("status")
+        yield w, p.get("round")
         yield w, p.get("text")
         yield w, p.get("action")
         yield from table_texts(w, p.get("table"))
@@ -258,6 +268,8 @@ def check(data, base: Path) -> tuple[list, list]:
         return ["the file must hold one JSON object"], []
     if not isinstance(data.get("title"), str) or not data["title"].strip():
         errors.append('"title" is missing')
+    if data.get("style") not in (None, "rose", "ledger", "slate"):
+        errors.append('"style" is "rose", "ledger" or "slate"')
     for key in ("glossary", "questions", "progress"):
         items = data.get(key)
         if items is not None and (not isinstance(items, list) or not all(isinstance(x, dict) for x in items)):
@@ -302,6 +314,11 @@ def check(data, base: Path) -> tuple[list, list]:
         anchors.add("p-" + pid)
         if not p.get("title"):
             errors.append(f"progress report {pid}: needs a title")
+        if not isinstance(p.get("archived", False), bool):
+            errors.append(f'progress report {pid}: "archived" is true or false')
+        for key in ("status", "round"):
+            if p.get(key) is not None and not isinstance(p[key], str):
+                errors.append(f'progress report {pid}: "{key}" must be text')
         figure_check(p.get("figures"), base, f"report {pid}", errors)
 
     for q in all_questions(data):
@@ -318,6 +335,9 @@ def check(data, base: Path) -> tuple[list, list]:
                 errors.append(f'question {qid}: needs "{key}"')
         if q.get("state", "open") not in ("open", "answered"):
             errors.append(f'question {qid}: "state" is "open" or "answered"')
+        for key in ("group", "round", "ref"):
+            if q.get(key) is not None and not isinstance(q[key], str):
+                errors.append(f'question {qid}: "{key}" must be text')
         opts = q.get("options") or []
         if not opts:
             errors.append(f"question {qid}: needs at least one option (Other is added by the page)")
@@ -333,6 +353,8 @@ def check(data, base: Path) -> tuple[list, list]:
             oids.add(oid)
             if isinstance(o, dict) and not o.get("label"):
                 errors.append(f"question {qid}: option {oid} needs a label")
+            if isinstance(o, dict) and o.get("figure") is not None:
+                figure_check([o["figure"]], base, f"question {qid}, option {oid}", errors)
         recs = [o for o in opts if isinstance(o, dict) and o.get("recommended")]
         if len(recs) > 1:
             errors.append(f"question {qid}: more than one option is recommended; recommend one and say when "
@@ -394,6 +416,7 @@ def figure_list(data: dict) -> list:
         out.extend(q.get("figures") or [])
         if isinstance(q.get("example"), dict):
             out.extend(q["example"].get("figures") or [])
+        out.extend(o["figure"] for o in q.get("options") or [] if isinstance(o, dict) and isinstance(o.get("figure"), dict))
     for p in data.get("progress") or []:
         out.extend(p.get("figures") or [])
     return out
@@ -462,9 +485,11 @@ def describe(data: dict) -> str:
         return f"{count} {word}" + ("" if count == 1 else "s")
     qs = all_questions(data)
     open_n = sum(1 for q in qs if q.get("state", "open") == "open")
-    parts = [n(len(qs), "question") + f" ({open_n} open)", n(len(data.get("glossary") or []), "glossary term")]
+    parts = [n(len(qs), "question") + f" ({open_n} open, {len(qs) - open_n} decided)",
+             n(len(data.get("glossary") or []), "glossary term")]
     if data.get("progress"):
-        parts.append(n(len(data["progress"]), "progress report"))
+        archived = sum(1 for p in data["progress"] if p.get("archived"))
+        parts.append(n(len(data["progress"]), "progress report") + (f" ({archived} archived)" if archived else ""))
     return ", ".join(parts)
 
 
@@ -779,9 +804,11 @@ def cmd_mark(a) -> int:
         answers = load_store(task_files(questions, a.answers)["answers"])["answers"]
     except ValueError as e:
         sys.exit(f"error: the answers file is not valid JSON: {e}")
-    wanted = {i.strip() for i in (a.ids or "").split(",") if i.strip()}
-    changed, missing_outcome = [], []
-    for q in all_questions(data):
+    def names(values):  # "a,b", "a b" and "a, b" all work
+        return {i.strip() for v in values or [] for i in re.split(r"[,\s]+", v) if i.strip()}
+    wanted, reports = names(a.ids), names(a.reports)
+    changed, missing_outcome, archived = [], [], []
+    for q in all_questions(data) if wanted or not reports else []:
         qid = q["id"]
         ans = answers.get(qid) or {}
         if wanted:
@@ -792,21 +819,37 @@ def cmd_mark(a) -> int:
         if a.reopen:
             q["state"] = "open"
             q.pop("read", None)
+            q.pop("round", None)
         else:
             q["state"] = "answered"
+            if a.round:
+                q["round"] = a.round
             if qid in answers:
                 q["read"] = {k: ans.get(k) for k in ("choice", "other", "note", "at")}
             if not q.get("outcome"):
                 missing_outcome.append(qid)
         changed.append(qid)
+    for p in data.get("progress") or []:
+        if p.get("id") not in reports:
+            continue
+        p["archived"] = not a.reopen
+        if a.reopen:
+            p.pop("round", None)
+        elif a.round:
+            p["round"] = a.round
+        archived.append(p["id"])
     unknown = sorted(wanted - {q["id"] for q in all_questions(data)})
+    unknown += sorted(reports - {p.get("id") for p in data.get("progress") or []})
     if unknown:
-        print("warning: no question with id " + ", ".join(unknown), file=sys.stderr)
-    if not changed:
+        print("warning: no question or report with id " + ", ".join(unknown), file=sys.stderr)
+    if not changed and not archived:
         print("nothing to mark")
         return 0
     write_json(questions, data)
-    print(("reopened: " if a.reopen else "marked answered: ") + ", ".join(changed))
+    if changed:
+        print(("reopened: " if a.reopen else "marked answered, now on the Decided tab: ") + ", ".join(changed))
+    if archived:
+        print(("back on Work status: " if a.reopen else "reports moved to the Decided tab: ") + ", ".join(archived))
     if missing_outcome:
         print('add an "outcome" to each of these, saying what you did: ' + ", ".join(missing_outcome))
     return 0
@@ -1418,6 +1461,35 @@ def cmd_stop(a) -> int:
     return 0
 
 
+def cmd_new(a) -> int:
+    """Set up a task folder in one step: .decision-brief/<slug>/ with shots/, the images copied in, and the
+    .gitignore that keeps .decision-brief/ out of commits."""
+    if not ID_RE.match(a.slug):
+        sys.exit("error: the task name must be lowercase letters, digits and dashes, such as lane-b-estimator")
+    root = Path(a.root).resolve()
+    base = root / ".decision-brief"
+    task = base / a.slug
+    (task / "shots").mkdir(parents=True, exist_ok=True)
+    if not (base / ".gitignore").exists():
+        (base / ".gitignore").write_text("*\n", encoding="utf-8")
+    copied = []
+    for img in a.images or []:
+        src = (root / img) if not Path(img).is_absolute() else Path(img)
+        if not src.is_file():
+            print(f"warning: {img} not found; not copied", file=sys.stderr)
+            continue
+        if src.suffix.lower() not in IMAGE_TYPES:
+            print(f"warning: {img} is not an image type the page can show; not copied", file=sys.stderr)
+            continue
+        shutil.copy2(src, task / "shots" / src.name)
+        copied.append(f"shots/{src.name}")
+    print(f"task folder: {task}")
+    print(f"write: {task / 'questions.json'} and {task / 'context.md'}")
+    if copied:
+        print("images, as figure src values: " + ", ".join(copied))
+    return 0
+
+
 def cmd_example(a) -> int:
     dest = Path(a.dir).resolve()
     if dest.exists() and any(dest.iterdir()):
@@ -1467,20 +1539,27 @@ def main() -> int:
     r.add_argument("questions")
     r.add_argument("--answers", help="answers file (default: answers.json next to questions.json)")
     r.add_argument("--json", action="store_true", help="machine-readable output")
-    m = sub.add_parser("mark", help='set "state": "answered" on the cards you acted on')
+    m = sub.add_parser("mark", help="move the cards you acted on, and finished reports, to the Decided tab")
     m.add_argument("questions")
     m.add_argument("--answers", help="answers file (default: answers.json next to questions.json)")
-    m.add_argument("--ids", help="comma-separated question ids (default: every open card with a choice)")
-    m.add_argument("--reopen", action="store_true", help="set the given cards back to open")
+    m.add_argument("--ids", nargs="+", help="question ids, separated by commas or spaces (default: every open card "
+                                             "with a choice, unless only --reports is given)")
+    m.add_argument("--reports", nargs="+", help="progress report ids to archive on the Decided tab")
+    m.add_argument("--round", help="the heading they go under on the Decided tab, such as \"Round 1, 27 October\"")
+    m.add_argument("--reopen", action="store_true", help="move the given cards or reports back")
     k = sub.add_parser("links", help="list every link with where it appears")
     k.add_argument("questions")
+    nw = sub.add_parser("new", help="create the task folder, its shots/ (with images copied in) and the .gitignore")
+    nw.add_argument("slug", help="the task's folder name, such as lane-b-estimator")
+    nw.add_argument("--images", nargs="*", help="screenshots or mockups to copy into shots/")
+    nw.add_argument("--root", default=".", help="the project root (default: the current folder)")
     e = sub.add_parser("example", help="copy the worked example into a new folder to try the page")
     e.add_argument("dir")
     a = ap.parse_args()
-    if a.cmd == "mark" and a.reopen and not a.ids:
-        ap.error("--reopen needs --ids")
+    if a.cmd == "mark" and a.reopen and not (a.ids or a.reports):
+        ap.error("--reopen needs --ids or --reports")
     return {"build": cmd_build, "serve": cmd_serve, "wait": cmd_wait, "reply": cmd_reply, "stop": cmd_stop,
-            "read": cmd_read, "mark": cmd_mark, "links": cmd_links, "example": cmd_example}[a.cmd](a)
+            "read": cmd_read, "mark": cmd_mark, "links": cmd_links, "example": cmd_example, "new": cmd_new}[a.cmd](a)
 
 
 if __name__ == "__main__":

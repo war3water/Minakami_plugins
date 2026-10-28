@@ -2,12 +2,15 @@
 <meta name="claude:viewport-fit-sides" content="cover">
 <style>
 /* decision-brief page. One reading column; the accent marks what needs the reader's answer.
-   Light and dark follow the system; [data-theme] on the root element forces one. */
+   Light and dark follow the system; [data-theme] on the root element forces one. Three looks, picked by "style" in
+   questions.json: rose (the default), ledger (paper and navy, serif headings) and slate (cool grey and teal). */
 :root {
   --bg: #f7f4f5; --panel: #ffffff; --ink: #1d1a1c; --muted: #655b61; --line: #e2d9dd;
   --accent: #a8175a; --accent-soft: #fbe4ee; --ok: #1d6f47; --ok-soft: #e1f3ea; --wait: #7d5200; --wait-soft: #fbf0d9;
   --body: "Segoe UI", system-ui, -apple-system, Roboto, "Noto Sans", "PingFang SC", "Microsoft YaHei", sans-serif;
+  --display: var(--body);
   --mono: ui-monospace, "Cascadia Mono", Consolas, "SF Mono", Menlo, monospace;
+  --radius: 10px;
   color-scheme: light;
 }
 @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
@@ -16,9 +19,28 @@
 :root[data-theme="dark"] {
   --bg: #161214; --panel: #201a1d; --ink: #f1eaee; --muted: #b3a6ad; --line: #3a2f35;
   --accent: #ff6aa8; --accent-soft: #3d1a2a; --ok: #6fd3a0; --ok-soft: #163126; --wait: #f0c060; --wait-soft: #3a2d10; color-scheme: dark }
+:root[data-style="ledger"] {
+  --bg: #f6f3ec; --panel: #fffdf7; --ink: #1d232b; --muted: #5c6370; --line: #e2dccd;
+  --accent: #1f4f7a; --accent-soft: #e2ecf5; --ok: #2e6b45; --ok-soft: #e2f0e6; --wait: #7a5600; --wait-soft: #f6edd6;
+  --display: Georgia, "Iowan Old Style", "Songti SC", "SimSun", serif; --radius: 4px; }
+@media (prefers-color-scheme: dark) { :root[data-style="ledger"]:not([data-theme="light"]) {
+  --bg: #14181d; --panel: #1c2229; --ink: #e9edf2; --muted: #a5afbb; --line: #2f3843;
+  --accent: #8fbfeb; --accent-soft: #1d3247; --ok: #7fd1a1; --ok-soft: #17301f; --wait: #e9c46a; --wait-soft: #33290f; } }
+:root[data-style="ledger"][data-theme="dark"] {
+  --bg: #14181d; --panel: #1c2229; --ink: #e9edf2; --muted: #a5afbb; --line: #2f3843;
+  --accent: #8fbfeb; --accent-soft: #1d3247; --ok: #7fd1a1; --ok-soft: #17301f; --wait: #e9c46a; --wait-soft: #33290f; }
+:root[data-style="slate"] {
+  --bg: #f3f5f7; --panel: #ffffff; --ink: #18202a; --muted: #5b6673; --line: #dbe1e7;
+  --accent: #0b6f78; --accent-soft: #dcf1f2; --ok: #2f7d3b; --ok-soft: #e3f2e5; --wait: #8a5d00; --wait-soft: #f8eed8; --radius: 6px; }
+@media (prefers-color-scheme: dark) { :root[data-style="slate"]:not([data-theme="light"]) {
+  --bg: #0f1418; --panel: #172026; --ink: #e6edf2; --muted: #9fb0bd; --line: #26333c;
+  --accent: #4fd1d9; --accent-soft: #123338; --ok: #7bd88f; --ok-soft: #16301c; --wait: #f2c35b; --wait-soft: #33280e; } }
+:root[data-style="slate"][data-theme="dark"] {
+  --bg: #0f1418; --panel: #172026; --ink: #e6edf2; --muted: #9fb0bd; --line: #26333c;
+  --accent: #4fd1d9; --accent-soft: #123338; --ok: #7bd88f; --ok-soft: #16301c; --wait: #f2c35b; --wait-soft: #33280e; }
 body { margin: 0; background: var(--bg); color: var(--ink); font: 17px/1.55 var(--body); }
 .wrap { max-width: 860px; margin: 0 auto; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); padding-block: 32px 64px; display: grid; gap: 28px; }
-h1, h2, h3 { line-height: 1.2; text-wrap: balance; margin: 0; }
+h1, h2, h3 { font-family: var(--display); line-height: 1.2; text-wrap: balance; margin: 0; }
 h1 { font-size: 2.1rem; font-weight: 800; }
 h2 { font-size: 1.45rem; font-weight: 800; padding-top: 8px; }
 h3 { font-size: 1.15rem; font-weight: 650; }
@@ -31,8 +53,10 @@ section { display: grid; gap: 16px; }
 [hidden] { display: none !important; }
 .label { font-weight: 650; font-size: 0.8rem; letter-spacing: 0.06em; color: var(--muted); text-transform: uppercase; }
 .lede { color: var(--muted); max-width: 64ch; }
-.how { display: grid; gap: 8px; background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 14px 16px; }
+.how { display: grid; gap: 8px; background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); padding: 14px 16px; }
 .counter { font-weight: 600; }
+.steps summary { cursor: pointer; }
+.steps[open] summary { margin-bottom: 6px; }
 .saved { color: var(--muted); font-size: 0.88rem; }
 .saved.bad { color: var(--accent); font-weight: 600; }
 .conn { font-size: 0.92rem; }
@@ -40,13 +64,13 @@ section { display: grid; gap: 16px; }
 .donebar { display: flex; flex-wrap: wrap; gap: 8px 14px; align-items: center; }
 .backup { display: grid; gap: 8px; border-top: 1px solid var(--line); padding-top: 10px; }
 .backup .buttons, .composer .buttons { display: flex; flex-wrap: wrap; gap: 8px; }
-.gloss { display: grid; margin: 0; border: 1px solid var(--line); border-radius: 10px; background: var(--panel); overflow: hidden; }
+.gloss { display: grid; margin: 0; border: 1px solid var(--line); border-radius: var(--radius); background: var(--panel); overflow: hidden; }
 .gloss > div { display: grid; grid-template-columns: minmax(130px, 190px) minmax(0, 1fr); gap: 4px 16px; padding: 10px 14px; border-top: 1px solid var(--line); scroll-margin-top: 16px; }
 .gloss > div:first-child { border-top: 0; }
 .gloss dt { font-family: var(--mono); font-size: 0.86rem; padding-top: 3px; overflow-wrap: anywhere; }
 .gloss dd { margin: 0; min-width: 0; display: grid; gap: 4px; }
 .gloss .src { color: var(--muted); font-size: 0.92rem; }
-.q { background: var(--panel); border: 1px solid var(--line); border-left: 4px solid var(--accent); border-radius: 10px; padding: 18px 18px 16px; display: grid; gap: 12px; scroll-margin-top: 16px; min-width: 0; }
+.q { background: var(--panel); border: 1px solid var(--line); border-left: 4px solid var(--accent); border-radius: var(--radius); padding: 18px 18px 16px; display: grid; gap: 12px; scroll-margin-top: 16px; min-width: 0; }
 .q.is-done { border-left-color: var(--ok); }
 .q.is-changed, .q.report { border-left-color: var(--wait); }
 .q.report.is-built { border-left-color: var(--ok); }
@@ -98,6 +122,19 @@ table.mini th, table.mini td { text-align: left; padding: 6px 8px; border-top: 1
 .msg .text { display: grid; gap: 6px; }
 .composer { display: grid; gap: 6px; }
 .composer textarea { min-height: 56px; }
+/* Tabs: one bar that stays at the top while reading; each panel is one stage of the decisions. */
+.tabs { position: sticky; top: env(safe-area-inset-top, 0px); z-index: 20; display: flex; flex-wrap: wrap; gap: 6px; padding: 8px 0; background: var(--bg); border-bottom: 1px solid var(--line); }
+.tabs button { font: 600 0.95rem var(--body); color: var(--muted); background: transparent; border: 1px solid transparent; border-radius: 8px; padding: 7px 12px; cursor: pointer; min-height: 40px; }
+.tabs button:hover { color: var(--ink); border-color: var(--line); }
+.tabs button[aria-selected="true"] { color: var(--accent); background: var(--accent-soft); border-color: var(--accent); }
+.tabs .count { display: inline-block; min-width: 1.4em; margin-left: 6px; padding: 0 6px; border-radius: 999px; background: var(--accent); color: var(--panel); font-size: 0.8rem; line-height: 1.5; text-align: center; }
+.tabs .count:empty { display: none; }
+.panel { display: grid; gap: 28px; grid-template-columns: minmax(0, 1fr); }
+.wrap, section, .q { grid-template-columns: minmax(0, 1fr); }
+.switch { display: flex; flex-wrap: wrap; gap: 6px; }
+.switch button { font: 600 0.88rem var(--body); color: var(--ink); background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 5px 10px; cursor: pointer; text-align: left; }
+.switch button[aria-pressed="true"] { border-color: var(--accent); background: var(--accent-soft); color: var(--accent); }
+.preview img { max-height: 70vh; object-fit: contain; }
 .sel-btn { position: absolute; z-index: 10; font: 600 0.9rem var(--body); color: var(--panel); background: var(--accent); border: 0; border-radius: 999px; padding: 8px 14px; box-shadow: 0 2px 10px rgb(0 0 0 / 0.25); cursor: pointer; }
 footer { color: var(--muted); font-size: 0.85rem; }
 @media (max-width: 620px) {
@@ -121,6 +158,7 @@ footer { color: var(--muted); font-size: 0.85rem; }
   "use strict";
   var DATA = JSON.parse(document.getElementById("brief-data").textContent);
   var CONFIG = JSON.parse(document.getElementById("brief-config").textContent);
+  if (DATA.style) document.documentElement.setAttribute("data-style", String(DATA.style));
 
   // Interface text: English, and Simplified Chinese for a page whose "lang" starts with zh.
   // "ui" in questions.json replaces any of these, for other languages or other wording.
@@ -134,8 +172,18 @@ footer { color: var(--muted); font-size: 0.85rem; }
     how_done: "Press I'm done when you have answered (or tell me in the chat). I read every answer at once and continue from them.",
     glossary_title: "Words and short names used here",
     glossary_source: "Source:",
-    questions_title: "Questions",
-    progress_title: "Your requests in progress",
+    tabs_label: "Sections of this page",
+    tab_open: "Waiting for you",
+    tab_status: "Work status",
+    tab_decided: "Decided",
+    tab_glossary: "Glossary",
+    open_lede: "Every card here needs a choice from you. Answered cards stay here, marked answered, until I have acted on them; then they move to Decided.",
+    status_lede: "What your earlier answers turned into, and what is being built. A card that needs something from you says so.",
+    decided_lede: "Decided earlier and kept for reference. You can still change an answer or add a note; I see changes the next time I read the page.",
+    decided_default: "Decided earlier",
+    group_from: "From: {title}",
+    preview: "Compare the options",
+    count_open: "{n} without an answer",
     plain: "In plain words",
     example: "Example",
     outcome: "What I did",
@@ -207,8 +255,18 @@ footer { color: var(--muted); font-size: 0.85rem; }
     how_done: "答完后按“我答完了”（或在对话里告诉我），我会一次读完所有回答再继续。",
     glossary_title: "本页用到的词和简称",
     glossary_source: "出处：",
-    questions_title: "问题",
-    progress_title: "你提的需求进展",
+    tabs_label: "页面分区",
+    tab_open: "等你决定",
+    tab_status: "工作进展",
+    tab_decided: "已决定",
+    tab_glossary: "词汇表",
+    open_lede: "这里每张卡片都需要你做选择。已回答的卡片会标为“已回答”留在这里，等我处理完再移到“已决定”。",
+    status_lede: "你之前的回答变成了什么、正在做什么。需要你做事的卡片会写明。",
+    decided_lede: "之前已决定的内容，留在这里备查。你仍然可以改答案或加备注；我下次读页面时会看到改动。",
+    decided_default: "之前已决定",
+    group_from: "来自：{title}",
+    preview: "对比各个选项",
+    count_open: "{n} 个未回答",
     plain: "大白话",
     example: "例子",
     outcome: "我做了什么",
@@ -388,6 +446,10 @@ footer { color: var(--muted); font-size: 0.85rem; }
     if (!ui.counter) return;
     var open = order.filter(function (id) { return cards[id].q.state !== "answered"; });
     var waiting = open.filter(function (id) { return current(id).choice == null; });
+    if (ui.panels && ui.panels.open) {
+      ui.panels.open.tab.querySelector(".count").textContent = waiting.length ? String(waiting.length) : "";
+      ui.panels.open.tab.setAttribute("aria-label", ui.panels.open.tab.firstChild.textContent + ", " + fill(T.count_open, { n: waiting.length }));
+    }
     if (!open.length) { ui.counter.textContent = T.none_open; ui.next.hidden = true; return; }
     ui.counter.textContent = waiting.length ? fill(T.counter, { n: open.length - waiting.length, total: open.length }) : T.all_answered;
     ui.next.hidden = !waiting.length;
@@ -432,6 +494,7 @@ footer { color: var(--muted); font-size: 0.85rem; }
     var c = cards[id];
     if (!c || !doc || dirty[id]) return;
     c.radios.forEach(function (r) { r.checked = doc.choice != null && r.value === doc.choice; });
+    if (c.preview && doc.choice) c.preview(doc.choice);
     if (document.activeElement !== c.other && typeof doc.other === "string") c.other.value = doc.other;
     if (document.activeElement !== c.note && typeof doc.note === "string") c.note.value = doc.note;
     if (doc.at) { stamps[id] = doc.at; savedText(id, fill(T.saved, { time: clock(doc.at) })); }
@@ -469,6 +532,28 @@ footer { color: var(--muted); font-size: 0.85rem; }
       exBox.append(blocks(ex.text), table(ex.table), figures(ex.figures));
       root.append(exBox);
     }
+    // Options with a picture each get a switch to compare them before choosing; choosing shows that picture too.
+    var withFig = (q.options || []).filter(function (o) { return o.figure && o.figure.src; });
+    var preview = null;
+    if (withFig.length) {
+      var img = el("img", { alt: "", loading: "lazy" }), cap = el("figcaption");
+      var sw = el("div", { class: "switch", role: "group", "aria-label": T.preview + ": " + q.title });
+      preview = function (oid) {
+        var o = withFig.filter(function (x) { return x.id === oid; })[0];
+        if (!o) return;
+        img.setAttribute("src", o.figure.src);
+        img.setAttribute("alt", o.figure.alt || "");
+        cap.innerHTML = "<b>" + inline(o.label) + "</b> " + inline(o.figure.caption || "");
+        sw.querySelectorAll("button").forEach(function (b) { b.setAttribute("aria-pressed", String(b.getAttribute("data-opt") === oid)); });
+      };
+      withFig.forEach(function (o, i) {
+        var b = el("button", { type: "button", "data-opt": o.id, "aria-pressed": "false" }, String.fromCharCode(65 + i) + ". ", el("span", { html: inline(o.label) }));
+        b.addEventListener("click", function () { preview(o.id); });
+        sw.append(b);
+      });
+      root.append(el("div", { class: "block" }, el("span", { class: "label", text: T.preview }), sw, el("figure", { class: "preview" }, img, cap)));
+      preview((withFig.filter(function (o) { return o.recommended; })[0] || withFig[0]).id);
+    }
     var radios = [];
     var fs = el("fieldset", { class: "opts" }, el("legend", { class: "label", text: T.choice }));
     (q.options || []).forEach(function (opt) {
@@ -490,9 +575,21 @@ footer { color: var(--muted); font-size: 0.85rem; }
     root.append(el("div", { class: "answer" }, el("label", { class: "label", for: "note-" + id, text: T.note }), note));
     root.append(commentButton("q-" + id), box);
 
-    cards[id] = { q: q, root: root, chip: chip, radios: radios, other: other, note: note, clear: clear, saved: saved };
+    cards[id] = { q: q, root: root, chip: chip, radios: radios, other: other, note: note, clear: clear, saved: saved, preview: preview };
     order.push(id);
-    radios.forEach(function (r) { r.addEventListener("change", function () { edits[id] = (edits[id] || 0) + 1; dirty[id] = true; paint(id); save(id); }); });
+    if (q.read) {  // a decided card shows the answer the agent acted on until the store has a newer one
+      radios.forEach(function (r) { r.checked = q.read.choice != null && r.value === q.read.choice; });
+      other.value = q.read.other || "";
+      note.value = q.read.note || "";
+      if (preview && q.read.choice) preview(q.read.choice);
+    }
+    radios.forEach(function (r) {
+      r.addEventListener("change", function () {
+        edits[id] = (edits[id] || 0) + 1; dirty[id] = true;
+        if (preview) preview(r.value);
+        paint(id); save(id);
+      });
+    });
     other.addEventListener("input", function () {
       if (other.value.trim() && !otherRadio.checked) { otherRadio.checked = true; paint(id); }
       later(id);
@@ -530,9 +627,17 @@ footer { color: var(--muted); font-size: 0.85rem; }
     ui.conn = el("p", { class: "conn", hidden: true, "aria-live": "polite" });
     ui.done = el("button", { type: "button", class: "solid", text: T.done, hidden: true });
     ui.doneMsg = el("span", { class: "saved", "aria-live": "polite" });
-    var how = el("div", { class: "how" }, el("b", { text: T.how_title }),
+    // the steps fold away once read; what changes while answering stays in view
+    var steps = el("details", { class: "steps" }, el("summary", {}, el("b", { text: T.how_title })),
       el("ol", {}, el("li", { text: T.how_pick }), el("li", { text: T.how_note }),
-        el("li", { text: T.how_comment, "data-needs-comments": "", hidden: true }), el("li", { text: T.how_done })),
+        el("li", { text: T.how_comment, "data-needs-comments": "", hidden: true }), el("li", { text: T.how_done })));
+    var stepsKey = "decision-brief-steps:" + DATA.page_id, folded = null;
+    try { folded = localStorage.getItem(stepsKey); } catch (e) { /* first visit */ }
+    steps.open = folded !== "closed";
+    steps.addEventListener("toggle", function () {
+      try { localStorage.setItem(stepsKey, steps.open ? "open" : "closed"); } catch (e) { /* this visit only */ }
+    });
+    var how = el("div", { class: "how" }, steps,
       el("p", { class: "counter" }, ui.counter, " ", ui.next), ui.conn, ui.status,
       el("div", { class: "donebar" }, ui.done, ui.doneMsg), backupPanel());
     var header = el("header", { class: "block", style: "gap:10px" },
@@ -542,6 +647,37 @@ footer { color: var(--muted); font-size: 0.85rem; }
     header.append(pageBox);
     app.append(header);
 
+    // Sort everything into four tabs: open questions, work status, the decided archive, the glossary.
+    var open = [], decided = [], status = [];
+    (DATA.questions || []).forEach(function (q) { (q.state === "answered" ? decided : open).push({ q: q, group: q.group || "" }); });
+    (DATA.progress || []).forEach(function (p) {
+      (p.archived ? decided : status).push({ p: p });
+      (p.questions || []).forEach(function (q) {
+        (q.state === "answered" ? decided : open).push({ q: q, group: q.group || fill(T.group_from, { title: p.title }) });
+      });
+    });
+    decided.forEach(function (d) { d.group = (d.q || d.p).round || T.decided_default; });
+    function grouped(items, headed) {  // cards under one heading per group, groups in the order they first appear
+      var names = [], by = {};
+      items.forEach(function (it) { if (!by[it.group]) { by[it.group] = []; names.push(it.group); } by[it.group].push(it); });
+      return names.map(function (name) {
+        var cardsOf = by[name].map(function (it) { return it.q ? questionCard(it.q) : reportCard(it.p); });
+        return el("section", { class: "block", style: "gap:16px" }, name && headed ? el("h2", { text: name }) : null, cardsOf);
+      });
+    }
+    ui.tabs = el("div", { class: "tabs", role: "tablist", "aria-label": T.tabs_label });
+    ui.panels = {};
+    function tab(key, label, lede, content) {
+      var button = el("button", { type: "button", role: "tab", id: "tab-" + key, "aria-controls": "panel-" + key, "aria-selected": "false", tabindex: "-1" },
+        label, el("span", { class: "count", "data-count": key }));
+      var panel = el("div", { class: "panel", role: "tabpanel", id: "panel-" + key, "aria-labelledby": "tab-" + key, hidden: true },
+        lede ? el("p", { class: "lede", text: lede }) : null, content);
+      ui.tabs.append(button);
+      ui.panels[key] = { tab: button, panel: panel };
+    }
+    tab("open", DATA.questions_title || T.tab_open, open.length ? T.open_lede : T.none_open, grouped(open, true));
+    if (status.length) tab("status", DATA.progress_title || T.tab_status, T.status_lede, grouped(status.map(function (s) { s.group = ""; return s; }), false));
+    if (decided.length) tab("decided", T.tab_decided, T.decided_lede, grouped(decided, true));
     if (DATA.glossary && DATA.glossary.length) {
       var dl = el("dl", { class: "gloss" });
       DATA.glossary.forEach(function (g) {
@@ -556,23 +692,19 @@ footer { color: var(--muted); font-size: 0.85rem; }
         dd.append(place("g-" + g.anchor, row));
         dl.append(row);
       });
-      app.append(el("section", { "aria-labelledby": "h-gloss" }, el("h2", { id: "h-gloss", text: T.glossary_title }), dl));
+      tab("glossary", T.tab_glossary, T.glossary_title, dl);
     }
-    if (DATA.questions && DATA.questions.length) {
-      app.append(el("section", { "aria-labelledby": "h-qs" }, el("h2", { id: "h-qs", text: DATA.questions_title || T.questions_title }),
-        DATA.questions.map(questionCard)));
-    }
-    if (DATA.progress && DATA.progress.length) {
-      var items = [];
-      DATA.progress.forEach(function (p) { items.push(reportCard(p)); (p.questions || []).forEach(function (q) { items.push(questionCard(q)); }); });
-      app.append(el("section", { "aria-labelledby": "h-prog" }, el("h2", { id: "h-prog", text: DATA.progress_title || T.progress_title }), items));
-    }
+    app.append(ui.tabs);
+    Object.keys(ui.panels).forEach(function (k) { app.append(ui.panels[k].panel); });
+    wireTabs();
+    var asks = status.filter(function (s) { return s.p.action; }).length;  // reports with something for the user to do
+    if (ui.panels.status && asks) ui.panels.status.tab.querySelector(".count").textContent = String(asks);
     app.append(el("footer", { text: T.built_with + (DATA.generated ? " · " + clock(DATA.generated) : "") }));
     ui.next.addEventListener("click", function (e) {
       var id = (ui.next.getAttribute("href") || "").replace(/^#q-/, "");
       if (!cards[id]) return;
       e.preventDefault();
-      cards[id].root.scrollIntoView({ block: "start" });
+      reveal(cards[id].root);
       (cards[id].radios[0] || cards[id].other).focus({ preventScroll: true });
     });
     ui.done.addEventListener("click", function () {
@@ -583,6 +715,51 @@ footer { color: var(--muted); font-size: 0.85rem; }
     });
     order.forEach(paint);
   }
+
+  // ---------- tabs (WAI-ARIA tabs pattern): arrow keys move between tabs, the last tab is remembered for this
+  // page, and a link to a card or a term on another tab opens that tab.
+  var tabKey = "decision-brief-tab:" + DATA.page_id;
+  function selectTab(key, focus) {
+    Object.keys(ui.panels).forEach(function (k) {
+      var on = k === key, t = ui.panels[k];
+      t.tab.setAttribute("aria-selected", String(on));
+      t.tab.tabIndex = on ? 0 : -1;
+      t.panel.hidden = !on;
+    });
+    if (focus) ui.panels[key].tab.focus();
+    try { localStorage.setItem(tabKey, key); } catch (e) { /* remembered for this visit only */ }
+  }
+  function reveal(node) {
+    var panel = node && node.closest('[role="tabpanel"]');
+    if (panel) selectTab(panel.id.replace(/^panel-/, ""), false);
+    if (node) node.scrollIntoView({ block: "start" });
+    return !!panel;
+  }
+  function wireTabs() {
+    var keys = Object.keys(ui.panels);
+    keys.forEach(function (k, i) {
+      var t = ui.panels[k].tab;
+      t.addEventListener("click", function () { selectTab(k, false); });
+      t.addEventListener("keydown", function (e) {
+        var j = e.key === "ArrowRight" ? i + 1 : e.key === "ArrowLeft" ? i - 1 : e.key === "Home" ? 0 : e.key === "End" ? keys.length - 1 : null;
+        if (j === null) return;
+        e.preventDefault();
+        selectTab(keys[(j + keys.length) % keys.length], true);
+      });
+    });
+    var saved = null;
+    try { saved = localStorage.getItem(tabKey); } catch (e) { /* no stored tab */ }
+    selectTab(ui.panels[saved] ? saved : "open", false);
+  }
+  document.addEventListener("click", function (e) {
+    var a = e.target.closest && e.target.closest('a[href^="#"]');
+    if (!a || a === ui.next) return;
+    var node = document.getElementById(a.getAttribute("href").slice(1));
+    if (!node) return;
+    e.preventDefault();
+    reveal(node);
+  });
+  window.addEventListener("hashchange", function () { reveal(document.getElementById(location.hash.slice(1))); });
 
   // ---------- comment threads on the local page
   function rootOf(c, byId) {
@@ -861,6 +1038,7 @@ footer { color: var(--muted); font-size: 0.85rem; }
   }
 
   render();
+  if (location.hash) reveal(document.getElementById(location.hash.slice(1)));
   var pick = CONFIG.mode === "local" ? localStore() : artifactStore();
   pick.then(function (s) {
     var why = null;

@@ -2,6 +2,8 @@
 
 One JSON file per task drives the page. `brief.py build` checks it and names every problem; `assets/example/questions.json` is a complete example to copy from.
 
+The page sorts the cards into tabs. **Waiting for you** holds every question whose `state` is `open`, under a heading per `group`; a report's follow-up questions without a `group` get "From: `<report title>`". **Work status** holds the progress reports that are not `archived`. **Decided** holds the questions whose `state` is `answered` and the archived reports, under a heading per `round`. **Glossary** holds the terms. A tab with nothing in it is left out, except Waiting for you.
+
 ## Top level
 
 | Field | Required | What it holds |
@@ -11,10 +13,11 @@ One JSON file per task drives the page. `brief.py build` checks it and names eve
 | `intro` | no | Replaces the default opening paragraph (markup allowed) |
 | `lang` | no | The page's language code, such as `en` or `zh-CN` (default `en`). A code starting with `zh` also switches the page's own labels to Chinese |
 | `ui` | no | Replacement interface text, by key (see "Interface text") |
+| `style` | no | The page's look: `rose` (default, warm pink accent), `ledger` (paper and navy, serif headings) or `slate` (cool grey and teal). Each has a light and a dark version |
 | `glossary` | no | Terms, in reading order |
 | `questions` | yes, unless `progress` holds them | The open question cards |
 | `progress` | no | Reports on decisions already made, each with optional follow-up questions |
-| `questions_title`, `progress_title` | no | Replace the two section headings |
+| `questions_title`, `progress_title` | no | Replace the names of the Waiting for you and Work status tabs |
 
 ## Glossary entry
 
@@ -34,21 +37,24 @@ Each entry gets an anchor `g-` plus the term in lowercase with dashes, so a card
 | `id` | yes | Lowercase letters, digits and dashes; unique across the page. Answers are stored by this id |
 | `title` | yes | The question, in plain words |
 | `ref` | no | A short tag shown after the title, such as a ticket number (explain it in the glossary) |
+| `group` | no | The heading the card sits under on Waiting for you, such as "New questions from the sync work" |
 | `plain` | yes | The "in plain words" background (markup) |
 | `table` | no | `{"head": [...], "rows": [[...], ...]}`; cells take inline markup |
 | `figures` | no | Images shown after the background (see "Figures") |
 | `example` | no | Text, or `{"label": "WHEN IT HAPPENS", "text": ..., "table": ..., "figures": [...]}` |
 | `options` | yes | At least one; see below. The page adds Other, Clear choice, the note and Comment on this |
-| `state` | no | `open` (default) or `answered`; `brief.py mark` sets it |
+| `state` | no | `open` (default) or `answered`, which moves the card to Decided; `brief.py mark` sets it |
+| `round` | no | The heading the card sits under on Decided, such as "Round 1, decided 20 October"; `brief.py mark --round` sets it |
 | `outcome` | no | "What I did" after the answer, shown on answered cards (markup) |
-| `read` | no | Written by `brief.py mark`: the answer as you read it, so later changes show |
+| `read` | no | Written by `brief.py mark`: the answer as you read it. The card shows it when no newer answer is stored, and says when the user changed it |
 
 An option is `{"id": "...", "label": "...", "effect": "...", "recommended": true}`:
 
 - `id`: lowercase letters, digits and dashes, unique within the card; `other` is reserved;
 - `label`: the answer in a few words (inline markup);
 - `effect`: what choosing it changes (inline markup);
-- `recommended`: `true` shows "I recommend this."; a string shows that string instead. At most one option per card.
+- `recommended`: `true` shows "I recommend this."; a string shows that string instead. At most one option per card;
+- `figure` (optional): one picture of what this option looks like (see "Figures"). When options have pictures, the card shows a switch to compare them, opening on the recommended one, and choosing an option shows its picture.
 
 ## Progress report
 
@@ -60,8 +66,10 @@ An option is `{"id": "...", "label": "...", "effect": "...", "recommended": true
 | `done` | no | `false` while the work is still in progress (amber instead of green) |
 | `text` | no | What changed and how it was checked (markup) |
 | `table`, `figures` | no | As on a question card; use before and after pairs |
-| `action` | no | One thing the user has to do, shown highlighted after "One action for you:" |
-| `questions` | no | Follow-up question cards, shown right after the report |
+| `action` | no | One thing the user has to do, shown highlighted after "One action for you:"; the Work status tab counts these |
+| `archived` | no | `true` moves the report to Decided; `brief.py mark --reports` sets it |
+| `round` | no | The heading it sits under on Decided |
+| `questions` | no | Follow-up question cards; they go on Waiting for you (or Decided, once answered) |
 
 ## Figures
 

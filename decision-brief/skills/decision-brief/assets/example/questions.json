@@ -51,14 +51,25 @@
     {
       "id": "contrast",
       "title": "Make the grey hint text darker?",
-      "plain": "The hint inside the empty input (\"Add an item, e.g. 2 lemons\") is light grey on white, a [contrast ratio](#g-contrast-ratio) of about 2.2 to 1. [WCAG 2.2 AA](#g-wcag-2-2-aa) asks for at least 4.5 to 1 for text of this size. Compare the two versions below.",
-      "figures": [
-        {"src": "shots/hint-before.svg", "alt": "The list screen with a very light grey hint in the empty input", "label": "Before", "caption": "Hint text in light grey, about 2.2 to 1."},
-        {"src": "shots/hint-after.svg", "alt": "The same screen with a darker grey hint that is easy to read", "label": "After", "caption": "Hint text in darker grey, 4.5 to 1."}
-      ],
+      "plain": "The hint inside the empty input (\"Add an item, e.g. 2 lemons\") is light grey on white, a [contrast ratio](#g-contrast-ratio) of about 2.2 to 1. [WCAG 2.2 AA](#g-wcag-2-2-aa) asks for at least 4.5 to 1 for text of this size. Switch between the two options below to compare them.",
       "options": [
-        {"id": "darker", "label": "Use the darker grey.", "effect": "Readable outdoors and meets WCAG 2.2 AA; the hint looks a little heavier.", "recommended": true},
-        {"id": "keep", "label": "Keep the light grey.", "effect": "Lighter look; hard to read in sunlight or with weaker eyesight."}
+        {"id": "darker", "label": "Use the darker grey.", "effect": "Readable outdoors and meets WCAG 2.2 AA; the hint looks a little heavier.", "recommended": true,
+         "figure": {"src": "shots/hint-after.svg", "alt": "The list screen with a darker grey hint that is easy to read", "caption": "Hint text in darker grey, 4.5 to 1."}},
+        {"id": "keep", "label": "Keep the light grey.", "effect": "Lighter look; hard to read in sunlight or with weaker eyesight.",
+         "figure": {"src": "shots/hint-before.svg", "alt": "The list screen with a very light grey hint in the empty input", "caption": "Hint text in light grey, about 2.2 to 1 (today)."}}
+      ]
+    },
+    {
+      "id": "theme",
+      "title": "Should the app follow the phone's dark mode?",
+      "state": "answered",
+      "round": "Round 1, decided 20 October",
+      "outcome": "Built: the app follows the system setting, and the menu has a switch to force light or dark. See \"Dark mode, built\" below.",
+      "read": {"choice": "system", "other": "", "note": "", "at": "2026-10-20T09:12:00+00:00"},
+      "plain": "The app was light only. At night on a phone, a bright white list is uncomfortable to read.",
+      "options": [
+        {"id": "system", "label": "Follow the system setting, with a switch to override it.", "effect": "Dark at night if the phone is dark; anyone can still pick light or dark.", "recommended": true},
+        {"id": "light", "label": "Stay light only.", "effect": "Nothing to build."}
       ]
     }
   ],
@@ -82,6 +93,14 @@
           ]
         }
       ]
+    },
+    {
+      "id": "dark-mode",
+      "title": "Dark mode, built",
+      "status": "built and checked",
+      "archived": true,
+      "round": "Round 1, decided 20 October",
+      "text": "The app follows the system's light or dark setting, and the menu has a switch to force either. You checked it on 21 October."
     }
   ]
 }

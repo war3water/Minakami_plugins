@@ -5,22 +5,27 @@ with no example of what each one would change. This plugin turns a task's open q
 newcomer can answer in one pass. You talk with the agent in the page's comment threads while you answer, and
 when you are done it reads everything at once. One `SKILL.md` serves every runtime.
 
-The page has:
+The page has four tabs, so finished rounds never pile up above the new questions:
 
-- **a glossary first**: every short name, ticket number and codename on the page, with its plain meaning and a
-  checked link to where it comes from;
-- **one card per question**: the background in plain words, a real example from your project (with before and
-  after screenshots for visual questions), the options each with what it changes, a labelled recommendation,
-  an **Other** answer with its own text box, **Clear choice** to take a choice back, and a note;
-- **comments anywhere**: select any text, or press **Comment on this** on a card, to ask about it. The agent
-  answers in the thread while it reads along, or a read-only helper agent answers when you press **Ask now**;
-- **requests in progress**: decisions already made and built, with before and after screenshots for you to
-  check, and any follow-up questions;
-- a line that says whether the agent is reading along, a count of what is still open, and **I'm done**, which
-  tells the agent to read your answers.
+- **Waiting for you** (with the number still unanswered): one card per open question, with the background in
+  plain words, a real example from your project, the options each with what it changes, a labelled
+  recommendation, an **Other** answer with its own text box, **Clear choice** to take a choice back, and a note.
+  When options look different, a switch shows each option's picture before you choose. New questions that came
+  up during the work sit under a heading that says where they came from.
+- **Work status**: what your earlier answers turned into, with before and after screenshots to check, and a
+  count of the ones that need something from you.
+- **Decided**: earlier rounds, archived under their round's name, with what the agent did. You can still change
+  an answer there.
+- **Glossary**: every short name, ticket number and codename on the page, with its plain meaning and a checked
+  link to where it comes from. A link to a term or a card opens the tab that holds it.
 
-Answers save as you choose. The page follows your system's light or dark theme, works with the keyboard alone,
-fits a phone screen, and comes in English or Chinese (other languages through translated labels).
+Everywhere, **comments**: select any text, or press **Comment on this** on a card, to ask about it. The agent
+answers in the thread while it reads along, or a read-only helper agent answers when you press **Ask now**. A line
+says whether the agent is reading along, and **I'm done** tells it to read your answers.
+
+Answers save as you choose. The page follows your system's light or dark theme, comes in three looks (rose,
+ledger and slate), works with the keyboard alone (arrow keys move between tabs), fits a phone screen, and comes in
+English or Chinese (other languages through translated labels).
 
 ## Install
 
@@ -157,12 +162,57 @@ language, because those are the words you will meet in the project.
 
 ## What was tested
 
-- **The local page and helper**, in Chromium on Windows 11 with Python 3.14: answers, Other, Clear choice,
-  keyboard selection, reload, `mark` and "changed since I read it"; select-to-comment with the quote kept,
-  threads on cards and glossary entries, `wait` waking on a comment and on **I'm done**, `reply` appearing on
-  the page within seconds, the "reading along" line, **Ask now** with a stand-in agent, the Chinese labels,
-  the static page, phone width in the dark theme, and the refused foreign `Host`, missing token and file
-  requests outside the images.
+**Skill against no skill, same request.** Each agent got the same one-line request in the same small project,
+with and without the skill:
+
+- the agents: Claude Code with Claude Sonnet 5.5, and Codex CLI with GPT-6.1 Terra;
+- the projects: an English web app with four open decisions, one already settled and two mockups; and a Chinese
+  command-line tool with three open decisions and one already settled.
+
+A blind panel (Claude Opus 5.5, Claude Fable 5.1, GPT-6 Astra at its highest effort) compared the two pages in
+each of the four pairs, with screenshots, the page text, the agents' replies and the read-back round.
+
+| | with the skill | without |
+|---|---|---|
+| Panel preference (12 verdicts) | 12, all at confidence 5 | 0 |
+| Right questions, settled ones left out (1 to 5) | 4.9 | 4.8 |
+| Short names and codenames explained | 4.3 | 2.3 |
+| Concrete examples | 4.0 | 1.9 |
+| Options, consequences, reasoned recommendation | 4.3 | 2.2 |
+| Answering: one pass, own answer, clear, notes, discussion | 4.8 | 1.9 |
+| Read-back of a simulated user's partial answers | 4.8 (4 of 4 runs exact) | 2.0 (0 of 2 runs got the answers) |
+| Look, phone, dark mode | 4.3 | 2.3 |
+| Cost per run on Claude Sonnet 5.5 | about $0.22 to $0.26 | about $0.10 to $0.14 |
+| Time per run, Claude Code | 66 to 85 seconds | 31 to 42 seconds |
+| Time per run, Codex CLI | 132 to 328 seconds | 165 to 172 seconds |
+
+- **Where the gap comes from.** Without the skill, the pages were a Markdown checklist, a plain Markdown file,
+  or a form that refused to save while any question was open. None explained the project's short names, and
+  their examples were thin. The two forms overflowed a phone screen by about 590 pixels.
+- **What the skill costs.** Its page is richer, so a run writes about twice the text and reads about three times
+  the context. Setting the task folder up with one command (`brief.py new`) cut input tokens by 10 to 36 % and
+  turns by about 10 % in a second round, with the same results.
+- **Edge cases.** With nothing left to decide, every run with the skill said so and made no page. On a second
+  round, Claude applied the clear answers, moved them to **Decided** under a named round, answered the open
+  comment, and asked about the one ambiguous answer instead of guessing. Codex did the code work but could not
+  move the cards: first it passed ids separated by spaces (now accepted), then Windows refused to start more
+  processes in its sandbox.
+- **Errors the panel found in the skill's pages.** One example's arithmetic was off in the fourth decimal place,
+  and one page left out the mockups. The skill now says to check every number and copies images when it sets
+  the task folder up.
+
+Each result is one run per arm, so treat the exact numbers as indicative. The fixtures, the harness and every
+run are kept outside this repository.
+
+**The page and its helper.** A browser test (Chromium on Windows 11, Python 3.14, 54 checks) covers the
+following:
+
+- answers, Other, Clear choice, keyboard selection and reload;
+- the tabs: counts, rounds on Decided, the answer recorded on a decided card, option pictures, links that open
+  the right tab, and the remembered tab;
+- `mark` and "changed since I read it";
+- select-to-comment, threads, `wait` and `reply`, **Ask now**, and **I'm done**;
+- the Chinese labels, the static page, phone width in the dark theme, and the server's refusals.
 - **Ask now with real agents**: `--ask claude` answered a comment end to end, reading the project's README in
   read-only mode. The `codex` settings answered a test prompt. Grok accepted its settings but was not signed in
   on the test machine; pi was not installed there.
@@ -173,9 +223,9 @@ language, because those are the words you will meet in the project.
 - **Explicit invocation**: in Claude Code 2.1.311 with the plugin loaded, a headless session did not list the
   skill among its skills.
 
-Not tested yet: a full agent run of the skill in any runtime (Claude Code's own safety check blocked launching
-one from the build session), clicking through the published Artifact, Codex CLI, Grok Build and pi sessions,
-macOS and Linux, and Python before 3.13.
+Not tested yet: interactive Codex CLI, Grok Build and pi sessions (the contrast test ran Claude Code and Codex
+headless), clicking through the published Artifact, the tabs inside claude.ai, macOS and Linux, and Python before
+3.13.
 
 ## Notes for maintainers
 
@@ -185,8 +235,8 @@ macOS and Linux, and Python before 3.13.
 |---|---|
 | `skills/decision-brief/SKILL.md` | the runbook: collect, write cards for a newcomer, publish, read along, read back in one pass, act, mark and republish |
 | `skills/decision-brief/references/questions-format.md` | the questions.json format, the markup, the labels, the answers and comments format |
-| `skills/decision-brief/assets/page.html` | the one page template: CSS, rendering, threads, and the three answer stores |
-| `skills/decision-brief/scripts/brief.py` | `build`, `serve`, `wait`, `reply`, `read`, `mark`, `stop`, `links`, `example`; standard library only |
+| `skills/decision-brief/assets/page.html` | the one page template: the three looks, tabs, rendering, threads, and the three answer stores |
+| `skills/decision-brief/scripts/brief.py` | `new`, `build`, `serve`, `wait`, `reply`, `read`, `mark`, `stop`, `links`, `example`; standard library only |
 | `skills/decision-brief/assets/example/` | the worked example `example` copies |
 | `skills/decision-brief/agents/openai.yaml` | Codex: explicit invocation only |
 
