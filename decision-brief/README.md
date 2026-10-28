@@ -23,9 +23,10 @@ Everywhere, **comments**: select any text, or press **Comment on this** on a car
 answers in the thread while it reads along, or a read-only helper agent answers when you press **Ask now**. A line
 says whether the agent is reading along, and **I'm done** tells it to read your answers.
 
-Answers save as you choose. The page follows your system's light or dark theme, comes in three looks (rose,
-ledger and slate), works with the keyboard alone (arrow keys move between tabs), fits a phone screen, and comes in
-English or Chinese (other languages through translated labels).
+Answers save as you choose. Every picture opens full size, where the wheel or a pinch zooms and dragging pans. The
+page follows your system's light or dark theme, comes in three looks (ledger by default, rose and slate), works
+with the keyboard alone (arrow keys move between tabs), fits a phone screen, and comes in English or Chinese (other
+languages through translated labels).
 
 ## Install
 

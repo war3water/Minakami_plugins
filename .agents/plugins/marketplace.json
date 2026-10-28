@@ -71,7 +71,7 @@
     },
     {
       "name": "decision-brief",
-      "version": "0.2.0",
+      "version": "0.2.1",
       "description": "Turn a task's open questions into one decision page a newcomer can answer in one pass: every short name and codename explained in a glossary, one card per question with plain-words background, a vivid real example, options with what each changes and a labelled recommendation, plus Other answers, notes, and comment threads the agent answers live; then read every answer back at once. A local page for Claude Code, Codex CLI, Grok Build and pi, or a claude.ai Artifact when you pick one.",
       "category": "productivity",
       "source": {

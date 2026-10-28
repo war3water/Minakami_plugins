@@ -13,7 +13,7 @@ The page sorts the cards into tabs. **Waiting for you** holds every question who
 | `intro` | no | Replaces the default opening paragraph (markup allowed) |
 | `lang` | no | The page's language code, such as `en` or `zh-CN` (default `en`). A code starting with `zh` also switches the page's own labels to Chinese |
 | `ui` | no | Replacement interface text, by key (see "Interface text") |
-| `style` | no | The page's look: `rose` (default, warm pink accent), `ledger` (paper and navy, serif headings) or `slate` (cool grey and teal). Each has a light and a dark version |
+| `style` | no | The page's look: `ledger` (the default: paper and navy, serif headings), `rose` (warm pink accent) or `slate` (cool grey and teal). Each has a light and a dark version |
 | `glossary` | no | Terms, in reading order |
 | `questions` | yes, unless `progress` holds them | The open question cards |
 | `progress` | no | Reports on decisions already made, each with optional follow-up questions |
@@ -78,6 +78,7 @@ A figure is `{"src": "shots/before.png", "alt": "...", "label": "Before", "capti
 - `src` is a path relative to questions.json, inside its folder: png, jpg, gif, webp, svg or avif. Web addresses are refused, because the local page loads nothing from outside.
 - `alt` is required: what the image shows, for a reader who cannot see it.
 - Two or more figures sit side by side on a wide screen and stack on a phone.
+- Every picture opens full size on a click (or Enter): the wheel or a pinch zooms, dragging pans, Esc closes.
 
 ## Markup
 

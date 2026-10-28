@@ -3,35 +3,36 @@
 <style>
 /* decision-brief page. One reading column; the accent marks what needs the reader's answer.
    Light and dark follow the system; [data-theme] on the root element forces one. Three looks, picked by "style" in
-   questions.json: rose (the default), ledger (paper and navy, serif headings) and slate (cool grey and teal). */
+   questions.json: ledger (the default: paper and navy, serif headings), rose (warm pink) and slate (cool grey, teal). */
 :root {
-  --bg: #f7f4f5; --panel: #ffffff; --ink: #1d1a1c; --muted: #655b61; --line: #e2d9dd;
-  --accent: #a8175a; --accent-soft: #fbe4ee; --ok: #1d6f47; --ok-soft: #e1f3ea; --wait: #7d5200; --wait-soft: #fbf0d9;
+  --bg: #f6f3ec; --panel: #fffdf7; --ink: #1d232b; --muted: #5c6370; --line: #e2dccd;
+  --accent: #1f4f7a; --accent-soft: #e2ecf5; --ok: #2e6b45; --ok-soft: #e2f0e6; --wait: #7a5600; --wait-soft: #f6edd6;
   --body: "Segoe UI", system-ui, -apple-system, Roboto, "Noto Sans", "PingFang SC", "Microsoft YaHei", sans-serif;
-  --display: var(--body);
+  --display: Georgia, "Iowan Old Style", "Songti SC", "SimSun", serif;
   --mono: ui-monospace, "Cascadia Mono", Consolas, "SF Mono", Menlo, monospace;
-  --radius: 10px;
+  --radius: 4px;
   color-scheme: light;
 }
 @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
-  --bg: #161214; --panel: #201a1d; --ink: #f1eaee; --muted: #b3a6ad; --line: #3a2f35;
-  --accent: #ff6aa8; --accent-soft: #3d1a2a; --ok: #6fd3a0; --ok-soft: #163126; --wait: #f0c060; --wait-soft: #3a2d10; color-scheme: dark } }
+  --bg: #14181d; --panel: #1c2229; --ink: #e9edf2; --muted: #a5afbb; --line: #2f3843;
+  --accent: #8fbfeb; --accent-soft: #1d3247; --ok: #7fd1a1; --ok-soft: #17301f; --wait: #e9c46a; --wait-soft: #33290f; color-scheme: dark } }
 :root[data-theme="dark"] {
+  --bg: #14181d; --panel: #1c2229; --ink: #e9edf2; --muted: #a5afbb; --line: #2f3843;
+  --accent: #8fbfeb; --accent-soft: #1d3247; --ok: #7fd1a1; --ok-soft: #17301f; --wait: #e9c46a; --wait-soft: #33290f; color-scheme: dark }
+:root[data-style="rose"] {
+  --bg: #f7f4f5; --panel: #ffffff; --ink: #1d1a1c; --muted: #655b61; --line: #e2d9dd;
+  --accent: #a8175a; --accent-soft: #fbe4ee; --ok: #1d6f47; --ok-soft: #e1f3ea; --wait: #7d5200; --wait-soft: #fbf0d9;
+  --display: var(--body); --radius: 10px; }
+@media (prefers-color-scheme: dark) { :root[data-style="rose"]:not([data-theme="light"]) {
   --bg: #161214; --panel: #201a1d; --ink: #f1eaee; --muted: #b3a6ad; --line: #3a2f35;
-  --accent: #ff6aa8; --accent-soft: #3d1a2a; --ok: #6fd3a0; --ok-soft: #163126; --wait: #f0c060; --wait-soft: #3a2d10; color-scheme: dark }
-:root[data-style="ledger"] {
-  --bg: #f6f3ec; --panel: #fffdf7; --ink: #1d232b; --muted: #5c6370; --line: #e2dccd;
-  --accent: #1f4f7a; --accent-soft: #e2ecf5; --ok: #2e6b45; --ok-soft: #e2f0e6; --wait: #7a5600; --wait-soft: #f6edd6;
-  --display: Georgia, "Iowan Old Style", "Songti SC", "SimSun", serif; --radius: 4px; }
-@media (prefers-color-scheme: dark) { :root[data-style="ledger"]:not([data-theme="light"]) {
-  --bg: #14181d; --panel: #1c2229; --ink: #e9edf2; --muted: #a5afbb; --line: #2f3843;
-  --accent: #8fbfeb; --accent-soft: #1d3247; --ok: #7fd1a1; --ok-soft: #17301f; --wait: #e9c46a; --wait-soft: #33290f; } }
-:root[data-style="ledger"][data-theme="dark"] {
-  --bg: #14181d; --panel: #1c2229; --ink: #e9edf2; --muted: #a5afbb; --line: #2f3843;
-  --accent: #8fbfeb; --accent-soft: #1d3247; --ok: #7fd1a1; --ok-soft: #17301f; --wait: #e9c46a; --wait-soft: #33290f; }
+  --accent: #ff6aa8; --accent-soft: #3d1a2a; --ok: #6fd3a0; --ok-soft: #163126; --wait: #f0c060; --wait-soft: #3a2d10; } }
+:root[data-style="rose"][data-theme="dark"] {
+  --bg: #161214; --panel: #201a1d; --ink: #f1eaee; --muted: #b3a6ad; --line: #3a2f35;
+  --accent: #ff6aa8; --accent-soft: #3d1a2a; --ok: #6fd3a0; --ok-soft: #163126; --wait: #f0c060; --wait-soft: #3a2d10; }
 :root[data-style="slate"] {
   --bg: #f3f5f7; --panel: #ffffff; --ink: #18202a; --muted: #5b6673; --line: #dbe1e7;
-  --accent: #0b6f78; --accent-soft: #dcf1f2; --ok: #2f7d3b; --ok-soft: #e3f2e5; --wait: #8a5d00; --wait-soft: #f8eed8; --radius: 6px; }
+  --accent: #0b6f78; --accent-soft: #dcf1f2; --ok: #2f7d3b; --ok-soft: #e3f2e5; --wait: #8a5d00; --wait-soft: #f8eed8;
+  --display: var(--body); --radius: 6px; }
 @media (prefers-color-scheme: dark) { :root[data-style="slate"]:not([data-theme="light"]) {
   --bg: #0f1418; --panel: #172026; --ink: #e6edf2; --muted: #9fb0bd; --line: #26333c;
   --accent: #4fd1d9; --accent-soft: #123338; --ok: #7bd88f; --ok-soft: #16301c; --wait: #f2c35b; --wait-soft: #33280e; } }
@@ -135,6 +136,18 @@ table.mini th, table.mini td { text-align: left; padding: 6px 8px; border-top: 1
 .switch button { font: 600 0.88rem var(--body); color: var(--ink); background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 5px 10px; cursor: pointer; text-align: left; }
 .switch button[aria-pressed="true"] { border-color: var(--accent); background: var(--accent-soft); color: var(--accent); }
 .preview img { max-height: 70vh; object-fit: contain; }
+figure img { cursor: zoom-in; }
+/* Full-size picture viewer: always dark, whatever the page's theme, so every picture reads against it. */
+.zoom { position: fixed; inset: 0; z-index: 50; display: grid; grid-template-rows: auto minmax(0, 1fr); background: rgb(12 14 18 / 0.92); color: #f4f6f8;
+  padding: env(safe-area-inset-top, 0px) env(safe-area-inset-right, 0px) env(safe-area-inset-bottom, 0px) env(safe-area-inset-left, 0px); }
+.zoom .bar { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; padding: 8px 12px; }
+.zoom .bar button { font: 600 0.95rem var(--body); color: #f4f6f8; background: rgb(255 255 255 / 0.12); border: 1px solid rgb(255 255 255 / 0.35); border-radius: 6px; min-width: 40px; min-height: 40px; padding: 4px 10px; cursor: pointer; }
+.zoom .bar button:focus-visible { outline: 2px solid #f4f6f8; outline-offset: 2px; }
+.zoom .level { min-width: 3.5em; text-align: center; font-variant-numeric: tabular-nums; }
+.zoom .cap { flex: 1 1 200px; min-width: 0; font-size: 0.9rem; opacity: 0.85; }
+.zoom .stage { overflow: auto; cursor: grab; touch-action: none; display: grid; }
+.zoom .stage.dragging { cursor: grabbing; }
+.zoom .stage img { margin: auto; max-width: none; user-select: none; -webkit-user-drag: none; display: block; background: #fff; }
 .sel-btn { position: absolute; z-index: 10; font: 600 0.9rem var(--body); color: var(--panel); background: var(--accent); border: 0; border-radius: 999px; padding: 8px 14px; box-shadow: 0 2px 10px rgb(0 0 0 / 0.25); cursor: pointer; }
 footer { color: var(--muted); font-size: 0.85rem; }
 @media (max-width: 620px) {
@@ -243,6 +256,13 @@ footer { color: var(--muted); font-size: 0.85rem; }
     copy_failed: "Copying is blocked here. Select the text below and copy it.",
     show_text: "Show answers as text",
     no_choice: "no choice",
+    zoom_open: "Open full size",
+    zoom_title: "Picture",
+    zoom_in: "Zoom in",
+    zoom_out: "Zoom out",
+    zoom_fit: "Fit",
+    zoom_actual: "Actual size",
+    zoom_close: "Close",
     built_with: "Made with decision-brief"
   };
   var ZH = {
@@ -326,6 +346,13 @@ footer { color: var(--muted); font-size: 0.85rem; }
     copy_failed: "这里不允许复制。请选中下面的文字自行复制。",
     show_text: "以文字显示回答",
     no_choice: "未选择",
+    zoom_open: "查看大图",
+    zoom_title: "图片",
+    zoom_in: "放大",
+    zoom_out: "缩小",
+    zoom_fit: "适合窗口",
+    zoom_actual: "原始大小",
+    zoom_close: "关闭",
     built_with: "由 decision-brief 生成"
   };
   var T = Object.assign({}, EN, String(DATA.lang || "en").toLowerCase().indexOf("zh") === 0 ? ZH : {}, DATA.ui || {});
@@ -390,8 +417,14 @@ footer { color: var(--muted); font-size: 0.85rem; }
     if (!list || !list.length) return "";
     return el("div", { class: list.length > 1 ? "pair" : "single" }, list.map(function (f) {
       var cap = (f.label ? "<b>" + esc(f.label) + ".</b> " : "") + inline(f.caption || "");
-      return el("figure", {}, el("img", { src: f.src, alt: f.alt || "", loading: "lazy" }), cap.trim() ? el("figcaption", { html: cap }) : null);
+      return el("figure", {}, zoomable(el("img", { src: f.src, alt: f.alt || "", loading: "lazy" })), cap.trim() ? el("figcaption", { html: cap }) : null);
     }));
+  }
+  function zoomable(img) {  // a picture opens full size on click, Enter or Space
+    img.setAttribute("tabindex", "0");
+    img.setAttribute("role", "button");
+    img.setAttribute("aria-label", T.zoom_open + (img.getAttribute("alt") ? ": " + img.getAttribute("alt") : ""));
+    return img;
   }
   function section(label, cls) {
     var box = el("div", { class: "block" + (cls ? " " + cls : "") });
@@ -536,13 +569,14 @@ footer { color: var(--muted); font-size: 0.85rem; }
     var withFig = (q.options || []).filter(function (o) { return o.figure && o.figure.src; });
     var preview = null;
     if (withFig.length) {
-      var img = el("img", { alt: "", loading: "lazy" }), cap = el("figcaption");
+      var img = zoomable(el("img", { alt: "", loading: "lazy" })), cap = el("figcaption");
       var sw = el("div", { class: "switch", role: "group", "aria-label": T.preview + ": " + q.title });
       preview = function (oid) {
         var o = withFig.filter(function (x) { return x.id === oid; })[0];
         if (!o) return;
         img.setAttribute("src", o.figure.src);
         img.setAttribute("alt", o.figure.alt || "");
+        img.setAttribute("aria-label", T.zoom_open + (o.figure.alt ? ": " + o.figure.alt : ""));
         cap.innerHTML = "<b>" + inline(o.label) + "</b> " + inline(o.figure.caption || "");
         sw.querySelectorAll("button").forEach(function (b) { b.setAttribute("aria-pressed", String(b.getAttribute("data-opt") === oid)); });
       };
@@ -760,6 +794,114 @@ footer { color: var(--muted); font-size: 0.85rem; }
     reveal(node);
   });
   window.addEventListener("hashchange", function () { reveal(document.getElementById(location.hash.slice(1))); });
+
+  // ---------- pictures open full size: the wheel or a pinch zooms where it points, dragging pans, double-click
+  // switches between fitting the window and twice that, and + / - / 0 / Esc work from the keyboard.
+  function openZoom(img) {
+    var src = img && img.getAttribute("src");
+    if (!src) return;
+    var big = el("img", { src: src, alt: img.getAttribute("alt") || "", draggable: "false" });
+    var stage = el("div", { class: "stage" }, big);
+    var level = el("span", { class: "level", "aria-live": "polite" });
+    var scale = 1, fit = 1;
+    function apply(next, cx, cy) {  // zoom to `next`, keeping the point under (cx, cy) where it is
+      var r = stage.getBoundingClientRect();
+      cx = cx == null ? r.width / 2 : cx;
+      cy = cy == null ? r.height / 2 : cy;
+      var px = (stage.scrollLeft + cx) / (big.offsetWidth || 1), py = (stage.scrollTop + cy) / (big.offsetHeight || 1);
+      scale = Math.max(fit / 4, Math.min(Math.max(8, fit * 4), next));
+      big.style.width = Math.round((big.naturalWidth || r.width) * scale) + "px";
+      big.style.height = "auto";
+      stage.scrollLeft = px * big.offsetWidth - cx;
+      stage.scrollTop = py * big.offsetHeight - cy;
+      level.textContent = Math.round(scale * 100) + "%";
+    }
+    function fitWindow() {
+      var r = stage.getBoundingClientRect();
+      // a large screenshot shrinks to the window; a small picture grows to fill it, up to four times its size
+      fit = big.naturalWidth ? Math.min(4, r.width / big.naturalWidth, r.height / big.naturalHeight) : 1;
+      apply(fit);
+    }
+    function button(text, label, act) {
+      var b = el("button", { type: "button", "aria-label": label, title: label, text: text });
+      b.addEventListener("click", act);
+      return b;
+    }
+    var close = button("✕", T.zoom_close, function () { shut(); });
+    var bar = el("div", { class: "bar" }, button("−", T.zoom_out, function () { apply(scale / 1.25); }), level,
+      button("+", T.zoom_in, function () { apply(scale * 1.25); }), button(T.zoom_fit, T.zoom_fit, fitWindow),
+      button("1:1", T.zoom_actual, function () { apply(1); }), el("span", { class: "cap", text: img.getAttribute("alt") || "" }), close);
+    var box = el("div", { class: "zoom", role: "dialog", "aria-modal": "true",
+      "aria-label": T.zoom_title + (img.getAttribute("alt") ? ": " + img.getAttribute("alt") : "") }, bar, stage);
+    document.body.append(box);
+    document.documentElement.style.overflow = "hidden";
+    if (big.complete && big.naturalWidth) fitWindow(); else big.addEventListener("load", fitWindow);
+    stage.addEventListener("wheel", function (e) {
+      e.preventDefault();
+      var r = stage.getBoundingClientRect();
+      apply(scale * Math.pow(1.0015, -e.deltaY), e.clientX - r.left, e.clientY - r.top);
+    }, { passive: false });
+    var points = {}, pinch = null;
+    stage.addEventListener("pointerdown", function (e) {
+      stage.setPointerCapture(e.pointerId);
+      points[e.pointerId] = { x: e.clientX, y: e.clientY };
+      stage.classList.add("dragging");
+    });
+    stage.addEventListener("pointermove", function (e) {
+      var prev = points[e.pointerId];
+      if (!prev) return;
+      points[e.pointerId] = { x: e.clientX, y: e.clientY };
+      var ids = Object.keys(points);
+      if (ids.length === 2) {  // two fingers: zoom by how far they moved apart, around their midpoint
+        var a = points[ids[0]], b = points[ids[1]], d = Math.hypot(a.x - b.x, a.y - b.y), r = stage.getBoundingClientRect();
+        if (pinch) apply(scale * d / pinch, (a.x + b.x) / 2 - r.left, (a.y + b.y) / 2 - r.top);
+        pinch = d;
+      } else {
+        stage.scrollLeft -= e.clientX - prev.x;
+        stage.scrollTop -= e.clientY - prev.y;
+      }
+    });
+    function lift(e) {
+      delete points[e.pointerId];
+      pinch = null;
+      if (!Object.keys(points).length) stage.classList.remove("dragging");
+    }
+    stage.addEventListener("pointerup", lift);
+    stage.addEventListener("pointercancel", lift);
+    stage.addEventListener("dblclick", function (e) {
+      var r = stage.getBoundingClientRect();
+      apply(scale < fit * 1.5 ? fit * 2 : fit, e.clientX - r.left, e.clientY - r.top);
+    });
+    function keys(e) {
+      if (e.key === "Escape") { e.preventDefault(); shut(); }
+      else if (e.key === "+" || e.key === "=") { e.preventDefault(); apply(scale * 1.25); }
+      else if (e.key === "-") { e.preventDefault(); apply(scale / 1.25); }
+      else if (e.key === "0") { e.preventDefault(); fitWindow(); }
+      else if (e.key === "Tab") {  // focus stays in the viewer while it is open
+        var all = [].slice.call(bar.querySelectorAll("button")), i = all.indexOf(document.activeElement);
+        e.preventDefault();
+        all[(i + (e.shiftKey ? -1 : 1) + all.length) % all.length].focus();
+      }
+    }
+    document.addEventListener("keydown", keys, true);
+    function shut() {
+      document.removeEventListener("keydown", keys, true);
+      box.remove();
+      document.documentElement.style.overflow = "";
+      img.focus({ preventScroll: true });
+    }
+    close.focus();
+  }
+  document.addEventListener("click", function (e) {
+    var img = e.target.closest && e.target.closest("figure img");
+    if (img) { e.preventDefault(); openZoom(img); }
+  });
+  document.addEventListener("keydown", function (e) {
+    if ((e.key === "Enter" || e.key === " ") && e.target.matches && e.target.matches("figure img")) {
+      e.preventDefault();
+      openZoom(e.target);
+    }
+  });
 
   // ---------- comment threads on the local page
   function rootOf(c, byId) {
