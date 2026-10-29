@@ -1,6 +1,6 @@
 # First build
 
-The goal: a newcomer can set the project up, run it, debug it and understand its main path from the README and the wiki alone, and every claim can be checked against the code. Steps 1 to 3 write nothing in the repository; step 4 writes only what the user approved.
+The goal: a newcomer can set the project up, run it, debug it, say what each part of it does, and follow its main path, from the README and the wiki alone; and every claim can be checked against the code. Steps 1 to 3 write nothing in the repository; step 4 writes only what the user approved.
 
 ## 1. Discover
 
@@ -27,13 +27,16 @@ In a temporary copy of the repository, run the commands you will document that n
 **What to write now.** Write what a newcomer needs first:
 
 - the README as the front page, following `readme.md`;
+- `concepts/overview.md`, following `pages.md` §The overview page: every part of the system, not only the primary path;
 - `howto/run-and-debug.md`, following `pages.md` §Run and debug;
-- one explanation of the primary path, for example `concepts/how-a-request-works.md`;
+- one explanation of the primary path, for example `concepts/how-a-request-works.md`. It explains the stages and the decisions in words and links run-and-debug for the call chain, instead of drawing it again;
 - reference pages for what readers will look up while working: each subsystem the primary path passes through, the public API, the command-line flags, the configuration, the data formats, as far as the code has them;
 - how-to pages for the changes the code invites: an extension point, a registry or a plugin interface suggests "Add a …";
 - a tutorial only when one guided walk through the code would help a newcomer more than the pages above.
 
-Everything else the code would support goes into `index.md` as a planned page, without ●, with one line on what it will cover, so the plan is visible and nothing is dropped silently. The test for "enough": could a newcomer set up, run, debug and explain the main path using only what is written? If not, write what is missing now. When the repository is larger than one wiki can cover well in one pass, cover the primary path now, list the other subsystems as planned pages, and say in the report how to extend it.
+Before writing, decide where each fact lives (`pages.md`, "One home per fact"). The README already holds the project's own tables and steps. Where a page would repeat one in full, either link to the README or propose moving the full table to the page and leaving the README the part a newcomer needs to start.
+
+Everything else the code would support is listed at the end of `index.md`, under "Not written yet", as one line per topic, so the plan is visible and nothing is dropped silently. The test for "enough": could a newcomer set up, run and debug the project, say what each part does, and explain the main path, using only what is written? If not, write what is missing now. When the repository is larger than one wiki can cover well in one pass, cover the overview and the primary path now, list the other subsystems as not written yet, and say in the report how to extend it.
 
 ## 3. Propose (approval gate)
 
@@ -71,7 +74,7 @@ Replace every `{{…}}` placeholder; lint warns about any that are left.
 Run each check from the repository root and fix what it finds before the next one:
 
 1. `python <skill folder>/tools/wiki_browser.py render`. A diagram that does not parse is fixed in the page (`pages.md` §Diagrams), never dropped. Exit code 3 means there is no browser or no Mermaid file: keep the Mermaid source in the page, and say so in the report.
-2. `python <skill folder>/tools/wiki.py lint`. Fix every problem, and read every warning: fix it, or say in the report why it stays.
+2. `python <skill folder>/tools/wiki.py lint`. Fix every problem, and read every warning: fix it, or say in the report why it stays. A repeated table or diagram is fixed by keeping one full copy (`pages.md`, "One home per fact"); a subset that a task page really needs may stay.
 3. `python <skill folder>/tools/wiki.py lint --run --strict --clean-env --capture <a temporary folder outside the repository>`. This is the proof that a reader can follow the pages without changing anything:
    - The approved command blocks run, README first, in one temporary clean checkout, with only system environment variables. A step that relies on something the page does not state, such as a variable set on your machine, an installed tool, or a file outside git, fails here.
    - Each block's output is saved. Put the real output under the command, shortened where it is long and labelled with the command and the date. Mark it `check:output` wherever the reader will compare their own output with it, so the next lint fails if the program's output changes.
@@ -81,13 +84,14 @@ Run each check from the repository root and fix what it finds before the next on
    - A failing block means the documentation is wrong or the step needs something it does not state. Fix the text, for example a missing prerequisite, an environment variable to set, or a per-OS form; never weaken, skip or unmark a block to make it pass.
    - A block whose tool is not installed on this machine (for example no Go toolchain) is reported as not verified here. Make sure the page names that prerequisite, and report the block as unverified.
 4. `python <skill folder>/tools/wiki.py viewer`, then `python <skill folder>/tools/wiki_browser.py check-viewer <viewer file>`. The check needs Python Playwright; without it, say that the viewer was not opened.
-5. **Audit the claims.** List every concrete claim a reader will act on: commands, versions, defaults, limits, flags, ports, environment variables, exit codes, error messages, file locations, and the behaviour of requests and responses. Verify each one, either by a `check:run` block (with `check:output` where the page shows output) or by the line of code it comes from. A claim you can verify neither way is removed, or labelled as unverified with what would verify it. Report the counts: verified by running, verified in the code, unverified.
+5. **Read it as a newcomer.** Open the overview, then each page from the sidebar, and check: do the headings alone say what the page tells you? Does each diagram show something its page's text and tables do not? Can you finish each task without opening another page? Fix what fails.
+6. **Audit the claims.** List every concrete claim a reader will act on: commands, versions, defaults, limits, flags, ports, environment variables, exit codes, error messages, file locations, and the behaviour of requests and responses. Verify each one, either by a `check:run` block (with `check:output` where the page shows output) or by the line of code it comes from. A claim you can verify neither way is removed, or labelled as unverified with what would verify it. Report the counts: verified by running, verified in the code, unverified.
 
 ## 6. Report
 
 Reply briefly; the files carry the detail:
 
-- the files written, and the planned pages left for later;
+- the files written, and the topics left as not written yet;
 - the lint result: problems (should be none), and the warnings left with their reasons;
 - the command blocks run (in the clean checkout and clean environment), those with their output checked, those skipped on this OS or as not installed here, and every `check:skip` with its reason;
 - the claim audit: how many claims were verified by running, how many in the code, and which are unverified;

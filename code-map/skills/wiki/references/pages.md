@@ -2,15 +2,29 @@
 
 ## Page kinds
 
-Each page serves one purpose, so a reader knows whether they are learning, doing, looking something up, or trying to understand ([Diátaxis](https://diataxis.fr/)). The root README is the front page.
+Each page serves one purpose, so a reader knows whether they are learning, doing, looking something up, or trying to understand ([Diátaxis](https://diataxis.fr/)). The root README is the front page. Readers never see the kind names: the index and the viewer use the labels documentation sites use.
 
-| Kind | Folder | Answers | Examples |
-|---|---|---|---|
-| front page | the root `README.md` | what is it; how do I set it up, run, test and debug it | setup, run, debug, tests, layout, docs map |
-| tutorial | `start/` | walk me through it once | trace one request through the code |
-| how-to | `howto/` | how do I … | run and debug; add a format; upgrade a dependency |
-| reference | `reference/`, or a folder named for the thing, such as `pipelines/`, `api/` or `cli/` | what exactly does X do | a pipeline, the configuration keys, the result format |
-| explanation | `concepts/` | why is it built this way | how a request works; why the cache is keyed by content |
+| Kind | Readers see | Folder | Answers | Examples |
+|---|---|---|---|---|
+| front page | Start here | the root `README.md` | what is it; how do I set it up, run, test and debug it | setup, run, debug, tests, layout, docs map |
+| tutorial | Tutorials | `start/` | walk me through it once | trace one request through the code |
+| explanation | How it works | `concepts/` | how is it put together, and why | the overview; how a request works; why the cache is keyed by content |
+| how-to | Guides | `howto/` | how do I … | run and debug; add a format; deploy |
+| reference | Reference | `reference/`, or a folder named for the thing, such as `pipelines/`, `api/` or `cli/` | what exactly does X do | a pipeline, the configuration keys, the result format |
+
+`SCHEMA.md` and `log.md` are for the wiki's maintainers. The viewer keeps them out of the reading pages and links them from its footer.
+
+## The overview page
+
+`concepts/overview.md`, titled "How {project} fits together", comes first under "How it works". It is the map of the whole system that the other pages go deep from, and it covers every part, not only the one the first build follows. Its sections:
+
+1. **What it does.** What a user gets from the project, as a short list in their words, grouped the way the project groups it (its commands, screens, endpoints or features). Each item links to the page that covers it, where one exists.
+2. **The parts.** A table `Part | What it does | Where it lives | How you reach it`. A part is what a newcomer would name: the command line, the API server, the web app, the database, the worker, the library's client. Describe it in words; the folder and the entry point come after, not instead.
+3. **How they fit.** One diagram of the parts and what passes between them, such as an HTTP request, SQL, a file or a queue message (§Diagrams).
+4. **One request, end to end.** A typical use followed across the parts in a few numbered steps, in words, each linking the page that goes deeper.
+5. **Where to go next.** Two or three links by task: set it up, debug it, change it.
+
+The test: a newcomer who reads only this page can say what each part does and which part to open for a given task.
 
 ## Page template
 
@@ -36,6 +50,9 @@ One paragraph: what this page covers and who it is for.
 - **Every claim is traceable** to a source symbol, a captured output, or the user. Name each symbol the page explains in `sources:`, and link the files in the closing Sources section.
 - **Captured, expected, or illustrative.** Output shown as real was pasted from a run or a file. Label it with its origin, for example "Captured on 2026-10-23 from `app --trace sample.csv`, shortened", or "Captured: `tests/golden/report.txt`". `wiki.py lint --run --capture <folder>` saves the output of every `check:run` block for this. When a command cannot run here, output worked out from the code is still useful: label it "Expected, from `<path>#<Symbol>` (not captured)", and replace it with the captured output once the command runs. Any other example is labelled "Illustrative". Never type output by hand and present it as captured.
 - **Plain and exact.** Define a term before using it; no private shorthand. Prefer a table to prose for anything a reader looks up. Short sentences, active voice.
+- **Headings say the point**, in the reader's words, not the name of a rule in the code. "If a setting is set in more than one place", not "Which value wins"; "What happens when every model fails", not "Fallback semantics". The test: someone who reads only the headings learns what the page says.
+- **The consequence first, then the reason.** Open a section with what the reader should do or expect, with one concrete example; the mechanism follows for those who need it. For example: "Setting `os.environ["LLM_MODEL"]` after the import changes nothing: pass `model=` instead. The value is read once, at import…".
+- **One home per fact.** A table, list or procedure is written in full in one place: settings and flags on a reference page, a procedure on its how-to page, setup in the README. Another page gives only the part its reader needs for the task at hand, with a link to the rest, never a second full copy. The test: a reader in the middle of a task finishes it without opening another page, and a change in the code needs the fact edited in one place. `wiki.py lint` warns about a table that repeats most rows of a table on another page, and a diagram that repeats another.
 - **Links are relative.** Between pages, `../howto/run-and-debug.md`; to code, the file's relative path; to a section, `page.md#heading-slug`.
 
 ## Diagrams
@@ -57,7 +74,8 @@ flowchart TB
 ````
 
 - Put every node label and edge label in double quotes. Labels contain no `;`, `<`, `>` or `#`; a sequence-diagram message contains no `;`. Unquoted `()` or a node id named `end` break flowcharts.
-- Label nodes with the real names (`file: symbol`), so a reader can find them in the code.
+- **Draw what a reader needs to see, in words.** A box names a part ("API server", "search index") or a step ("check the request", "wait, then retry"); an edge says what passes or when ("HTTP JSON", "on a 429"). The code names go in the table under the diagram. The diagrams worth drawing are the parts and what flows between them (the overview), the steps of a decision or a loop (a retry, a fallback, a cache), and the states something goes through. A diagram that only repeats the table next to it is left out.
+- **The function-level call chain is drawn once**, on the run-and-debug page, where its job is to name the functions to break in. There, and only there, boxes are `file: function`. Other pages link to it rather than draw it again.
 - Validate by rendering, not by eye: `wiki_browser.py render` fails on a diagram that does not parse. The SVG records a hash of its source, so lint also fails when the source changed and the SVG was not re-rendered.
 - A diagram is part of the page: it changes in the same change as the code it shows.
 
@@ -71,7 +89,7 @@ Every block a reader would paste into a terminal is either checked or skipped wi
 | `<!-- check:run os=windows -->` (or `os=posix`, `os=linux,macos`) | the same, on that OS only; elsewhere it is reported as skipped |
 | `<!-- check:run background ready=http://127.0.0.1:8000/health -->` | starts the block as a service and waits until the URL answers below 500, or until `ready=/regex/` appears in its output, or `wait=<seconds>` passes. The page's later blocks can probe it, and it is stopped with its page |
 | `<!-- check:output -->`, above the fenced output that follows a run block | the run block's output must contain these lines in order; `…` matches any text inside a line, and extra lines are allowed |
-| `<!-- check:skip reason="needs an OpenAI API key" -->` | not run; the reason says what the step needs that a check cannot have |
+| `<!-- check:skip reason="needs an OpenAI API key" -->` | not run; the reason says what the step needs that a check cannot have. The viewer shows it to the reader above the block, so write it for them |
 
 - Blocks run in order, the README first and then the pages by path, in one clean checkout of the current change. A later block may use what an earlier one set up, such as a virtual environment. Each block runs as one script and stops at its first failing line.
 - With `--clean-env` the blocks run with only system variables (PATH, the home and temp folders, proxies). A step that needs a variable must set it in the block or say where the value comes from, such as copying `.env.example`.

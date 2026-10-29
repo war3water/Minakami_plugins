@@ -206,6 +206,9 @@ def render(repo: Path, wiki_dir: Path, mermaid_arg: str | None, renderer: str) -
     return 1 if failed else 0
 
 
+PAGE_BUTTONS = "#nav button[data-id], #foot button[data-id]"
+
+
 def check_viewer(path: Path) -> int:
     """Open the viewer as a reader would: every page, links between pages, a diagram's zoom and pan, console errors."""
     try:
@@ -227,11 +230,11 @@ def check_viewer(path: Path) -> int:
         page.goto(path.resolve().as_uri())
         page.wait_for_selector("#nav button")
         ids = page.evaluate("W.pages.map(p => p.id)")
-        buttons = page.locator("#nav button[data-id]")
+        buttons = page.locator(PAGE_BUTTONS)  # the reading pages in the sidebar, the wiki's rules and log in its footer
         if buttons.count() != len(ids):
             problems.append(f"sidebar lists {buttons.count()} pages, the data holds {len(ids)}")
         for pid in ids:
-            page.locator(f'#nav button[data-id="{pid}"]').click()
+            page.locator(f'#nav button[data-id="{pid}"], #foot button[data-id="{pid}"]').click()
             text = page.locator("#page .wikipage:not([hidden])").inner_text().strip()
             if not text:
                 problems.append(f"{pid}: the page is empty")
@@ -249,7 +252,7 @@ def check_viewer(path: Path) -> int:
             notes.append(f"{start} has no link to another wiki page")
         zoomed = False
         for pid in ids:
-            page.locator(f'#nav button[data-id="{pid}"]').click()
+            page.locator(f'#nav button[data-id="{pid}"], #foot button[data-id="{pid}"]').click()
             img = page.locator("#page .wikipage:not([hidden]) img.zoomable").first
             if not img.count():
                 continue

@@ -979,6 +979,7 @@ def lint(repo: Path, wiki: Path, run: bool = False, in_place: bool = False, time
     log_checks(repo, wiki, warnings)
     stale_checks(repo, wiki, pages, warnings)
     tour_checks(repo, warnings)
+    repeat_checks(pages, warnings)
 
     report["commands"] = [dict(b, status="not run") for b in all_blocks]
     if run and all_blocks:
@@ -1056,6 +1057,76 @@ def stale_checks(repo: Path, wiki: Path, pages: list[Page], warnings: list[dict]
             warnings.append({"page": page.label, "line": 1,
                              "msg": f"sources changed after this page was last updated or checked ({base}): {', '.join(changed)}; "
                                     "update it, or name it in the log entry if it is still true"})
+
+
+TABLE_ROW = re.compile(r"^\s*\|(.+)\|\s*$")
+DIAGRAM_SYNTAX = {"flowchart", "graph", "subgraph", "sequencediagram", "participant", "classdef", "class", "style", "note", "json"}
+
+
+def tables(page: Page) -> list[tuple[int, set[str]]]:
+    """(1-based line of the header, the items its rows are about) for each Markdown table outside code: a row's
+    first cell, without code marks, link syntax or bold. Numbers and very short cells name no item."""
+    lines = page.text.split("\n")
+    in_code = {k for start, end, _ in fences(lines) for k in range(start, end + 1)}
+    found, rows, start = [], None, 0
+    for i, line in enumerate(lines + [""]):
+        m = None if i in in_code else TABLE_ROW.match(line)
+        if m:
+            if rows is None:
+                rows, start = [], i + 1
+            rows.append(m.group(1))
+        elif rows is not None:
+            found.append((start, rows))
+            rows = None
+    out = []
+    for start, rows in found:
+        if len(rows) < 3 or not re.fullmatch(r"[\s|:-]+", rows[1]):
+            continue
+        keys = set()
+        for row in rows[2:]:
+            key = re.sub(r"[`*]", "", re.sub(r"\[([^\]]*)\]\([^)]*\)", r"\1", row.split("|")[0])).strip().lower()
+            if len(key) >= 3 and not re.fullmatch(r"[\d.\s#]+", key):
+                keys.add(key)
+        if keys:
+            out.append((start, keys))
+    return out
+
+
+def diagram_names(source: str) -> set[str]:
+    """The identifiers a diagram's labels name, such as the functions of a call chain."""
+    labels = " ".join(re.findall(r'"([^"]+)"', "\n".join(l for l in source.split("\n") if not l.strip().startswith("%%"))))
+    return {t.lower() for t in re.findall(r"[A-Za-z_][A-Za-z0-9_]{3,}", labels)} - DIAGRAM_SYNTAX
+
+
+def repeat_checks(pages: list[Page], warnings: list[dict]) -> None:
+    """A fact kept in full in two places drifts: one copy gets the change and the other does not, and the reader cannot
+    tell which is current. Flag a table that repeats most rows of a table on another page, and a diagram that repeats
+    most of another diagram. Whether the repeat is the subset a task needs, or a second full copy, is the agent's call."""
+    content = [p for p in pages if p.is_readme or p.is_content]
+    seen: list[tuple[Page, int, set[str]]] = []
+    for page in content:
+        for line, keys in tables(page):
+            for other, oline, okeys in seen:
+                shared = keys & okeys
+                if other is not page and len(shared) >= 4 and len(shared) >= 0.5 * min(len(keys), len(okeys)):
+                    warnings.append({"page": page.label, "line": line,
+                                     "msg": f"this table repeats {len(shared)} rows of the table at {other.label}:{oline} "
+                                            f"({', '.join(sorted(shared)[:3])}, …): keep the full table in one place, and here "
+                                            "only the rows this page's task needs, with a link to the rest"})
+                    break
+            seen.append((page, line, keys))
+    drawn: list[tuple[Page, str, set[str]]] = []
+    for page in content:
+        for block in mermaid_blocks(page):
+            names = diagram_names(block["source"])
+            for other, oid, onames in drawn:
+                shared = names & onames
+                if len(shared) >= 6 and len(shared) >= 0.5 * min(len(names), len(onames)):
+                    warnings.append({"page": page.label, "line": block["line"],
+                                     "msg": f"diagram '{block['id']}' names mostly the same code as diagram '{oid}' in "
+                                            f"{other.label}: draw it once, and link to it from the other page"})
+                    break
+            drawn.append((page, block["id"] or "?", names))
 
 
 def tour_checks(repo: Path, warnings: list[dict]) -> None:
@@ -1425,6 +1496,29 @@ def page_images(repo: Path, pages: list[Page], link_large: bool) -> dict[str, st
     return out
 
 
+def reader_notices(pages: list[Page], report: dict) -> dict[str, list[str]]:
+    """{page id: the lint findings a reader of that page should know, in a reader's words}: code the page names that
+    is gone, code that changed after the page was last checked, links that lead nowhere. The rest of the report
+    (placeholders, diagrams to re-render, index and log format) is the maintainer's, and stays out of the viewer."""
+    ids = {p.label: p.rel for p in pages}
+    out: dict[str, list[str]] = {}
+    for kind in ("problems", "warnings"):
+        for f in report[kind]:
+            msg, text = f["msg"], None
+            if kind == "problems" and msg.startswith("source "):
+                text = f"it names code that is no longer there: {msg[len('source '):].split(': ')[0]}"
+            elif msg.startswith("broken link: "):
+                text = f"a link leads nowhere: {msg[len('broken link: '):]}"
+            elif msg.startswith("missing anchor: "):
+                text = f"a link points to a section that is gone: {msg[len('missing anchor: '):]}"
+            elif msg.startswith("sources changed after this page"):
+                m = re.search(r"\): (.*?); update it", msg)
+                text = "the code it describes changed after the page was last checked" + (f": {m.group(1)}" if m else "")
+            if text and f["page"] in ids:
+                out.setdefault(ids[f["page"]], []).append(text)
+    return out
+
+
 def viewer(repo: Path, wiki: Path, out: Path, editor: str, title: str | None, artifact: bool = False) -> str:
     """Write the one-file viewer. With `artifact`, write the copy meant for publishing as a claude.ai Artifact: no
     document wrapper (the platform adds its own), no editor links and no local paths, and the page's review comments
@@ -1433,10 +1527,19 @@ def viewer(repo: Path, wiki: Path, out: Path, editor: str, title: str | None, ar
         editor = "none"
     report = lint(repo, wiki)
     pages = collect_pages(repo, wiki)
+    index = next((p for p in pages if p.wiki_rel == "index.md"), None)
+    order: dict[str, int] = {}  # the sidebar follows the order the index lists its pages in
+    for _, target in links(index.text) if index else []:
+        path = target.partition("#")[0]
+        if path and not is_external(path):
+            try:
+                order.setdefault(posix(index.path.parent / path, repo), len(order))
+            except ValueError:  # a link out of the repository; the lint reports it
+                pass
     data_pages = []
     for p in pages:
         data_pages.append({"id": p.rel, "title": p.title, "kind": p.kind, "updated": str(p.meta.get("updated", "") or ""),
-                           "body": p.body,
+                           "order": order.get(p.rel), "body": p.body,
                            "sources": [{"ref": s, "ok": report["sources"].get(s, {}).get("ok", False),
                                         "path": s.partition("#")[0], "line": report["sources"].get(s, {}).get("line")}
                                        for s in p.sources]})
@@ -1448,14 +1551,13 @@ def viewer(repo: Path, wiki: Path, out: Path, editor: str, title: str | None, ar
     data = {
         "repo": repo.name, "wiki": posix(wiki, repo), "generated": date.today().isoformat(), "toolsVersion": TOOLS_VERSION,
         "editor": template, "repoRoot": repo.resolve().as_posix() if template else "",
-        "lint": {"summary": summary(report), "problems": report["problems"], "warnings": report["warnings"]},
+        "notices": reader_notices(pages, report),
         "pages": data_pages, "svgs": svgs, "images": images,
         "symbols": {k: v["line"] for k, v in report["sources"].items() if v.get("ok")},
     }
     shell = read(HERE / "viewer_template.html")
     marked = read(HERE / "vendor" / "marked.min.js").replace("</script", "<\\/script")
     blob = json.dumps(data, ensure_ascii=False).replace("</", "<\\/")
-    index = next((p for p in pages if p.wiki_rel == "index.md"), None)
     name = title or (index.title if index and index.meta.get("title") else f"{repo.name} wiki")
     page = (shell.replace("__WIKI_TITLE__", html.escape(name))
                  .replace("/*MARKED*/", marked)

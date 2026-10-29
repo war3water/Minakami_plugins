@@ -6,8 +6,9 @@
 <title>__WIKI_TITLE__</title>
 <meta name="claude:viewport-fit-sides" content="cover">
 <style>
-/* One-file wiki viewer built by wiki.py viewer: README first, sidebar by page kind, search, working page links,
-   source chips that open the editor, diagrams that open in a zoom and pan view, the lint result. No network access. */
+/* One-file wiki viewer built by wiki.py viewer: README first, a sidebar in the index's reading order, search, working
+   page links, source chips that open the editor, diagrams that open in a zoom and pan view, a note on each command the
+   check does not run, and a notice on pages that may be out of date. No network access. */
 :root {
   --bg: #f4f6f8; --panel: #ffffff; --ink: #18212b; --muted: #5b6672; --line: #d9dee4; --accent: #1f5fa8; --accent-soft: #e4ecf6;
   --code: #eef1f4; --warn: #9a5b00; --warn-soft: #fbf0dc; --bad: #a3261b; --bad-soft: #fbe5e2;
@@ -39,10 +40,14 @@ aside { display: grid; gap: 14px; align-content: start; position: sticky; top: c
 .group button:hover { background: var(--code); }
 .group button[aria-current="true"] { background: var(--accent-soft); color: var(--accent); font-weight: 600; }
 .group button:focus-visible, #q:focus-visible, .theme:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
-.status { font: 12.5px/1.45 var(--mono); color: var(--muted); border-top: 1px solid var(--line); padding-top: 10px; }
-.status details summary { cursor: pointer; }
-.status ul { padding-left: 16px; margin: 6px 0; }
-.status li.bad { color: var(--bad); } .status li.warn { color: var(--warn); }
+.status { font-size: 13.5px; line-height: 1.45; color: var(--warn); background: var(--warn-soft); border-radius: 6px; padding: 8px 10px; }
+.status button { display: block; text-align: left; border: 0; background: none; color: inherit; font: inherit; padding: 2px 0; text-decoration: underline; cursor: pointer; }
+.foot { display: flex; flex-wrap: wrap; gap: 4px 12px; border-top: 1px solid var(--line); padding-top: 10px; }
+.foot button { border: 0; background: none; padding: 0; font: 13px var(--body); color: var(--muted); text-decoration: underline; cursor: pointer; }
+.foot button[aria-current="true"] { color: var(--accent); }
+.notice { border: 1px solid var(--warn); background: var(--warn-soft); color: var(--warn); border-radius: 6px; padding: 8px 12px; margin: 0 0 16px; font-size: 14.5px; }
+.notice ul { margin: 4px 0 0; padding-left: 18px; }
+.check-note { font-size: 14px; color: var(--muted); border-left: 3px solid var(--warn); padding: 2px 0 2px 10px; margin: 12px 0 -4px; }
 .theme { justify-self: start; font: 13px var(--body); color: var(--muted); background: none; border: 1px solid var(--line); border-radius: 5px; padding: 3px 8px; cursor: pointer; }
 main { min-width: 0; background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 26px 32px; }
 .meta { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 14px; align-items: center; }
@@ -51,6 +56,7 @@ main { min-width: 0; background: var(--panel); border: 1px solid var(--line); bo
 a.chip.src:hover { outline: 1px solid var(--accent); }
 .chip.missing { background: var(--bad-soft); color: var(--bad); }
 .chip.more { border: 1px dashed var(--line); background: none; color: var(--muted); cursor: pointer; font: 500 12px/1 var(--mono); }
+.meta .when { font-size: 13px; color: var(--muted); }
 article h1 { font-size: 32px; line-height: 1.15; margin: 0 0 12px; text-wrap: balance; }
 article h2 { font-size: 23px; line-height: 1.25; margin: 30px 0 8px; }
 article h3 { font-size: 18px; margin: 22px 0 6px; }
@@ -91,8 +97,9 @@ article blockquote { margin: 0; padding: 8px 14px; border-left: 3px solid var(--
   <aside>
     <div class="brand" id="brand">__WIKI_TITLE__<small id="sub"></small></div>
     <input id="q" type="search" placeholder="Search pages" aria-label="Search pages">
+    <div class="status" id="status" hidden></div>
     <nav id="nav" aria-label="Wiki pages"></nav>
-    <div class="status" id="status"></div>
+    <div class="foot" id="foot"></div>
     <button class="theme" id="theme" type="button">Theme: system</button>
   </aside>
   <main id="page"></main>
@@ -114,9 +121,14 @@ article blockquote { margin: 0; padding: 8px 14px; border-left: 3px solid var(--
 <script>/*MARKED*/</script>
 <script>
 const W = /*WIKI_DATA*/null;
-const KINDS = [["readme", "Start"], ["index", "Start"], ["explanation", "Understand"], ["reference", "Look up"], ["how-to", "Do"],
-               ["tutorial", "Learn"], ["schema", "Maintain"], ["log", "Maintain"]];
+// The sidebar in the words docs sites use; the page kinds behind them are the schema's (Diátaxis). The wiki's own
+// rules and log are for its maintainers, so they sit in the footer, not among the pages.
+const GROUPS = [["Start here", ["readme", "index"]], ["Tutorials", ["tutorial"]], ["How it works", ["explanation"]],
+                ["Guides", ["how-to"]], ["Reference", ["reference"]]];
+const FOOT = [["schema", "How this wiki is kept"], ["log", "Change log"]];
 const byId = new Map(W.pages.map(p => [p.id, p]));
+const rank = p => [p.kind === "readme" ? -2 : p.kind === "index" ? -1 : (p.order ?? 1e6), p.title];  // the index's reading order
+const byRank = (a, b) => { const [x, y] = [rank(a), rank(b)]; return x[0] - y[0] || x[1].localeCompare(y[1]); };
 let current = byId.has("README.md") ? "README.md" : (W.pages[0] && W.pages[0].id);
 
 // Page addresses: anchors may only hold letters, digits and . _ ~ -, so "/" becomes "~" and "~~" starts a heading.
@@ -157,8 +169,15 @@ function clean(node) {
     }
   }
 }
+// A command the wiki's check does not run says why, for the reader: what the step needs that a check cannot have.
+// The note is followed by a blank line, so the fenced block under it stays a code block.
+const skipNotes = src => src.replace(/^([ \t]*)<!--\s*check:skip\b([^>]*?)-->[ \t]*$/gm, (m, indent, attrs) => {
+  const reason = (/reason="([^"]*)"/.exec(attrs) || [])[1];
+  return reason ? `${indent}<p class="check-note">Not run by the wiki's automatic check: ${esc(reason)}</p>\n` : m;
+});
 function renderMarkdown(src, id) {
   if (!window.marked) return "<pre>" + esc(src) + "</pre>";
+  src = skipNotes(src);
   const doc = new DOMParser().parseFromString("<body>" + marked.parse(src, {headerIds: false, mangle: false}) + "</body>", "text/html");
   clean(doc.body);
   fixMedia(doc.body, id);
@@ -193,17 +212,19 @@ function fixMedia(root, id) {
 }
 
 function nav(filter) {
-  const q = (filter || "").trim().toLowerCase(); let html = "", group = null, shown = 0;
-  for (const [kind, label] of KINDS.concat([[null, "Other"]])) {
-    const known = KINDS.map(k => k[0]);
-    const items = W.pages.filter(p => (kind === null ? !known.includes(p.kind) : p.kind === kind) &&
-                                      (!q || (p.title + "\n" + p.body).toLowerCase().includes(q)));
+  const q = (filter || "").trim().toLowerCase(); let html = "", shown = 0;
+  const known = GROUPS.flatMap(g => g[1]).concat(FOOT.map(f => f[0]));
+  for (const [label, kinds] of GROUPS.concat([["Other", null]])) {
+    const items = W.pages.filter(p => (kinds ? kinds.includes(p.kind) : !known.includes(p.kind)) &&
+                                      (!q || (p.title + "\n" + p.body).toLowerCase().includes(q))).sort(byRank);
     if (!items.length) continue;
-    if (label !== group) { html += (group ? "</div>" : "") + `<div class="group"><h3>${esc(label)}</h3>`; group = label; }
-    html += items.map(p => `<button type="button" data-id="${esc(p.id)}" aria-current="${p.id === current}">${esc(p.title)}</button>`).join("");
+    html += `<div class="group"><h3>${esc(label)}</h3>` +
+      items.map(p => `<button type="button" data-id="${esc(p.id)}" aria-current="${p.id === current}">${esc(p.kind === "index" ? "All pages" : p.title)}</button>`).join("") + "</div>";
     shown += items.length;
   }
-  document.getElementById("nav").innerHTML = html + (group ? "</div>" : "<p>No page matches.</p>");
+  document.getElementById("nav").innerHTML = html || "<p>No page matches.</p>";
+  document.getElementById("foot").innerHTML = FOOT.map(([kind, label]) => W.pages.filter(p => p.kind === kind)
+    .map(p => `<button type="button" data-id="${esc(p.id)}" aria-current="${p.id === current}">${esc(label)}</button>`).join("")).join("");
   return shown;
 }
 
@@ -217,19 +238,25 @@ function build(p) {
   const sect = document.createElement("section");
   sect.className = "wikipage"; sect.id = sectionId(id); sect.hidden = true; sect.dataset.page = id;
   sect.innerHTML = `<div class="meta"></div><article></article>`;
-  const chips = [p.kind && `<span class="chip">${esc(p.kind)}</span>`, p.updated && `<span class="chip">updated ${esc(p.updated)}</span>`];
-  const FEW = 6;  // a long source list would push the page below the fold; the rest open on request
-  p.sources.forEach((s, i) => {
+  // The code a page explains is for the developer who goes there next; it opens on request, so the page starts
+  // with its text. The page's kind is already the sidebar group it sits in.
+  const chips = [p.updated && `<span class="when">Updated ${esc(p.updated)}</span>`];
+  p.sources.forEach(s => {
     const url = s.ok ? editorUrl(s.path, s.line) : null, title = s.ok ? `${s.path}${s.line ? ":" + s.line : ""}` : "not found in the code";
-    const extra = i >= FEW ? " extra" : "", hidden = i >= FEW ? " hidden" : "";
-    chips.push(url ? `<a class="chip src${extra}" href="${esc(url)}" title="Open in editor: ${esc(title)}"${hidden}>${esc(s.ref)}</a>`
-                   : `<span class="chip src${s.ok ? "" : " missing"}${extra}" title="${esc(title)}"${hidden}>${esc(s.ref)}</span>`);
+    chips.push(url ? `<a class="chip src extra" href="${esc(url)}" title="Open in editor: ${esc(title)}" hidden>${esc(s.ref)}</a>`
+                   : `<span class="chip src extra${s.ok ? "" : " missing"}" title="${esc(title)}" hidden>${esc(s.ref)}</span>`);
   });
-  if (p.sources.length > FEW) chips.push(`<button type="button" class="chip more">+${p.sources.length - FEW} more sources</button>`);
+  if (p.sources.length) chips.push(`<button type="button" class="chip more" aria-expanded="false">Code this page explains (${p.sources.length})</button>`);
   const meta = sect.querySelector(".meta");
   meta.innerHTML = chips.filter(Boolean).join("");
   const more = meta.querySelector(".more");
   if (more) more.onclick = () => { meta.querySelectorAll(".extra").forEach(c => c.hidden = false); more.remove(); };
+  const notes = (W.notices || {})[id];
+  if (notes && notes.length) {
+    const box = document.createElement("div"); box.className = "notice"; box.setAttribute("role", "note");
+    box.innerHTML = "Parts of this page may be out of date:<ul>" + notes.map(n => `<li>${esc(n)}</li>`).join("") + "</ul>";
+    meta.after(box);
+  }
   const el = sect.querySelector("article"); el.innerHTML = renderMarkdown(p.body, id);
   const seen = {};
   el.querySelectorAll("h1, h2, h3, h4, h5, h6").forEach(h => {
@@ -337,13 +364,19 @@ document.getElementById("theme").onclick = () => {
 };
 applyTheme();
 
-document.getElementById("nav").addEventListener("click", e => { const b = e.target.closest("button[data-id]"); if (b) show(b.dataset.id); });
+for (const box of ["nav", "foot", "status"])
+  document.getElementById(box).addEventListener("click", e => { const b = e.target.closest("button[data-id]"); if (b) show(b.dataset.id); });
 document.getElementById("q").addEventListener("input", e => nav(e.target.value));
-document.getElementById("sub").textContent = `${W.pages.length} pages · built ${W.generated}` + (window.marked ? "" : " · Markdown renderer missing: showing source");
-const L = W.lint, items = [...L.problems.map(x => ["bad", x]), ...L.warnings.map(x => ["warn", x])];
-document.getElementById("status").innerHTML = `<div>lint: ${esc(L.summary)}</div>` + (items.length ?
-  `<details><summary>${L.problems.length} problems, ${L.warnings.length} warnings</summary><ul>` +
-  items.map(([c, x]) => `<li class="${c}">${esc(x.page)}${x.line ? ":" + x.line : ""} ${esc(x.msg)}</li>`).join("") + "</ul></details>" : "");
+const reading = W.pages.filter(p => !FOOT.some(f => f[0] === p.kind)).length;
+document.getElementById("sub").textContent = `${reading} pages` + (window.marked ? "" : " · Markdown renderer missing: showing source");
+// Only what a reader should know: pages whose code moved on, or whose links lead nowhere. The lint's full report is
+// for the maintainer, in the terminal.
+const stale = Object.keys(W.notices || {}).filter(id => byId.has(id));
+if (stale.length) {
+  const st = document.getElementById("status"); st.hidden = false;
+  st.innerHTML = `${stale.length === 1 ? "1 page" : stale.length + " pages"} may be out of date:` +
+    stale.map(id => `<button type="button" data-id="${esc(id)}">${esc(byId.get(id).title)}</button>`).join("");
+}
 function fromAddress() {
   try { const [h, sec] = fromHash(location.hash); if (byId.has(h)) { show(h, sec); return; } } catch (e) {}
   show(current);
