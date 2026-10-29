@@ -7,9 +7,10 @@ when you are done it reads everything at once. One `SKILL.md` serves every runti
 
 The page has four tabs, so finished rounds never pile up above the new questions:
 
-- **Waiting for you** (with the number still unanswered): one card per open question, with the background in
-  plain words, a real example from your project, the options each with what it changes, a labelled
-  recommendation, an **Other** answer with its own text box, **Clear choice** to take a choice back, and a note.
+- **Waiting for you** (with the number still unanswered): one short card per open question. It gives two or
+  three sentences of background in plain words (anything longer folds under **More**), an example from your
+  project that says where it comes from, the options each with what it changes, and a **Recommended** tag on one.
+  Below them are an **Other** answer with its own text box, **Add a note**, and **Clear** to take a choice back.
   When options look different, a switch shows each option's picture before you choose. New questions that came
   up during the work sit under a heading that says where they came from.
 - **Work status**: what your earlier answers turned into, with before and after screenshots to check, and a
@@ -17,11 +18,13 @@ The page has four tabs, so finished rounds never pile up above the new questions
 - **Decided**: earlier rounds, archived under their round's name, with what the agent did. You can still change
   an answer there.
 - **Glossary**: every short name, ticket number and codename on the page, with its plain meaning and a checked
-  link to where it comes from. A link to a term or a card opens the tab that holds it.
+  link to where it comes from. On the cards, a term is underlined where it first appears, and pointing at it
+  (or tapping it) shows its meaning in place. A link to a term or a card opens the tab that holds it.
 
-Everywhere, **comments**: select any text, or press **Comment on this** on a card, to ask about it. The agent
-answers in the thread while it reads along, or a read-only helper agent answers when you press **Ask now**. A line
-says whether the agent is reading along, and **I'm done** tells it to read your answers.
+Everywhere, **comments**: select any text, or press **Comment** on a card, to ask about it. The agent answers in
+the thread while it reads along, or a read-only helper agent answers when you press **Ask now**. One line at the
+top shows how many questions you have answered, whether answers save, and whether the agent is reading along;
+**I'm done** tells it to read your answers. The instructions fold under **How this works**.
 
 Answers save as you choose. Every picture opens full size, where the wheel or a pinch zooms and dragging pans. The
 page follows your system's light or dark theme, comes in three looks (ledger by default, rose and slate), works
@@ -76,7 +79,7 @@ In any project folder, start the skill with `example` in the runtime's form (for
 `/skill:decision-brief example` in pi). The agent copies a worked example into `.decision-brief/example/`,
 serves it on `http://127.0.0.1:8377/` (or another port when that one is busy), and reads along. The example is
 a made-up shopping-list app with three questions and one progress report. Answer a card, try **Other** and
-**Clear choice**, select a sentence and comment on it, then press **I'm done**.
+**Clear**, point at an underlined term, select a sentence and comment on it, then press **I'm done**.
 
 Without an agent, from a checkout of this repository:
 
@@ -96,8 +99,9 @@ python decision-brief/skills/decision-brief/scripts/brief.py stop ../brief-try/q
 | claude.ai Artifact | you ask for it in Claude Code with the claude.ai Artifact tools | the Artifact's own storage and comment threads | the ArtifactData and ArtifactComments tools, in one turn |
 | Static file | the local server cannot run (a sandbox that forbids opening a port) | your browser; you press **Download answers.json** or **Copy answers** | `brief.py read --answers <file>`, or your pasted text |
 
-Each answer holds your choice (an option, `other`, or nothing after Clear choice), your Other text, your note,
-and the time. The Artifact opens on any device you are signed in on; its comment box has **Send to Claude**,
+Each answer holds your choice (an option, `other`, or nothing after Clear), your Other text, your note, and the
+time. When you answer under **Other**, the agent tells you in one line how it read your words before it acts on
+them. The Artifact opens on any device you are signed in on; its comment box has **Send to Claude**,
 which brings the session that published it into the thread, and **I'm done** uses the same route. The static
 file has no comments.
 
@@ -171,47 +175,73 @@ with and without the skill:
   command-line tool with three open decisions and one already settled.
 
 A blind panel (Claude Opus 5.5, Claude Fable 5.1, GPT-6 Astra at its highest effort) compared the two pages in
-each of the four pairs, with screenshots, the page text, the agents' replies and the read-back round.
+each pair, with screenshots, the page text, the agents' replies and the read-back round. Version 0.3.0 ran twice
+per pair. Two Codex pairs were left out because the run without the skill made its page on chatgpt.com, which the
+test cannot open.
 
-| | with the skill | without |
+| | 0.3.0 | without the skill |
 |---|---|---|
-| Panel preference (12 verdicts) | 12, all at confidence 5 | 0 |
+| Panel preference | 18 of 18 verdicts, all at confidence 5 | 0 |
 | Right questions, settled ones left out (1 to 5) | 4.9 | 4.8 |
-| Short names and codenames explained | 4.3 | 2.3 |
-| Concrete examples | 4.0 | 1.9 |
-| Options, consequences, reasoned recommendation | 4.3 | 2.2 |
-| Answering: one pass, own answer, clear, notes, discussion | 4.8 | 1.9 |
-| Read-back of a simulated user's partial answers | 4.8 (4 of 4 runs exact) | 2.0 (0 of 2 runs got the answers) |
-| Look, phone, dark mode | 4.3 | 2.3 |
-| Cost per run on Claude Sonnet 5.5 | about $0.22 to $0.26 | about $0.10 to $0.14 |
-| Time per run, Claude Code | 66 to 85 seconds | 31 to 42 seconds |
-| Time per run, Codex CLI | 132 to 328 seconds | 165 to 172 seconds |
+| Short names and codenames explained | 4.2 | 2.2 |
+| Concrete examples | 4.2 | 1.7 |
+| Options, consequences, reasoned recommendation | 4.4 | 2.4 |
+| Answering: one pass, own answer, clear, notes, discussion | 4.9 | 2.1 |
+| Read-back of a simulated user's partial answers | 8 of 8 runs exact | 2 of 4 runs exact (both on Claude) |
+| Look, phone, dark mode | 4.4 | 1.6 |
+| Straightforward: the question and its options up front | 3.7 | 3.2 |
+| Cost per run on Claude Sonnet 5.5 | about $0.22 to $0.33 | about $0.10 to $0.12 |
+| Time per run, Claude Code | 74 to 111 seconds | 25 to 52 seconds |
+| Time per run, Codex CLI | 155 to 430 seconds | 155 to 384 seconds |
 
-- **Where the gap comes from.** Without the skill, the pages were a Markdown checklist, a plain Markdown file,
-  or a form that refused to save while any question was open. None explained the project's short names, and
-  their examples were thin. The two forms overflowed a phone screen by about 590 pixels.
-- **What the skill costs.** Its page is richer, so a run writes about twice the text and reads about three times
-  the context. Setting the task folder up with one command (`brief.py new`) cut input tokens by 10 to 36 % and
-  turns by about 10 % in a second round, with the same results.
-- **Edge cases.** With nothing left to decide, every run with the skill said so and made no page. On a second
-  round, Claude applied the clear answers, moved them to **Decided** under a named round, answered the open
-  comment, and asked about the one ambiguous answer instead of guessing. Codex did the code work but could not
-  move the cards: first it passed ids separated by spaces (now accepted), then Windows refused to start more
-  processes in its sandbox.
-- **Errors the panel found in the skill's pages.** One example's arithmetic was off in the fourth decimal place,
-  and one page left out the mockups. The skill now says to check every number and copies images when it sets
-  the task folder up.
+**The cleaner card against the card before it.** The same requests, with the skill both times: 0.3.0 against
+0.2.0, one pair per project and agent. The panel preferred 0.3.0 in 11 of 12 verdicts, with one tie.
 
-Each result is one run per arm, so treat the exact numbers as indicative. The fixtures, the harness and every
-run are kept outside this repository.
+| | 0.3.0 | 0.2.0 |
+|---|---|---|
+| Straightforward | 4.2 | 2.7 |
+| Look, phone, dark mode | 4.8 | 3.8 |
+| Read-back | 4.8 | 4.2 |
+| Short names and codenames explained | 4.1 | 4.6 |
 
-**The page and its helper.** A browser test (Chromium on Windows 11, Python 3.14, 54 checks) covers the
-following:
+The graders read text and screenshots, where a term's meaning shown in place does not appear. Two Codex pages
+also left the project's decision numbers off their cards, which the skill now asks for.
 
-- answers, Other, Clear choice, keyboard selection and reload;
+- **Where the gap comes from.** Without the skill, the pages were a Markdown checklist, a static form that
+  overflowed a phone screen by 590 pixels, or nothing. Twice Codex could not write its file in the Windows
+  sandbox and asked in the chat instead; twice it made the page on chatgpt.com through the ChatGPT connector.
+- **What the skill costs.** Two to three times the money and the time of a run without it on Claude. The
+  shorter runbook (11 KB instead of 14 KB) did not lower that: runs now spend it on checking every number and
+  naming each example's source.
+- **Edge cases.** With nothing left to decide, 4 of 4 runs said so and made no page. On a second round, Claude
+  and Codex both passed all nine checks. Each applied the clear answers in the code and followed the Other answer.
+  Each moved the cards to **Decided** under a named round with what it did, answered the open comment, and
+  named the Other answer in the chat. In 0.2.0, Codex could not move the cards.
+- **What the panel found, and what changed.** The graders flagged slips the skill now prevents:
+  - an English "made up to illustrate" on a Chinese page;
+  - a chat message naming a button differently from the page;
+  - cards without the project's decision numbers;
+  - a filler progress report;
+  - long intros.
+
+  `serve` and `build` now print the page's own words for the chat. In the four runs after the change, every card
+  carried its number and every example its source in the page's language, and no chat message misnamed a button
+  or mentioned the helper. The graders still catch overstatements in some cards, such as "no stale prices" when
+  the supplier feed refreshes nightly.
+
+The panel saw two runs per arm, so treat the exact numbers as indicative. The fixtures, the harness and every run
+are kept outside this repository.
+
+**The page and its helper.** A browser test (Chromium on Windows 11, Python 3.14, 74 checks, and 19 more for the
+picture viewer) covers the following:
+
+- answers, Other, Clear, Add a note, keyboard selection and reload;
+- the glossary terms explained in place: by pointing, by keyboard focus and by tapping, without choosing the
+  option a term sits in;
+- background folded under **More**, the example's source line, and the top bar's count;
 - the tabs: counts, rounds on Decided, the answer recorded on a decided card, option pictures, links that open
   the right tab, and the remembered tab;
-- `mark` and "changed since I read it";
+- `mark` and "changed since I read it", and `read` listing the answers given under Other;
 - select-to-comment, threads, `wait` and `reply`, **Ask now**, and **I'm done**;
 - the Chinese labels, the static page, phone width in the dark theme, and the server's refusals.
 - **Ask now with real agents**: `--ask claude` answered a comment end to end, reading the project's README in
@@ -236,6 +266,8 @@ headless), clicking through the published Artifact, the tabs inside claude.ai, m
 |---|---|
 | `skills/decision-brief/SKILL.md` | the runbook: collect, write cards for a newcomer, publish, read along, read back in one pass, act, mark and republish |
 | `skills/decision-brief/references/questions-format.md` | the questions.json format, the markup, the labels, the answers and comments format |
+| `skills/decision-brief/references/publish.md` | the Artifact and static backends, read only when one is used |
+| `skills/decision-brief/references/live.md` | reading along with `wait` and `reply`, and Ask now, read only when the user answers now |
 | `skills/decision-brief/assets/page.html` | the one page template: the three looks, tabs, rendering, threads, and the three answer stores |
 | `skills/decision-brief/scripts/brief.py` | `new`, `build`, `serve`, `wait`, `reply`, `read`, `mark`, `stop`, `links`, `example`; standard library only |
 | `skills/decision-brief/assets/example/` | the worked example `example` copies |
@@ -256,9 +288,12 @@ without a permission prompt; other runtimes ignore the field.
   changes or the agent starts or stops reading along; `wait`, `reply` and the server share `answers.json`
   through a lock file, and every change raises its revision number.
 - **Checks the agent would otherwise skip.** `build` refuses duplicate ids, missing `alt` text, images outside
-  the task folder, web images and links that are not http(s); it warns about all-capital short names missing
-  from the glossary, cards without a recommendation, and terms without an origin link. `links` lists every link
-  to check before publishing. Codenames in ordinary words are left to the runbook's read-through.
+  the task folder, web images and links that are not http(s). It warns about all-capital short names missing
+  from the glossary, cards without a recommendation, examples that do not say where they come from, and terms
+  without an origin link. `links` lists every link to check before publishing, and `read` lists the answers
+  given under Other for the agent to confirm. Codenames in ordinary words are left to the runbook's read-through.
+- **A short runbook.** `SKILL.md` holds what every run needs; the Artifact, static and read-along details sit in
+  `references/` and are read only when they apply.
 - **Answers keyed by stable ids**, so editing a card keeps its answer, and `mark` records what the agent read
   so a later change shows.
 - **No review rules.** The skill asks for no reviewer and no second model; a review happens when you ask.

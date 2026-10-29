@@ -32,7 +32,8 @@
       "id": "storage",
       "ref": "PANTRY-12",
       "title": "Where should a shopping list be kept?",
-      "plain": "Today every list is kept only in the browser that created it, in its [localStorage](#g-localstorage). Nothing is sent anywhere, so nobody else can read the lists. But a list made on your phone is not on your laptop, and clearing the browser's data deletes every list without a warning.",
+      "plain": "Today every list is kept only in the browser that created it, in its [localStorage](#g-localstorage). A list made on your phone is not on your laptop, and clearing the browser's data deletes every list without a warning.",
+      "more": "Nothing is sent anywhere today, so nobody else can read the lists. Keeping them on the server means storing them in the app's database next to each person's account, so the server, and anyone who runs it, can read them. The export option keeps today's privacy and asks you to carry the file yourself.",
       "table": {
         "head": ["Where the list lives", "Survives clearing browser data", "Same list on phone and laptop", "Needs an account"],
         "rows": [
@@ -41,7 +42,10 @@
           ["Browser, plus a file you export", "only the exported copy", "by importing the file", "no"]
         ]
       },
-      "example": "Sam writes the weekend list on the laptop on Friday. On Saturday in the shop, the phone shows last week's list, because the two browsers keep separate lists.",
+      "example": {
+        "text": "Sam writes the weekend list on the laptop on Friday. On Saturday in the shop, the phone shows last week's list, because the two browsers keep separate lists.",
+        "source": "PANTRY-12, as reported by a user on 14 October"
+      },
       "options": [
         {"id": "server", "label": "Keep lists on the server.", "effect": "Lists follow you to every device and survive clearing the browser. Everyone signs in once with an email link; about a week of work.", "recommended": true},
         {"id": "browser", "label": "Keep lists in the browser only.", "effect": "Nothing changes, and no account is needed; the lost-list problem in the example remains."},
@@ -78,14 +82,18 @@
       "id": "units",
       "title": "Quantities in grams and cups, built",
       "status": "built, please check",
-      "text": "You asked for quantities in both metric units and cups and ounces. Each item now takes an amount and a unit, and a switch in the list's menu converts every amount at once. Tests cover the conversions for flour, sugar, butter and milk.",
+      "text": "You asked for quantities in both metric units and cups and ounces. Each item now takes an amount and a unit, and a switch in the list's menu converts every amount at once.",
+      "more": "Tests cover the conversions for flour, sugar, butter and milk. A cup of flour converts to 120 grams and a cup of milk to 240 millilitres, so the switch converts by ingredient, not by volume alone.",
       "action": "open any list, press the menu, and try **Units: metric / cups and ounces** on a list with flour and milk.",
       "questions": [
         {
           "id": "unit-default",
           "title": "Which units should a new list start with?",
           "plain": "A new list needs a starting unit system before anyone touches the switch.",
-          "example": "A visitor from Chicago opens the app for the first time and adds \"sugar\". With metric first, the amount box says grams; with the browser's region, it says cups.",
+          "example": {
+        "text": "A visitor from Chicago opens the app for the first time and adds \"sugar\". With metric first, the amount box says grams; with the browser's region, it says cups.",
+        "source": "made up to illustrate"
+      },
           "options": [
             {"id": "region", "label": "Follow the browser's region.", "effect": "Visitors in the United States get cups and ounces; everyone else gets grams and millilitres. Usually right; wrong for a traveller.", "recommended": true},
             {"id": "metric", "label": "Always metric.", "effect": "The same for everyone; visitors used to cups switch once."},

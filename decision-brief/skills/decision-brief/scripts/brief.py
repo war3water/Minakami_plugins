@@ -204,9 +204,11 @@ def texts(data: dict):
         yield w, q.get("round")
         yield w, q.get("plain")
         yield w, q.get("outcome")
+        yield w, q.get("more")
         ex = q.get("example")
         if isinstance(ex, dict):
             yield w, ex.get("text")
+            yield w, ex.get("source")
             yield from table_texts(w, ex.get("table"))
             yield from figure_texts(w, ex.get("figures"))
         else:
@@ -226,6 +228,7 @@ def texts(data: dict):
         yield w, p.get("status")
         yield w, p.get("round")
         yield w, p.get("text")
+        yield w, p.get("more")
         yield w, p.get("action")
         yield from table_texts(w, p.get("table"))
         yield from figure_texts(w, p.get("figures"))
@@ -303,6 +306,7 @@ def check(data, base: Path) -> tuple[list, list]:
                         "comes from a page a reader can open (a spec, a doc in the repository, a standard).")
 
     seen_q, seen_p = set(), set()
+    unsourced: list = []
     for p in data.get("progress") or []:
         pid = p.get("id")
         if not isinstance(pid, str) or not ID_RE.match(pid):
@@ -365,7 +369,13 @@ def check(data, base: Path) -> tuple[list, list]:
         ex = q.get("example")
         if isinstance(ex, dict):
             figure_check(ex.get("figures"), base, f"question {qid}", errors)
+        if ex and q.get("state", "open") == "open" and not (isinstance(ex, dict) and ex.get("source")):
+            unsourced.append(qid)
         figure_check(q.get("figures"), base, f"question {qid}", errors)
+    if unsourced:
+        warnings.append("examples that do not say where they come from: " + ", ".join(unsourced) + '. Write the '
+                        'example as an object with "text" and "source": the file, record or document it is taken '
+                        "from, or, when it is invented, that it was made up to illustrate (in the page's language).")
 
     glossary_texts = [(f'glossary "{g.get("term")}"', g.get("meaning")) for g in data.get("glossary") or []]
     for where, text in [*glossary_texts, *texts(data)]:
@@ -493,6 +503,26 @@ def describe(data: dict) -> str:
     return ", ".join(parts)
 
 
+def page_words(data: dict, ask_name: str | None = None) -> str:
+    """The page's own labels for what the agent's chat message may mention, in the page's language, so the message
+    names them exactly as the user sees them."""
+    zh = str(data.get("lang") or "").lower().startswith("zh")
+    text = TEMPLATE.read_text(encoding="utf-8")
+    start = text.index("  var ZH = {" if zh else "  var EN = {")
+    block = text[start:text.index("  };", start)]
+    labels = {k: json.loads(v) for k, v in re.findall(r'^    (\w+): ("(?:[^"\\]|\\.)*"),?$', block, re.M)}
+    labels.update({k: str(v) for k, v in (data.get("ui") or {}).items() if isinstance(v, str)})
+    if data.get("questions_title"):
+        labels["tab_open"] = data["questions_title"]
+    if data.get("progress_title"):
+        labels["tab_status"] = data["progress_title"]
+    words = [("the done button", labels.get("done")), ("the tab with the open questions", labels.get("tab_open")),
+             ("the glossary tab", labels.get("tab_glossary")), ("own answer", labels.get("other"))]
+    if ask_name:
+        words.append(("the button on a comment", (labels.get("ask_now") or "").replace("{name}", ask_name)))
+    return "; ".join(f'{what}: "{w}"' for what, w in words if w)
+
+
 def cmd_build(a) -> int:
     questions = Path(a.questions).resolve()
     data, warnings = load_checked(questions)
@@ -503,6 +533,7 @@ def cmd_build(a) -> int:
               "add --inline-images or write it next to questions.json", file=sys.stderr)
     out.write_text(render(page, {"mode": a.mode}, a.mode), encoding="utf-8")
     print(f"wrote {out} ({a.mode} mode): {describe(data)}")
+    print(f"the page's words, to use as they are in your message: {page_words(data)}")
     figs = sorted({str(f.get("src")) for f in figure_list(data) if not str(f.get("src", "")).startswith("data:")})
     if size:
         print(f"images: {size // 1024} KB" + (" inlined into the page" if a.inline_images else
@@ -705,7 +736,7 @@ def summarize(data: dict, answers: dict, comments: list, done=None) -> dict:
             entry["answer"] = option_label(q, choice)
             entry["recommended"] = is_recommended(q, choice)
         read = q.get("read")
-        if q.get("state") == "answered" and read is not None and any(
+        if q.get("state") == "answered" and read is not None and a and any(
                 (read.get(k) or None) != (a.get(k) or None) for k in ("choice", "other", "note")):
             entry["was"] = read
             result["changed"].append(entry)
@@ -715,6 +746,7 @@ def summarize(data: dict, answers: dict, comments: list, done=None) -> dict:
         elif q.get("state", "open") == "open":
             result["answered"].append(entry)
     result["unknown"] = sorted(k for k in answers if k not in known)
+    result["own_words"] = [e["id"] for e in result["answered"] + result["changed"] if e["choice"] == "other"]
     names = comment_targets(data)
     for root, msgs in threads(comments):
         result["threads"].append({"id": root["id"], "target": root.get("target"),
@@ -763,6 +795,9 @@ def print_summary(s: dict) -> None:
         print(f"\nThe user pressed I'm done at {s['done'].get('at')}" + (f": {note}" if note else "."))
     if s["unknown"]:
         print("\nAnswers for ids no longer in questions.json: " + ", ".join(s["unknown"]))
+    if s.get("own_words"):
+        print("\nAnswered in the user's own words: " + ", ".join(s["own_words"]) + ". Before acting on these, tell "
+              "the user in one line each how you read them, and ask where you are unsure.")
 
 
 def print_thread(t: dict, new_ids: set | None = None) -> None:
@@ -1014,12 +1049,16 @@ def card_text(data: dict, target: str, answers: dict) -> str:
         if target == "q-" + q["id"]:
             ex = q.get("example")
             ex_text = flat(ex.get("text") if isinstance(ex, dict) else ex)
+            if isinstance(ex, dict) and ex.get("source"):
+                ex_text += f" (source: {flat(ex['source'])})"
             return (f"Question: {q.get('title')}\n\nIn plain words: {flat(q.get('plain'))}\n\n"
+                    + (f"More background: {flat(q.get('more'))}\n\n" if q.get("more") else "")
                     + (f"Example: {ex_text}\n\n" if ex_text else "") + "Options:\n" + opts(q)
                     + (f"\n\nWhat the agent did: {flat(q.get('outcome'))}" if q.get("outcome") else ""))
     for p in data.get("progress") or []:
         if target == "p-" + p["id"]:
             return (f"Progress report: {p.get('title')} ({p.get('status', 'built')})\n\n{flat(p.get('text'))}"
+                    + (f"\n\n{flat(p.get('more'))}" if p.get("more") else "")
                     + (f"\n\nAction asked of the user: {p['action']}" if p.get("action") else ""))
     for g, anchor in glossary_anchors(data):
         if target == "g-" + anchor:
@@ -1395,6 +1434,7 @@ def cmd_serve(a) -> int:
               + (f"; Ask now: {info['ask']}" if info.get("ask") else "") + "; reloading shows the current questions.json)")
         if (info.get("ask") or None) != (ask[0] if ask else None):
             print("note: it runs with a different --ask setting; stop it and serve again to change that")
+        print(f"the page's words, to use as they are in your message: {page_words(data, info.get('ask'))}")
         if a.open:
             import webbrowser
             webbrowser.open(info["url"])
@@ -1425,6 +1465,7 @@ def cmd_serve(a) -> int:
                   + (f"; Ask now: {info['ask']}" if info.get("ask") else "") + ")")
             print(f"{describe(data)}. Reloading the page shows edits to questions.json. Stop it with: "
                   f"brief.py stop {questions}")
+            print(f"the page's words, to use as they are in your message: {page_words(data, info.get('ask'))}")
             if a.open:
                 import webbrowser
                 webbrowser.open(info["url"])

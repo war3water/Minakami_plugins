@@ -30,19 +30,22 @@ The page sorts the cards into tabs. **Waiting for you** holds every question who
 
 Each entry gets an anchor `g-` plus the term in lowercase with dashes, so a card can link to it: `[localStorage](#g-localstorage)`, `[WCAG 2.2 AA](#g-wcag-2-2-aa)`. The build warns when such a link points nowhere. A term written as `NFR-nnn` covers `NFR-001`, `NFR-002` and so on.
 
+On the cards, the first use of each term (and of each `aka`) is underlined: pointing at it, or focusing it with the keyboard, shows its meaning in place, with a link to the Glossary tab.
+
 ## Question card
 
 | Field | Required | What it holds |
 |---|---|---|
 | `id` | yes | Lowercase letters, digits and dashes; unique across the page. Answers are stored by this id |
 | `title` | yes | The question, in plain words |
-| `ref` | no | A short tag shown after the title, such as a ticket number (explain it in the glossary) |
+| `ref` | no | The project's own number for the question, such as a ticket or decision id, shown after the title so the user can match the card to its source (explain the numbering in the glossary) |
 | `group` | no | The heading the card sits under on Waiting for you, such as "New questions from the sync work" |
-| `plain` | yes | The "in plain words" background (markup) |
+| `plain` | yes | The background in plain words, two or three sentences: what is true today and why it needs a choice (markup) |
+| `more` | no | Longer background, folded under "More" so the card stays short: history, numbers, edge cases (markup) |
 | `table` | no | `{"head": [...], "rows": [[...], ...]}`; cells take inline markup |
 | `figures` | no | Images shown after the background (see "Figures") |
-| `example` | no | Text, or `{"label": "WHEN IT HAPPENS", "text": ..., "table": ..., "figures": [...]}` |
-| `options` | yes | At least one; see below. The page adds Other, Clear choice, the note and Comment on this |
+| `example` | no | `{"text": ..., "source": ..., "label": ..., "table": ..., "figures": [...]}`. `source` says where the example comes from, in the page's language: a file and line, a ticket, a log, or that it was made up to illustrate; the build warns when an open question's example has none. `label` replaces the heading "Example" |
+| `options` | yes | At least one; see below. The page adds Other, Clear, Add a note and Comment |
 | `state` | no | `open` (default) or `answered`, which moves the card to Decided; `brief.py mark` sets it |
 | `round` | no | The heading the card sits under on Decided, such as "Round 1, decided 20 October"; `brief.py mark --round` sets it |
 | `outcome` | no | "What I did" after the answer, shown on answered cards (markup) |
@@ -53,7 +56,7 @@ An option is `{"id": "...", "label": "...", "effect": "...", "recommended": true
 - `id`: lowercase letters, digits and dashes, unique within the card; `other` is reserved;
 - `label`: the answer in a few words (inline markup);
 - `effect`: what choosing it changes (inline markup);
-- `recommended`: `true` shows "I recommend this."; a string shows that string instead. At most one option per card;
+- `recommended`: `true` tags the option "Recommended"; a string also shows that string under it, such as why, or when another option fits better. At most one option per card;
 - `figure` (optional): one picture of what this option looks like (see "Figures"). When options have pictures, the card shows a switch to compare them, opening on the recommended one, and choosing an option shows its picture.
 
 ## Progress report
@@ -62,9 +65,10 @@ An option is `{"id": "...", "label": "...", "effect": "...", "recommended": true
 |---|---|---|
 | `id` | yes | Lowercase letters, digits and dashes; the card's anchor is `p-` plus the id |
 | `title` | yes | What was built, such as "Family tree: your three answers, built" |
-| `status` | no | The chip text (default "built, please check") |
-| `done` | no | `false` while the work is still in progress (amber instead of green) |
-| `text` | no | What changed and how it was checked (markup) |
+| `status` | no | The status label (default "built, please check") |
+| `done` | no | `false` while the work is still in progress (a half-filled marker instead of a tick) |
+| `text` | no | What changed, in two or three sentences (markup) |
+| `more` | no | How it was checked and other detail, folded under "More" (markup) |
 | `table`, `figures` | no | As on a question card; use before and after pairs |
 | `action` | no | One thing the user has to do, shown highlighted after "One action for you:"; the Work status tab counts these |
 | `archived` | no | `true` moves the report to Decided; `brief.py mark --reports` sets it |
@@ -96,10 +100,10 @@ The page's labels come in English, and in Simplified Chinese when `lang` starts 
 ```json
 "ui": {
   "plain": "Kurz erklärt",
-  "recommended": "Das empfehle ich.",
+  "recommended": "Empfohlen",
   "other": "Andere Antwort",
-  "clear": "Auswahl löschen",
-  "chip_need": "wartet auf Sie"
+  "clear": "Löschen",
+  "chip_need": "Offen"
 }
 ```
 
@@ -113,7 +117,7 @@ Every backend stores one answer per question id:
 {"choice": "server", "other": "", "note": "Email link sign-in is fine.", "at": "2026-10-26T10:12:03+00:00"}
 ```
 
-- `choice` is an option id, `"other"` (then `other` holds the user's own answer), or `null` when nothing is chosen or the user pressed Clear choice;
+- `choice` is an option id, `"other"` (then `other` holds the user's own answer), or `null` when nothing is chosen or the user pressed Clear;
 - `note` is the free note; the Artifact backend adds `by`, the user's id.
 
 The local server writes `answers.json`; the static page's download has the same shape:

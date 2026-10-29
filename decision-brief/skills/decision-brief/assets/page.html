@@ -52,18 +52,24 @@ a:focus-visible, button:focus-visible, input:focus-visible, textarea:focus-visib
 code { font-family: var(--mono); font-size: 0.86em; background: var(--accent-soft); padding: 1px 5px; border-radius: 4px; }
 section { display: grid; gap: 16px; }
 [hidden] { display: none !important; }
-.label { font-weight: 650; font-size: 0.8rem; letter-spacing: 0.06em; color: var(--muted); text-transform: uppercase; }
+.label { font-weight: 650; font-size: 0.78rem; letter-spacing: 0.06em; color: var(--muted); text-transform: uppercase; }
+.sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
 .lede { color: var(--muted); max-width: 64ch; }
-.how { display: grid; gap: 8px; background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); padding: 14px 16px; }
+/* Header: the title, then one bar with what is left to answer, whether it saves, and the done button. The
+   instructions fold into "How this works", closed unless something needs the reader's attention. */
+.topbar { display: flex; flex-wrap: wrap; gap: 8px 16px; align-items: center; justify-content: space-between; padding: 10px 0; border-top: 1px solid var(--line); }
+.topbar .left { display: grid; gap: 2px; min-width: 0; }
 .counter { font-weight: 600; }
-.steps summary { cursor: pointer; }
-.steps[open] summary { margin-bottom: 6px; }
-.saved { color: var(--muted); font-size: 0.88rem; }
+.status-line { font-size: 0.86rem; color: var(--muted); }
+.status-line .live::before { content: "\25CF  "; color: var(--ok); }
+.status-line.bad { color: var(--accent); font-weight: 600; }
+.help { font-size: 0.95rem; }
+.help summary { cursor: pointer; color: var(--muted); font-size: 0.9rem; width: fit-content; }
+.help[open] { display: grid; gap: 8px; background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); padding: 10px 14px; }
+.saved { color: var(--muted); font-size: 0.86rem; }
 .saved.bad { color: var(--accent); font-weight: 600; }
-.conn { font-size: 0.92rem; }
-.conn.live::before { content: "\25CF  "; color: var(--ok); }
 .donebar { display: flex; flex-wrap: wrap; gap: 8px 14px; align-items: center; }
-.backup { display: grid; gap: 8px; border-top: 1px solid var(--line); padding-top: 10px; }
+.backup { display: grid; gap: 8px; background: var(--wait-soft); border-radius: var(--radius); padding: 10px 14px; }
 .backup .buttons, .composer .buttons { display: flex; flex-wrap: wrap; gap: 8px; }
 .gloss { display: grid; margin: 0; border: 1px solid var(--line); border-radius: var(--radius); background: var(--panel); overflow: hidden; }
 .gloss > div { display: grid; grid-template-columns: minmax(130px, 190px) minmax(0, 1fr); gap: 4px 16px; padding: 10px 14px; border-top: 1px solid var(--line); scroll-margin-top: 16px; }
@@ -71,37 +77,58 @@ section { display: grid; gap: 16px; }
 .gloss dt { font-family: var(--mono); font-size: 0.86rem; padding-top: 3px; overflow-wrap: anywhere; }
 .gloss dd { margin: 0; min-width: 0; display: grid; gap: 4px; }
 .gloss .src { color: var(--muted); font-size: 0.92rem; }
-.q { background: var(--panel); border: 1px solid var(--line); border-left: 4px solid var(--accent); border-radius: var(--radius); padding: 18px 18px 16px; display: grid; gap: 12px; scroll-margin-top: 16px; min-width: 0; }
-.q.is-done { border-left-color: var(--ok); }
-.q.is-changed, .q.report { border-left-color: var(--wait); }
-.q.report.is-built { border-left-color: var(--ok); }
-.qhead { display: flex; flex-wrap: wrap; gap: 8px 12px; align-items: baseline; justify-content: space-between; }
-.qhead .ref { font-family: var(--mono); font-size: 0.8rem; font-weight: 500; color: var(--muted); margin-left: 6px; white-space: nowrap; }
-.chip { font: 650 0.78rem/1 var(--body); letter-spacing: 0.04em; padding: 5px 8px; border-radius: 999px; white-space: nowrap; }
-.chip.need { background: var(--accent-soft); color: var(--accent); }
-.chip.done { background: var(--ok-soft); color: var(--ok); }
-.chip.changed, .chip.progress { background: var(--wait-soft); color: var(--wait); }
+/* A card: the question, a few lines of background, an example, then the options as one list. */
+.q { background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); padding: 16px 18px; display: grid; gap: 10px; scroll-margin-top: 64px; min-width: 0; }
+.q.report { border-left: 3px solid var(--ok); }
+.q.report.in-progress { border-left-color: var(--wait); }
+.qhead { display: flex; gap: 8px 12px; align-items: baseline; justify-content: space-between; }
+.qhead h3 { min-width: 0; }
+.qhead .ref { font-family: var(--mono); font-size: 0.78rem; font-weight: 500; color: var(--muted); margin-left: 6px; white-space: nowrap; }
+.state { font: 600 0.8rem var(--body); white-space: nowrap; color: var(--accent); }
+.state.need::before { content: "\25CB  "; }
+.state.done { color: var(--ok); }
+.state.done::before { content: "\2713  "; }
+.state.changed { color: var(--wait); }
+.state.changed::before { content: "\25B2  "; }
+.state.progress { color: var(--wait); }
+.state.progress::before { content: "\25D4  "; }
 .block { display: grid; gap: 6px; min-width: 0; }
-.example { border-left: 3px solid var(--line); padding: 2px 0 2px 12px; }
-.outcome { background: var(--ok-soft); border-radius: 8px; padding: 10px 12px; }
-.notice { background: var(--wait-soft); color: var(--ink); border-radius: 8px; padding: 10px 12px; font-size: 0.95rem; }
-fieldset.opts { border: 0; margin: 0; padding: 0; display: grid; gap: 8px; min-width: 0; }
-fieldset.opts legend { padding: 0; margin-bottom: 8px; }
-.opt { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 10px; align-items: start; padding: 10px 12px; border: 1px solid var(--line); border-radius: 8px; cursor: pointer; }
-.opt:hover { border-color: var(--accent); }
+.example { border-left: 2px solid var(--line); padding-left: 12px; display: grid; gap: 4px; }
+.example .label { text-transform: none; letter-spacing: 0; font-size: 0.82rem; }
+.src-line { font-size: 0.84rem; color: var(--muted); }
+details.more summary { cursor: pointer; color: var(--accent); font-size: 0.9rem; width: fit-content; }
+details.more[open] { display: grid; gap: 6px; }
+.outcome { background: var(--ok-soft); border-radius: var(--radius); padding: 8px 12px; }
+.notice { background: var(--wait-soft); color: var(--ink); border-radius: var(--radius); padding: 8px 12px; font-size: 0.95rem; }
+fieldset.opts { border: 1px solid var(--line); border-radius: var(--radius); margin: 0; padding: 0; display: grid; min-width: 0; overflow: hidden; }
+.opt { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 10px; align-items: start; padding: 9px 12px; border-top: 1px solid var(--line); cursor: pointer; }
+.opt:first-of-type { border-top: 0; }
 .opt input[type="radio"] { margin: 5px 0 0; width: 1.05em; height: 1.05em; accent-color: var(--accent); }
-.opt b { display: block; }
-.opt .rec { display: block; color: var(--accent); font-weight: 650; font-size: 0.88rem; margin-top: 2px; }
-.opt.on { border-color: var(--accent); background: var(--accent-soft); }
-.opt .other-body { display: grid; gap: 6px; }
-input.other-text, textarea { font: inherit; font-size: 0.95rem; color: var(--ink); background: var(--bg); border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; width: 100%; box-sizing: border-box; }
-textarea { min-height: 64px; resize: vertical; }
+.opt b { font-weight: 650; }
+.opt .effect { display: block; color: var(--muted); font-size: 0.93rem; }
+.opt.on { background: var(--accent-soft); }
+.opt.on .effect { color: var(--ink); }
+.tag { display: inline-block; margin-left: 6px; font: 600 0.72rem/1.6 var(--body); color: var(--accent); border: 1px solid var(--accent); border-radius: 999px; padding: 0 7px; vertical-align: 1px; white-space: nowrap; }
+.opt .rec-note { display: block; color: var(--accent); font-size: 0.86rem; }
+.opt .other-body { display: flex; flex-wrap: wrap; gap: 6px 10px; align-items: center; }
+.opt .other-body input { flex: 1 1 220px; }
+input.other-text, textarea { font: inherit; font-size: 0.95rem; color: var(--ink); background: var(--bg); border: 1px solid var(--line); border-radius: var(--radius); padding: 6px 10px; width: 100%; box-sizing: border-box; }
+textarea { min-height: 60px; resize: vertical; }
 .answer { display: grid; gap: 6px; }
+.actions { display: flex; flex-wrap: wrap; gap: 2px 16px; align-items: center; }
+.actions .saved { margin-left: auto; }
 .row { display: flex; flex-wrap: wrap; gap: 8px 14px; align-items: center; justify-content: space-between; }
-button.ghost, button.solid { font: 600 0.9rem var(--body); border-radius: 8px; padding: 7px 12px; cursor: pointer; min-height: 36px; }
+button.link { font: 600 0.88rem var(--body); color: var(--accent); background: none; border: 0; padding: 6px 0; min-height: 32px; cursor: pointer; }
+button.link:disabled { color: var(--muted); opacity: 0.55; cursor: default; }
+button.ghost, button.solid { font: 600 0.9rem var(--body); border-radius: var(--radius); padding: 7px 12px; cursor: pointer; min-height: 36px; }
 button.ghost { color: var(--accent); background: transparent; border: 1px solid var(--accent); }
 button.solid { color: var(--panel); background: var(--accent); border: 1px solid var(--accent); }
 button.ghost:disabled, button.solid:disabled { opacity: 0.45; cursor: default; }
+/* A glossary term on a card: dotted underline; hover, focus or tap shows its meaning in place. */
+.term { border-bottom: 1px dotted currentColor; cursor: help; }
+.term:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+.pop { position: absolute; z-index: 30; max-width: min(360px, calc(100vw - 32px)); background: var(--panel); color: var(--ink); border: 1px solid var(--line); border-radius: var(--radius); box-shadow: 0 6px 20px rgb(0 0 0 / 0.18); padding: 10px 12px; font-size: 0.92rem; display: grid; gap: 6px; }
+.pop > b { font-family: var(--mono); font-weight: 600; font-size: 0.86rem; }
 .pair { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
 .single { display: grid; gap: 12px; }
 figure { margin: 0; display: grid; gap: 6px; align-content: start; }
@@ -135,10 +162,10 @@ table.mini th, table.mini td { text-align: left; padding: 6px 8px; border-top: 1
 .switch { display: flex; flex-wrap: wrap; gap: 6px; }
 .switch button { font: 600 0.88rem var(--body); color: var(--ink); background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 5px 10px; cursor: pointer; text-align: left; }
 .switch button[aria-pressed="true"] { border-color: var(--accent); background: var(--accent-soft); color: var(--accent); }
-.preview img { max-height: 70vh; object-fit: contain; }
+.preview img { max-height: 70vh; object-fit: cover; object-position: top; }  /* a tall screenshot shows its top; a click opens all of it */
 figure img { cursor: zoom-in; }
 /* Full-size picture viewer: always dark, whatever the page's theme, so every picture reads against it. */
-.zoom { position: fixed; inset: 0; z-index: 50; display: grid; grid-template-rows: auto minmax(0, 1fr); background: rgb(12 14 18 / 0.92); color: #f4f6f8;
+.zoom { position: fixed; inset: 0; z-index: 50; display: grid; grid-template-rows: auto minmax(0, 1fr); background: rgb(12 14 18 / 0.97); color: #f4f6f8;
   padding: env(safe-area-inset-top, 0px) env(safe-area-inset-right, 0px) env(safe-area-inset-bottom, 0px) env(safe-area-inset-left, 0px); }
 .zoom .bar { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; padding: 8px 12px; }
 .zoom .bar button { font: 600 0.95rem var(--body); color: #f4f6f8; background: rgb(255 255 255 / 0.12); border: 1px solid rgb(255 255 255 / 0.35); border-radius: 6px; min-width: 40px; min-height: 40px; padding: 4px 10px; cursor: pointer; }
@@ -177,12 +204,12 @@ footer { color: var(--muted); font-size: 0.85rem; }
   // "ui" in questions.json replaces any of these, for other languages or other wording.
   var EN = {
     eyebrow: "open questions for you",
-    lede: "Each card below is one choice only you can make. It explains the background in plain words, shows a real example, lists the options with what each one changes, and says what I recommend. Short names are explained in the glossary first, with a link to where each comes from.",
-    how_title: "How to answer",
-    how_pick: "Pick an option on a card, or write your own answer under Other. Clear choice takes a choice back.",
-    how_note: "Add a note if you want me to know something about your choice.",
-    how_comment: "Select any text on the page, or press Comment on this, to ask about it or discuss it.",
-    how_done: "Press I'm done when you have answered (or tell me in the chat). I read every answer at once and continue from them.",
+    lede: "Each card is a choice only you can make: a little background, an example, the options, and what I recommend. Point at an underlined term to see what it means.",
+    how_title: "How this works",
+    how_pick: "Pick an option, or write your own answer under Other. Clear takes a choice back.",
+    how_note: "Add a note to tell me more about a choice.",
+    how_comment: "Select any text, or press Comment on a card, to ask about it.",
+    how_done: "Press I'm done when you have answered, or tell me in the chat. I read every answer at once.",
     glossary_title: "Words and short names used here",
     glossary_source: "Source:",
     tabs_label: "Sections of this page",
@@ -190,8 +217,8 @@ footer { color: var(--muted); font-size: 0.85rem; }
     tab_status: "Work status",
     tab_decided: "Decided",
     tab_glossary: "Glossary",
-    open_lede: "Every card here needs a choice from you. Answered cards stay here, marked answered, until I have acted on them; then they move to Decided.",
-    status_lede: "What your earlier answers turned into, and what is being built. A card that needs something from you says so.",
+    open_lede: "",
+    status_lede: "",
     decided_lede: "Decided earlier and kept for reference. You can still change an answer or add a note; I see changes the next time I read the page.",
     decided_default: "Decided earlier",
     group_from: "From: {title}",
@@ -201,13 +228,13 @@ footer { color: var(--muted); font-size: 0.85rem; }
     example: "Example",
     outcome: "What I did",
     choice: "Your choice",
-    recommended: "I recommend this.",
+    recommended: "Recommended",
     other: "Other",
     other_hint: "Your own answer",
-    clear: "Clear choice",
-    note: "Your note (optional)",
+    clear: "Clear",
+    note: "Note",
     note_hint: "Anything you want me to know about this choice",
-    comment: "Comment on this",
+    comment: "Comment",
     comment_sel: "Comment",
     comment_send: "Post comment",
     comment_label: "Your comment",
@@ -218,15 +245,15 @@ footer { color: var(--muted); font-size: 0.85rem; }
     agent: "Agent",
     asking: "Asking {name}; this usually takes a minute or two...",
     ask_now: "Ask {name} now",
-    chip_need: "needs your answer",
-    chip_answered: "answered",
-    chip_done: "answered, acted on",
-    chip_changed: "changed since I read it",
-    chip_report: "built, please check",
+    chip_need: "Open",
+    chip_answered: "Answered",
+    chip_done: "Done",
+    chip_changed: "Changed since I read it",
+    chip_report: "Built, please check",
     action: "One action for you:",
-    counter: "{n} of {total} open questions answered.",
-    next_open: "Go to the next open question",
-    all_answered: "Every open question has an answer. Press I'm done, or tell me in the chat.",
+    counter: "{n} of {total} answered",
+    next_open: "Next open question",
+    all_answered: "All answered. Press I'm done, or tell me in the chat.",
     none_open: "No open questions on this page.",
     saving: "Saving...",
     saved: "Saved {time}",
@@ -239,10 +266,11 @@ footer { color: var(--muted); font-size: 0.85rem; }
     status_static: "This copy of the page cannot send answers to me. Your answers are kept in this browser; when you are done, press Download answers.json and save it next to this page, or press Copy answers and paste them into the chat.",
     status_static_volatile: "This copy of the page cannot send answers to me, and this browser does not keep them after a reload. When you are done, press Copy answers and paste them into the chat, or Download answers.json and save it next to this page.",
     status_no_db: "This view cannot save answers (signed out, or saving is not allowed here). Use the buttons below, or reply in the chat.",
-    conn_listening: "{name} is reading this page live: comments get an answer here.",
-    conn_working: "{name} is working on your comments; answers appear here.",
+    conn_listening: "{name} is reading along",
+    conn_working: "{name} is working on your comments",
     conn_away: "No agent is reading along right now. Your comments are kept, and the agent reads them when you press I'm done or tell it in the chat.",
-    conn_ask: "For an answer right away, press Ask {name} now on a comment: it runs {name} read-only on your own account, usually for a minute or two.",
+    conn_away_short: "comments are read when you press I'm done",
+    conn_ask: "Ask {name} now on a comment gets an answer in a minute or two (read-only, on your account).",
     conn_artifact: "Comments go to this page's comment threads. Press Send to Claude in the comment box to bring Claude in.",
     done: "I'm done",
     done_sent_live: "{name} has been told and is reading your answers.",
@@ -256,6 +284,11 @@ footer { color: var(--muted); font-size: 0.85rem; }
     copy_failed: "Copying is blocked here. Select the text below and copy it.",
     show_text: "Show answers as text",
     no_choice: "no choice",
+    how_live: "When I am reading along, comments get an answer here; otherwise I read them when you press I'm done.",
+    note_add: "Add a note",
+    saves_auto: "Saves automatically",
+    more: "More",
+    source: "Source:",
     zoom_open: "Open full size",
     zoom_title: "Picture",
     zoom_in: "Zoom in",
@@ -267,12 +300,12 @@ footer { color: var(--muted); font-size: 0.85rem; }
   };
   var ZH = {
     eyebrow: "等你决定的问题",
-    lede: "下面每张卡片都是一个只有你能做的选择。卡片先用大白话讲背景，再给一个真实的例子，列出每个选项会带来什么变化，并标出我的建议。页面里的简称和术语都先在词汇表里解释，并附上出处链接。",
-    how_title: "怎么回答",
-    how_pick: "在卡片上选一个选项，或在“其他”里写你自己的答案。“清除选择”可以撤回选择。",
-    how_note: "想让我知道什么，就写在备注里。",
-    how_comment: "选中页面上的任意文字，或按“评论这张卡片”，就能就它提问或讨论。",
-    how_done: "答完后按“我答完了”（或在对话里告诉我），我会一次读完所有回答再继续。",
+    lede: "每张卡片都是一个只有你能做的选择：一点背景、一个例子、各个选项和我的建议。把鼠标指向带下划线的词，就能看到它的意思。",
+    how_title: "怎么用",
+    how_pick: "选一个选项，或在“其他”里写你自己的答案。“清除”可以撤回选择。",
+    how_note: "想多说几句，就加一条备注。",
+    how_comment: "选中任意文字，或在卡片上按“评论”，就能就它提问。",
+    how_done: "答完后按“我答完了”，或在对话里告诉我。我会一次读完所有回答。",
     glossary_title: "本页用到的词和简称",
     glossary_source: "出处：",
     tabs_label: "页面分区",
@@ -280,8 +313,8 @@ footer { color: var(--muted); font-size: 0.85rem; }
     tab_status: "工作进展",
     tab_decided: "已决定",
     tab_glossary: "词汇表",
-    open_lede: "这里每张卡片都需要你做选择。已回答的卡片会标为“已回答”留在这里，等我处理完再移到“已决定”。",
-    status_lede: "你之前的回答变成了什么、正在做什么。需要你做事的卡片会写明。",
+    open_lede: "",
+    status_lede: "",
     decided_lede: "之前已决定的内容，留在这里备查。你仍然可以改答案或加备注；我下次读页面时会看到改动。",
     decided_default: "之前已决定",
     group_from: "来自：{title}",
@@ -291,13 +324,13 @@ footer { color: var(--muted); font-size: 0.85rem; }
     example: "例子",
     outcome: "我做了什么",
     choice: "你的选择",
-    recommended: "我推荐这个。",
+    recommended: "推荐",
     other: "其他",
     other_hint: "你自己的答案",
-    clear: "清除选择",
-    note: "备注（可选）",
+    clear: "清除",
+    note: "备注",
     note_hint: "关于这个选择，想让我知道的任何事",
-    comment: "评论这张卡片",
+    comment: "评论",
     comment_sel: "评论",
     comment_send: "发表评论",
     comment_label: "你的评论",
@@ -308,15 +341,15 @@ footer { color: var(--muted); font-size: 0.85rem; }
     agent: "助手",
     asking: "正在询问 {name}，通常需要一两分钟……",
     ask_now: "现在问 {name}",
-    chip_need: "等你回答",
+    chip_need: "待回答",
     chip_answered: "已回答",
-    chip_done: "已回答，已处理",
+    chip_done: "已处理",
     chip_changed: "我读过后你改了",
     chip_report: "已完成，请检查",
     action: "需要你做一件事：",
-    counter: "{total} 个待答问题中已回答 {n} 个。",
-    next_open: "跳到下一个未答的问题",
-    all_answered: "所有待答问题都有答案了。按“我答完了”，或在对话里告诉我。",
+    counter: "{total} 个中已回答 {n} 个",
+    next_open: "下一个未答的问题",
+    all_answered: "都答完了。按“我答完了”，或在对话里告诉我。",
     none_open: "本页没有待答的问题。",
     saving: "正在保存……",
     saved: "已保存 {time}",
@@ -329,10 +362,11 @@ footer { color: var(--muted); font-size: 0.85rem; }
     status_static: "这份页面没法把回答直接发给我。回答先保存在这个浏览器里；答完后按“下载 answers.json”并存到这个页面旁边，或按“复制回答”贴到对话里。",
     status_static_volatile: "这份页面没法把回答直接发给我，而且这个浏览器刷新后不会保留它们。答完后按“复制回答”贴到对话里，或按“下载 answers.json”存到这个页面旁边。",
     status_no_db: "这个视图不能保存回答（未登录，或这里不允许保存）。请用下面的按钮，或在对话里回复。",
-    conn_listening: "{name} 正在实时看这个页面：评论会在这里得到回答。",
-    conn_working: "{name} 正在处理你的评论，回答会出现在这里。",
+    conn_listening: "{name} 正在实时看",
+    conn_working: "{name} 正在处理你的评论",
     conn_away: "现在没有助手在实时看这个页面。你的评论会保留，等你按“我答完了”或在对话里告诉助手时，它会一起读。",
-    conn_ask: "想马上得到回答，就在评论上按“现在问 {name}”：它会用你自己的账号以只读方式运行 {name}，通常需要一两分钟。",
+    conn_away_short: "评论会在你按“我答完了”时一起读",
+    conn_ask: "在评论上按“现在问 {name}”，一两分钟内会有回答（只读，用你的账号）。",
     conn_artifact: "评论会进入这个页面的评论区。在评论框里按 Send to Claude，就能把 Claude 拉进讨论。",
     done: "我答完了",
     done_sent_live: "已通知 {name}，它正在读你的回答。",
@@ -346,6 +380,11 @@ footer { color: var(--muted); font-size: 0.85rem; }
     copy_failed: "这里不允许复制。请选中下面的文字自行复制。",
     show_text: "以文字显示回答",
     no_choice: "未选择",
+    how_live: "我在实时看页面时，评论会在这里得到回答；否则我会在你按“我答完了”时一起读。",
+    note_add: "加备注",
+    saves_auto: "自动保存",
+    more: "更多",
+    source: "出处：",
     zoom_open: "查看大图",
     zoom_title: "图片",
     zoom_in: "放大",
@@ -469,10 +508,9 @@ footer { color: var(--muted); font-size: 0.85rem; }
       else { kind = "done"; text = T.chip_done; }
     } else if (now.choice != null) { kind = "done"; text = T.chip_answered; }
     else { kind = "need"; text = T.chip_need; }
-    c.chip.className = "chip " + kind;
+    c.chip.className = "state " + kind;
     c.chip.textContent = text;
-    c.root.classList.toggle("is-done", kind === "done");
-    c.root.classList.toggle("is-changed", kind === "changed");
+    if (now.note) c.noteBox.hidden = false;
     count();
   }
   function count() {
@@ -544,27 +582,35 @@ footer { color: var(--muted); font-size: 0.85rem; }
     return box;
   }
   function commentButton(target) {
-    var btn = el("button", { type: "button", class: "ghost", text: T.comment, "data-comment": target, hidden: true });
+    var btn = el("button", { type: "button", class: "link", text: T.comment, "data-comment": target, hidden: true });
     btn.addEventListener("click", function () { if (store && store.comment) store.comment(target, null, ""); });
-    return el("div", { class: "row" }, el("span"), btn);
+    return btn;
+  }
+  function moreBox(text) {  // longer background, folded away so the card stays short
+    if (!text) return "";
+    var d = el("details", { class: "more" }, el("summary", { text: T.more }));
+    d.append(blocks(text));
+    return d;
   }
   function questionCard(q) {
     var id = q.id, name = "choice-" + id;
     var root = el("article", { class: "q", id: "q-" + id, "data-q": id, "aria-labelledby": "t-" + id });
     var box = place("q-" + id, root);
-    var chip = el("span", { class: "chip need", text: T.chip_need });
+    var chip = el("span", { class: "state need", text: T.chip_need });
     root.append(el("div", { class: "qhead" },
       el("h3", { id: "t-" + id }, q.title, q.ref ? el("span", { class: "ref", text: q.ref }) : null), chip));
     if (q.state === "answered" && q.outcome) { var o = section(T.outcome, "outcome"); o.append(blocks(q.outcome)); root.append(o); }
-    var plain = section(T.plain);
-    plain.append(blocks(q.plain));
-    root.append(plain, table(q.table), figures(q.figures));
+    var body = el("div", { class: "block" });
+    body.append(blocks(q.plain));
+    root.append(body, table(q.table), figures(q.figures));
     if (q.example) {
       var ex = typeof q.example === "string" ? { text: q.example } : q.example;
       var exBox = section(ex.label || T.example, "example");
       exBox.append(blocks(ex.text), table(ex.table), figures(ex.figures));
+      if (ex.source) exBox.append(el("span", { class: "src-line", html: esc(T.source) + " " + inline(ex.source) }));
       root.append(exBox);
     }
+    root.append(moreBox(q.more));
     // Options with a picture each get a switch to compare them before choosing; choosing shows that picture too.
     var withFig = (q.options || []).filter(function (o) { return o.figure && o.figure.src; });
     var preview = null;
@@ -589,34 +635,38 @@ footer { color: var(--muted); font-size: 0.85rem; }
       preview((withFig.filter(function (o) { return o.recommended; })[0] || withFig[0]).id);
     }
     var radios = [];
-    var fs = el("fieldset", { class: "opts" }, el("legend", { class: "label", text: T.choice }));
+    var fs = el("fieldset", { class: "opts" }, el("legend", { class: "sr-only", text: T.choice + ": " + q.title }));
     (q.options || []).forEach(function (opt) {
       var r = el("input", { type: "radio", name: name, value: opt.id });
       radios.push(r);
-      var rec = opt.recommended ? el("span", { class: "rec", text: typeof opt.recommended === "string" ? opt.recommended : T.recommended }) : null;
-      var effect = opt.effect ? el("span", { html: inline(opt.effect) }) : null;
-      fs.append(el("label", { class: "opt" }, r, el("span", {}, el("b", { html: inline(opt.label) }), effect, rec)));
+      var tag = opt.recommended ? el("span", { class: "tag", text: T.recommended }) : null;
+      var why = typeof opt.recommended === "string" ? el("span", { class: "rec-note", html: inline(opt.recommended) }) : null;
+      var effect = opt.effect ? el("span", { class: "effect", html: inline(opt.effect) }) : null;
+      fs.append(el("label", { class: "opt" }, r, el("span", {}, el("b", { html: inline(opt.label) }), tag ? " " : null, tag, effect, why)));
     });
     var otherRadio = el("input", { type: "radio", name: name, value: "other", "aria-label": T.other });
     radios.push(otherRadio);
     var other = el("input", { type: "text", class: "other-text", placeholder: T.other_hint, "aria-label": T.other_hint + ": " + q.title });
     fs.append(el("label", { class: "opt other" }, otherRadio, el("span", { class: "other-body" }, el("b", { text: T.other }), other)));
     root.append(fs);
-    var clear = el("button", { type: "button", class: "ghost", text: T.clear, disabled: true });
+    var clear = el("button", { type: "button", class: "link", text: T.clear, disabled: true });
+    var noteAdd = el("button", { type: "button", class: "link", text: T.note_add });
     var saved = el("span", { class: "saved", "aria-live": "polite" });
-    root.append(el("div", { class: "row" }, saved, clear));
-    var note = el("textarea", { id: "note-" + id, placeholder: T.note_hint });
-    root.append(el("div", { class: "answer" }, el("label", { class: "label", for: "note-" + id, text: T.note }), note));
-    root.append(commentButton("q-" + id), box);
+    var note = el("textarea", { id: "note-" + id, placeholder: T.note_hint, "aria-label": T.note + ": " + q.title });
+    var noteBox = el("div", { class: "answer", hidden: true }, note);
+    root.append(el("div", { class: "actions" }, noteAdd, clear, commentButton("q-" + id), saved), noteBox, box);
+    noteAdd.addEventListener("click", function () { noteBox.hidden = false; note.focus(); });
 
-    cards[id] = { q: q, root: root, chip: chip, radios: radios, other: other, note: note, clear: clear, saved: saved, preview: preview };
+    cards[id] = { q: q, root: root, chip: chip, radios: radios, other: other, note: note, noteBox: noteBox, clear: clear, saved: saved, preview: preview };
     order.push(id);
     if (q.read) {  // a decided card shows the answer the agent acted on until the store has a newer one
       radios.forEach(function (r) { r.checked = q.read.choice != null && r.value === q.read.choice; });
       other.value = q.read.other || "";
       note.value = q.read.note || "";
+      if (note.value) noteBox.hidden = false;
       if (preview && q.read.choice) preview(q.read.choice);
     }
+    annotate(root);
     radios.forEach(function (r) {
       r.addEventListener("change", function () {
         edits[id] = (edits[id] || 0) + 1; dirty[id] = true;
@@ -640,43 +690,131 @@ footer { color: var(--muted); font-size: 0.85rem; }
     return root;
   }
   function reportCard(p) {
-    var root = el("article", { class: "q report" + (p.done === false ? "" : " is-built"), id: "p-" + p.id, "aria-labelledby": "t-p-" + p.id });
+    var root = el("article", { class: "q report" + (p.done === false ? " in-progress" : ""), id: "p-" + p.id, "aria-labelledby": "t-p-" + p.id });
     var box = place("p-" + p.id, root);
     root.append(el("div", { class: "qhead" }, el("h3", { id: "t-p-" + p.id, text: p.title }),
-      el("span", { class: "chip " + (p.done === false ? "progress" : "done"), text: p.status || T.chip_report })));
-    var body = section(null);
+      el("span", { class: "state " + (p.done === false ? "progress" : "done"), text: p.status || T.chip_report })));
+    var body = el("div", { class: "block" });
     body.append(blocks(p.text));
-    root.append(body, table(p.table), figures(p.figures));
+    root.append(body, table(p.table), figures(p.figures), moreBox(p.more));
     if (p.action) root.append(el("div", { class: "notice", html: "<b>" + esc(T.action) + "</b> " + inline(p.action) }));
-    root.append(commentButton("p-" + p.id), box);
+    root.append(el("div", { class: "actions" }, commentButton("p-" + p.id)), box);
+    annotate(root);
     return root;
   }
+
+  // ---------- glossary terms on cards: the first mention of each term on a card is underlined, and pointing at it,
+  // focusing it or tapping it shows the term's meaning in place, with a link to the Glossary tab.
+  var termRules = (function () {
+    var rules = [];
+    function esc_re(s) { return s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"); }
+    (DATA.glossary || []).forEach(function (g) {
+      [g.term].concat(g.aka || []).forEach(function (name) {
+        String(name).split(/\s*(?:\/|,|、|，)\s*/).forEach(function (part) {
+          part = part.split(/\s*(?:\.\.\.|…)\s*/)[0].trim();  // "OD-1 ... OD-16": the numbered family
+          if (part.length < 2) return;
+          var src = /^(.+-)(?:n{1,4}|\d+)$/.test(part)  // "PANTRY-nn", "OD-1": any number after the prefix
+            ? esc_re(part.replace(/(?:n{1,4}|\d+)$/, "")) + "\\d+" : esc_re(part);
+          var ascii = /^[\x20-\x7e]+$/.test(part);
+          if (ascii) src = "(?<![\\w-])" + src + "(?![\\w-])";
+          rules.push({ re: new RegExp(src, /[A-Z]/.test(part) || !ascii ? "" : "i"), g: g, size: part.length });
+        });
+      });
+    });
+    return rules.sort(function (a, b) { return b.size - a.size; });
+  })();
+  function annotate(root) {
+    if (!termRules.length) return;
+    var used = {}, nodes = [];
+    root.querySelectorAll('a[href^="#g-"]').forEach(function (a) { used[a.getAttribute("href").slice(3)] = true; });  // linked already
+    var walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, { acceptNode: function (n) {
+      var p = n.parentElement;
+      if (!p || p.closest("a, button, input, textarea, code, .term, .threads, .switch, .tag, legend, summary, .state")) return NodeFilter.FILTER_REJECT;
+      return n.nodeValue.trim() ? NodeFilter.FILTER_ACCEPT : NodeFilter.FILTER_REJECT;
+    } });
+    while (walker.nextNode()) nodes.push(walker.currentNode);
+    nodes.forEach(function (node) {
+      for (var i = 0; i < termRules.length && node; i++) {
+        var rule = termRules[i];
+        if (used[rule.g.anchor]) continue;
+        var m = rule.re.exec(node.nodeValue);
+        if (!m) continue;
+        used[rule.g.anchor] = true;
+        var hit = node.splitText(m.index), rest = hit.splitText(m[0].length);
+        hit.parentNode.replaceChild(el("span", { class: "term", tabindex: "0", "data-g": rule.g.anchor, text: m[0] }), hit);
+        node = rest;
+        i = -1;  // look for the other terms in the rest of the text
+      }
+    });
+  }
+  var pop = null, popFor = null, popTimer = null;
+  function showTerm(span) {
+    var g = (DATA.glossary || []).filter(function (x) { return x.anchor === span.getAttribute("data-g"); })[0];
+    if (!g || popFor === span) return;
+    hideTerm();
+    var body = el("div", { class: "block" });
+    body.append(blocks(g.meaning));
+    var more = el("a", { href: "#g-" + g.anchor, text: T.tab_glossary + " →" });
+    more.addEventListener("click", function () { setTimeout(hideTerm, 0); });
+    pop = el("div", { class: "pop", id: "term-pop" }, el("b", { text: g.term }), body, more);
+    pop.addEventListener("mouseenter", function () { clearTimeout(popTimer); });
+    pop.addEventListener("mouseleave", function () { popTimer = setTimeout(hideTerm, 250); });
+    document.body.append(pop);
+    span.setAttribute("aria-describedby", "term-pop");
+    var r = span.getBoundingClientRect();
+    pop.style.left = Math.round(Math.max(8, Math.min(r.left + window.scrollX, document.documentElement.clientWidth - pop.offsetWidth - 8))) + "px";
+    pop.style.top = Math.round(r.bottom + window.scrollY + 6) + "px";
+    popFor = span;
+  }
+  function hideTerm() {
+    clearTimeout(popTimer);
+    if (pop) { pop.remove(); pop = null; }
+    if (popFor) { popFor.removeAttribute("aria-describedby"); popFor = null; }
+  }
+  document.addEventListener("mouseover", function (e) {
+    var s = e.target.closest && e.target.closest(".term");
+    if (s) { clearTimeout(popTimer); showTerm(s); }
+  });
+  document.addEventListener("mouseout", function (e) {
+    var s = e.target.closest && e.target.closest(".term");
+    if (s && !(e.relatedTarget && pop && pop.contains(e.relatedTarget))) popTimer = setTimeout(hideTerm, 250);
+  });
+  document.addEventListener("focusin", function (e) { if (e.target.classList && e.target.classList.contains("term")) showTerm(e.target); });
+  document.addEventListener("focusout", function (e) { if (e.target.classList && e.target.classList.contains("term")) popTimer = setTimeout(hideTerm, 200); });
+  document.addEventListener("click", function (e) {
+    var s = e.target.closest && e.target.closest(".term");
+    if (s) {  // a click or tap shows it (pointing may have already); never let it pick the option the term sits in
+      e.preventDefault();
+      clearTimeout(popTimer);
+      showTerm(s);
+    } else if (pop && !pop.contains(e.target)) {
+      hideTerm();
+    }
+  }, true);
+  document.addEventListener("keydown", function (e) { if (e.key === "Escape" && pop) hideTerm(); });
 
   function render() {
     var app = document.getElementById("brief");
     app.textContent = "";
-    ui.status = el("p", { class: "saved", role: "status", text: T.status_connecting });
-    ui.counter = el("span");
+    ui.status = el("span", { role: "status", text: T.status_connecting });
+    ui.conn = el("span", { class: "conn", hidden: true, "aria-live": "polite" });
+    ui.statusLine = el("div", { class: "status-line" }, ui.status, ui.conn);
+    ui.counter = el("span", { class: "counter" });
     ui.next = el("a", { href: "#", text: T.next_open });
-    ui.conn = el("p", { class: "conn", hidden: true, "aria-live": "polite" });
     ui.done = el("button", { type: "button", class: "solid", text: T.done, hidden: true });
     ui.doneMsg = el("span", { class: "saved", "aria-live": "polite" });
-    // the steps fold away once read; what changes while answering stays in view
-    var steps = el("details", { class: "steps" }, el("summary", {}, el("b", { text: T.how_title })),
+    // one bar with what is left, whether it saves, and the done button; the instructions fold into "How this works"
+    var bar = el("div", { class: "topbar" },
+      el("div", { class: "left" }, el("div", {}, ui.counter, " ", ui.next), ui.statusLine),
+      el("div", { class: "donebar" }, ui.doneMsg, ui.done));
+    ui.helpLine = el("p", { class: "saved conn-help", hidden: true });
+    var help = el("details", { class: "help" }, el("summary", { text: T.how_title }),
       el("ol", {}, el("li", { text: T.how_pick }), el("li", { text: T.how_note }),
-        el("li", { text: T.how_comment, "data-needs-comments": "", hidden: true }), el("li", { text: T.how_done })));
-    var stepsKey = "decision-brief-steps:" + DATA.page_id, folded = null;
-    try { folded = localStorage.getItem(stepsKey); } catch (e) { /* first visit */ }
-    steps.open = folded !== "closed";
-    steps.addEventListener("toggle", function () {
-      try { localStorage.setItem(stepsKey, steps.open ? "open" : "closed"); } catch (e) { /* this visit only */ }
-    });
-    var how = el("div", { class: "how" }, steps,
-      el("p", { class: "counter" }, ui.counter, " ", ui.next), ui.conn, ui.status,
-      el("div", { class: "donebar" }, ui.done, ui.doneMsg), backupPanel());
-    var header = el("header", { class: "block", style: "gap:10px" },
+        el("li", { text: T.how_comment, "data-needs-comments": "", hidden: true }), el("li", { text: T.how_done }),
+        el("li", { text: T.how_live, "data-needs-comments": "", hidden: true })), ui.helpLine);
+    var header = el("header", { class: "block", style: "gap:8px" },
       el("div", { class: "label", text: (DATA.project ? DATA.project + " · " : "") + T.eyebrow }),
-      el("h1", { text: DATA.title }), el("p", { class: "lede", html: inline(DATA.intro || T.lede) }), how);
+      el("h1", { text: DATA.title }), el("p", { class: "lede", html: inline(DATA.intro || T.lede) }), bar, help, backupPanel());
     var pageBox = place("page", header);
     header.append(pageBox);
     app.append(header);
@@ -985,14 +1123,15 @@ footer { color: var(--muted); font-size: 0.85rem; }
       if (live.ask) b.textContent = fill(T.ask_now, { name: live.ask.name });
     });
   }
-  function paintConnection() {
+  function paintConnection() {  // one short phrase in the bar; the longer explanation is in the help
     var a = live.agent || {}, name = a.name || T.agent;
     var text = a.state === "listening" ? fill(T.conn_listening, { name: name })
-      : a.state === "working" ? fill(T.conn_working, { name: name }) : T.conn_away;
-    if (live.ask && a.state !== "listening") text += " " + fill(T.conn_ask, { name: live.ask.name });
-    ui.conn.textContent = text;
-    ui.conn.classList.toggle("live", a.state === "listening");
+      : a.state === "working" ? fill(T.conn_working, { name: name }) : T.conn_away_short;
+    ui.conn.textContent = "";
+    ui.conn.append(" · ", el("span", { class: a.state === "listening" ? "live" : "", text: text }));
     ui.conn.hidden = false;
+    ui.helpLine.textContent = a.state === "away" || !a.state ? T.conn_away + (live.ask ? " " + fill(T.conn_ask, { name: live.ask.name }) : "") : "";
+    ui.helpLine.hidden = !ui.helpLine.textContent;
     paintAsk();
   }
 
@@ -1072,7 +1211,7 @@ footer { color: var(--muted); font-size: 0.85rem; }
     return ui.backup;
   }
   function showBackup() { if (ui.backup) { ui.backup.hidden = false; ui.dump.value = answersText(); } }
-  function setStatus(text, bad) { ui.status.textContent = text; ui.status.classList.toggle("bad", !!bad); }
+  function setStatus(text, bad) { ui.status.textContent = text; ui.statusLine.classList.toggle("bad", !!bad); }
 
   // ---------- answer stores: claude.ai Artifact storage, the local server, or this browser only
   function use(name) {
@@ -1086,14 +1225,14 @@ footer { color: var(--muted); font-size: 0.85rem; }
       if (user && user.id) Promise.resolve(user.id()).then(function (v) { me = v; }, function () {});
       var off = ["unavailable", "not_granted", "forbidden", "capability_disabled", "capability_removed"];
       var s = {
-        status: T.status_artifact,
+        status: T.saves_auto,
         canComment: !!cm,
         by: function () { return me; },
         start: function () {
           db.collection("answers").onSnapshot(function (snap) {
             snap.docs.forEach(function (d) { applyRemote(d.id, d.data()); });
           }, function (e) { setStatus(fill(T.not_saved, { why: (e && e.code) || "error" }), true); showBackup(); });
-          if (cm) { ui.conn.textContent = T.conn_artifact; ui.conn.hidden = false; }
+          if (cm) { ui.helpLine.textContent = T.conn_artifact; ui.helpLine.hidden = false; }
           if (cm && cm.canSendToClaude) {
             Promise.resolve(cm.canSendToClaude()).then(function (v) { ui.done.hidden = v !== "available"; }, function () {});
           }
@@ -1138,7 +1277,7 @@ footer { color: var(--muted); font-size: 0.85rem; }
     }
     function loop() {  // the server holds each request until something changes, so updates arrive at once
       api("state?since=" + rev + "&agent=" + encodeURIComponent((live.agent && live.agent.state) || "")).then(function (state) {
-        if (!up) { up = true; setStatus(T.status_local); }
+        if (!up) { up = true; setStatus(T.saves_auto); }
         apply(state);
         loop();
       }, function () {
@@ -1149,7 +1288,7 @@ footer { color: var(--muted); font-size: 0.85rem; }
     return api("state?since=-1").then(function (state) {
       apply(state);
       return {
-        status: T.status_local,
+        status: T.saves_auto,
         canComment: true,
         start: function () { ui.done.hidden = false; loop(); },
         save: function (id, doc) { return api("answers/" + encodeURIComponent(id), { method: "PUT", body: JSON.stringify(doc) }); },
