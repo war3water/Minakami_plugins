@@ -110,6 +110,27 @@ fieldset.opts { border: 1px solid var(--line); border-radius: var(--radius); mar
 .opt.on .effect { color: var(--ink); }
 .tag { display: inline-block; margin-left: 6px; font: 600 0.72rem/1.6 var(--body); color: var(--accent); border: 1px solid var(--accent); border-radius: 999px; padding: 0 7px; vertical-align: 1px; white-space: nowrap; }
 .opt .rec-note { display: block; color: var(--accent); font-size: 0.86rem; }
+/* Compact view (the reader can switch to it; detailed, the layout above, is the default): a card reads like a short
+   form, each option on one line with its effect after it, the example as one "Example:" line. */
+:root { --colon: ": "; --sep: " \2014  "; }
+:root[data-script="cjk"] { --display: var(--body); --colon: "\FF1A"; }
+:root[data-density="compact"] .q { padding: 12px 16px; gap: 8px; font-size: 0.95rem; }
+:root[data-density="compact"] .q h3 { font-family: var(--body); font-size: 1.05rem; font-weight: 700; }
+:root[data-density="compact"] .example { display: block; border-left: 0; padding-left: 0; }
+:root[data-density="compact"] .example > .label { display: inline; font-size: inherit; color: var(--muted); }
+:root[data-density="compact"] .example > .label::after { content: var(--colon); }
+:root[data-density="compact"] .example > p:first-of-type { display: inline; }
+:root[data-density="compact"] .example > p + p { margin-top: 4px; }
+:root[data-density="compact"] .example .src-line { display: inline; margin-left: 0.6em; }
+:root[data-density="compact"] fieldset.opts { border: 0; border-radius: 0; gap: 2px; overflow: visible; }
+:root[data-density="compact"] .opt { padding: 4px 8px; border-top: 0; gap: 8px; border-radius: var(--radius); }
+:root[data-density="compact"] .opt input[type="radio"] { margin-top: 4px; }
+:root[data-density="compact"] .opt .effect, :root[data-density="compact"] .opt .rec-note { display: inline; font-size: 0.9rem; }
+:root[data-density="compact"] .opt .effect::before, :root[data-density="compact"] .opt .rec-note::before { content: var(--sep); color: var(--muted); }
+:root[data-density="compact"] .opt.other { padding-block: 6px; }
+.view { display: flex; gap: 2px; align-items: center; font-size: 0.85rem; color: var(--muted); }
+.view button { font: 600 0.85rem var(--body); color: var(--muted); background: transparent; border: 1px solid transparent; border-radius: 6px; padding: 4px 9px; min-height: 32px; cursor: pointer; }
+.view button[aria-pressed="true"] { color: var(--accent); border-color: var(--line); background: var(--panel); }
 .opt .other-body { display: flex; flex-wrap: wrap; gap: 6px 10px; align-items: center; }
 .opt .other-body input { flex: 1 1 220px; }
 input.other-text, textarea { font: inherit; font-size: 0.95rem; color: var(--ink); background: var(--bg); border: 1px solid var(--line); border-radius: var(--radius); padding: 6px 10px; width: 100%; box-sizing: border-box; }
@@ -151,7 +172,8 @@ table.mini th, table.mini td { text-align: left; padding: 6px 8px; border-top: 1
 .composer { display: grid; gap: 6px; }
 .composer textarea { min-height: 56px; }
 /* Tabs: one bar that stays at the top while reading; each panel is one stage of the decisions. */
-.tabs { position: sticky; top: env(safe-area-inset-top, 0px); z-index: 20; display: flex; flex-wrap: wrap; gap: 6px; padding: 8px 0; background: var(--bg); border-bottom: 1px solid var(--line); }
+.tabbar { position: sticky; top: env(safe-area-inset-top, 0px); z-index: 20; display: flex; flex-wrap: wrap; gap: 6px 12px; align-items: center; justify-content: space-between; padding: 8px 0; background: var(--bg); border-bottom: 1px solid var(--line); }
+.tabs { display: flex; flex-wrap: wrap; gap: 6px; }
 .tabs button { font: 600 0.95rem var(--body); color: var(--muted); background: transparent; border: 1px solid transparent; border-radius: 8px; padding: 7px 12px; cursor: pointer; min-height: 40px; }
 .tabs button:hover { color: var(--ink); border-color: var(--line); }
 .tabs button[aria-selected="true"] { color: var(--accent); background: var(--accent-soft); border-color: var(--accent); }
@@ -199,6 +221,19 @@ footer { color: var(--muted); font-size: 0.85rem; }
   var DATA = JSON.parse(document.getElementById("brief-data").textContent);
   var CONFIG = JSON.parse(document.getElementById("brief-config").textContent);
   if (DATA.style) document.documentElement.setAttribute("data-style", String(DATA.style));
+  if (/^(zh|ja|ko)/i.test(String(DATA.lang || ""))) document.documentElement.setAttribute("data-script", "cjk");  // sans headings, full-width colon
+  // Detailed or compact cards: the reader's last pick in this browser, else the page's "density", else detailed.
+  var densityKey = "decision-brief-density";
+  function setDensity(d, remember) {
+    document.documentElement.setAttribute("data-density", d);
+    document.querySelectorAll(".view button").forEach(function (b) { b.setAttribute("aria-pressed", String(b.getAttribute("data-density") === d)); });
+    if (remember) try { localStorage.setItem(densityKey, d); } catch (e) { /* kept for this visit only */ }
+  }
+  (function () {
+    var d = null;
+    try { d = localStorage.getItem(densityKey); } catch (e) { /* no stored pick */ }
+    setDensity(d === "compact" || d === "detailed" ? d : DATA.density === "compact" ? "compact" : "detailed", false);
+  })();
 
   // Interface text: English, and Simplified Chinese for a page whose "lang" starts with zh.
   // "ui" in questions.json replaces any of these, for other languages or other wording.
@@ -289,6 +324,9 @@ footer { color: var(--muted); font-size: 0.85rem; }
     saves_auto: "Saves automatically",
     more: "More",
     source: "Source:",
+    view_label: "View",
+    view_compact: "Compact",
+    view_detailed: "Detailed",
     zoom_open: "Open full size",
     zoom_title: "Picture",
     zoom_in: "Zoom in",
@@ -385,6 +423,9 @@ footer { color: var(--muted); font-size: 0.85rem; }
     saves_auto: "自动保存",
     more: "更多",
     source: "出处：",
+    view_label: "视图",
+    view_compact: "紧凑",
+    view_detailed: "详细",
     zoom_open: "查看大图",
     zoom_title: "图片",
     zoom_in: "放大",
@@ -866,7 +907,13 @@ footer { color: var(--muted); font-size: 0.85rem; }
       });
       tab("glossary", T.tab_glossary, T.glossary_title, dl);
     }
-    app.append(ui.tabs);
+    var view = el("div", { class: "view", role: "group", "aria-label": T.view_label }, el("span", { text: T.view_label }));
+    [["compact", T.view_compact], ["detailed", T.view_detailed]].forEach(function (v) {
+      var b = el("button", { type: "button", "data-density": v[0], "aria-pressed": String(document.documentElement.getAttribute("data-density") === v[0]), text: v[1] });
+      b.addEventListener("click", function () { setDensity(v[0], true); });
+      view.append(b);
+    });
+    app.append(el("div", { class: "tabbar" }, ui.tabs, view));
     Object.keys(ui.panels).forEach(function (k) { app.append(ui.panels[k].panel); });
     wireTabs();
     var asks = status.filter(function (s) { return s.p.action; }).length;  // reports with something for the user to do

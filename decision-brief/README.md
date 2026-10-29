@@ -26,6 +26,11 @@ the thread while it reads along, or a read-only helper agent answers when you pr
 top shows how many questions you have answered, whether answers save, and whether the agent is reading along;
 **I'm done** tells it to read your answers. The instructions fold under **How this works**.
 
+The agent keeps each card to about one laptop screen: a few sentences of background, an example in a sentence or
+two, and a line per option, with worked numbers folded under **More**. Beside the tabs, **Compact** turns each card
+into a short form, with each option on one line followed by what it changes; **Detailed**, the default, gives each
+effect its own line. The page remembers your pick.
+
 Answers save as you choose. Every picture opens full size, where the wheel or a pinch zooms and dragging pans. The
 page follows your system's light or dark theme, comes in three looks (ledger by default, rose and slate), works
 with the keyboard alone (arrow keys move between tabs), fits a phone screen, and comes in English or Chinese (other
@@ -207,6 +212,17 @@ test cannot open.
 The graders read text and screenshots, where a term's meaning shown in place does not appear. Two Codex pages
 also left the project's decision numbers off their cards, which the skill now asks for.
 
+**Cards of one screen (0.4.0).** For the Chinese project, a person rating blind kept preferring the page made
+without the skill: all three questions fit on one screen. 0.4.0 keeps each card to about one laptop screen and
+folds the working under **More**; the Chinese page went from about 2,400 to 1,600 pixels tall, against 1,100
+without the skill. In a second blind rating, the same person chose the 0.4.0 page over both pages made without
+the skill, and the detailed view over the compact one on both projects, so detailed is the default.
+
+The panel split evenly between 0.4.0 and 0.3.0 pages: 5 verdicts each and 2 ties, all at low confidence.
+0.4.0 scored higher on straightforward (4.6 against 3.7) and lower on examples (4.0 against 4.4), because one
+card had dropped its example to save space. The skill now forbids that, and the build flags a card without one.
+In the four runs after that change, every card had an example with its source.
+
 - **Where the gap comes from.** Without the skill, the pages were a Markdown checklist, a static form that
   overflowed a phone screen by 590 pixels, or nothing. Twice Codex could not write its file in the Windows
   sandbox and asked in the chat instead; twice it made the page on chatgpt.com through the ChatGPT connector.
@@ -232,8 +248,10 @@ also left the project's decision numbers off their cards, which the skill now as
 The panel saw two runs per arm, so treat the exact numbers as indicative. The fixtures, the harness and every run
 are kept outside this repository.
 
-**The page and its helper.** A browser test (Chromium on Windows 11, Python 3.14, 74 checks, and 19 more for the
+**The page and its helper.** A browser test (Chromium on Windows 11, Python 3.14, 83 checks, and 19 more for the
 picture viewer) covers the following:
+
+- the compact and detailed views, the switch, and the remembered pick; sans-serif headings on Chinese pages;
 
 - answers, Other, Clear, Add a note, keyboard selection and reload;
 - the glossary terms explained in place: by pointing, by keyboard focus and by tapping, without choosing the
@@ -289,7 +307,7 @@ without a permission prompt; other runtimes ignore the field.
   through a lock file, and every change raises its revision number.
 - **Checks the agent would otherwise skip.** `build` refuses duplicate ids, missing `alt` text, images outside
   the task folder, web images and links that are not http(s). It warns about all-capital short names missing
-  from the glossary, cards without a recommendation, examples that do not say where they come from, and terms
+  from the glossary, cards without a recommendation or an example, examples that do not say where they come from, and terms
   without an origin link. `links` lists every link to check before publishing, and `read` lists the answers
   given under Other for the agent to confirm. Codenames in ordinary words are left to the runbook's read-through.
 - **A short runbook.** `SKILL.md` holds what every run needs; the Artifact, static and read-along details sit in

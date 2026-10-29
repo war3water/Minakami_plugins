@@ -13,7 +13,8 @@ The page sorts the cards into tabs. **Waiting for you** holds every question who
 | `intro` | no | Replaces the default opening paragraph (markup allowed) |
 | `lang` | no | The page's language code, such as `en` or `zh-CN` (default `en`). A code starting with `zh` also switches the page's own labels to Chinese |
 | `ui` | no | Replacement interface text, by key (see "Interface text") |
-| `style` | no | The page's look: `ledger` (the default: paper and navy, serif headings), `rose` (warm pink accent) or `slate` (cool grey and teal). Each has a light and a dark version |
+| `style` | no | The page's look: `ledger` (the default: paper and navy, serif headings; sans-serif on Chinese, Japanese and Korean pages), `rose` (warm pink accent) or `slate` (cool grey and teal). Each has a light and a dark version |
+| `density` | no | How cards open: `detailed` (the default: each effect on its own line) or `compact` (each option on one line with its effect after it, the example as one line). The reader can switch, and the page remembers the pick in that browser |
 | `glossary` | no | Terms, in reading order |
 | `questions` | yes, unless `progress` holds them | The open question cards |
 | `progress` | no | Reports on decisions already made, each with optional follow-up questions |
@@ -41,7 +42,7 @@ On the cards, the first use of each term (and of each `aka`) is underlined: poin
 | `ref` | no | The project's own number for the question, such as a ticket or decision id, shown after the title so the user can match the card to its source (explain the numbering in the glossary) |
 | `group` | no | The heading the card sits under on Waiting for you, such as "New questions from the sync work" |
 | `plain` | yes | The background in plain words, two or three sentences: what is true today and why it needs a choice (markup) |
-| `more` | no | Longer background, folded under "More" so the card stays short: history, numbers, edge cases (markup) |
+| `more` | no | What would push the card past one screen, folded under "More": the example's working, more cases, history, caveats (markup) |
 | `table` | no | `{"head": [...], "rows": [[...], ...]}`; cells take inline markup |
 | `figures` | no | Images shown after the background (see "Figures") |
 | `example` | no | `{"text": ..., "source": ..., "label": ..., "table": ..., "figures": [...]}`. `source` says where the example comes from, in the page's language: a file and line, a ticket, a log, or that it was made up to illustrate; the build warns when an open question's example has none. `label` replaces the heading "Example" |

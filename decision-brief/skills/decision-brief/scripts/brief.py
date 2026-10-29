@@ -273,6 +273,8 @@ def check(data, base: Path) -> tuple[list, list]:
         errors.append('"title" is missing')
     if data.get("style") not in (None, "rose", "ledger", "slate"):
         errors.append('"style" is "rose", "ledger" or "slate"')
+    if data.get("density") not in (None, "compact", "detailed"):
+        errors.append('"density" is "compact" or "detailed"')
     for key in ("glossary", "questions", "progress"):
         items = data.get(key)
         if items is not None and (not isinstance(items, list) or not all(isinstance(x, dict) for x in items)):
@@ -307,6 +309,7 @@ def check(data, base: Path) -> tuple[list, list]:
 
     seen_q, seen_p = set(), set()
     unsourced: list = []
+    no_example: list = []
     for p in data.get("progress") or []:
         pid = p.get("id")
         if not isinstance(pid, str) or not ID_RE.match(pid):
@@ -371,7 +374,13 @@ def check(data, base: Path) -> tuple[list, list]:
             figure_check(ex.get("figures"), base, f"question {qid}", errors)
         if ex and q.get("state", "open") == "open" and not (isinstance(ex, dict) and ex.get("source")):
             unsourced.append(qid)
+        pictured = q.get("figures") or any(isinstance(o, dict) and o.get("figure") for o in opts)
+        if not ex and not pictured and q.get("state", "open") == "open":
+            no_example.append(qid)
         figure_check(q.get("figures"), base, f"question {qid}", errors)
+    if no_example:
+        warnings.append("open questions without an example: " + ", ".join(no_example) + ". Give each a concrete case "
+                        "from the project in a sentence or two (its working goes in \"more\"), or a picture per option.")
     if unsourced:
         warnings.append("examples that do not say where they come from: " + ", ".join(unsourced) + '. Write the '
                         'example as an object with "text" and "source": the file, record or document it is taken '
