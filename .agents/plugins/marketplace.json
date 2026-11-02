@@ -56,7 +56,7 @@
     },
     {
       "name": "code-cleanup",
-      "version": "4.2.0",
+      "version": "4.3.0",
       "description": "Clean up a codebase so a maintainer can read, debug, and change it, without changing what it does — from one targeted change, to removing dead code and junk, to flattening call paths and splitting god functions, to a full overhaul, or a map and plan only. An empty or vague request gets a short survey and one question about the level.",
       "category": "refactoring",
       "source": {

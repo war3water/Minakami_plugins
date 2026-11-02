@@ -69,7 +69,9 @@ from its entry point to the work in as few steps as the work needs.
    modules with several jobs or vague names, and conflicting helpers.
 2. **Capture.** Run the documented commands (the deterministic ones, against copies of any data they write)
    and keep the outputs to compare after each step. The tests only cover what they exercise; when there are
-   none, this capture is the safety net.
+   none, this capture is the safety net. When the suite doesn't test a command or public function you change,
+   also turn what you captured into a test of it in the project's tests, check that the test passes on the
+   original code, and keep it: when something breaks later, a failing test names what broke.
 3. **Plan.** Follow the project's sensible conventions, or else its framework's layout: wiring (argument
    parsing, configuration, dependency setup, error-to-exit-code translation) at the entry point, logic in
    modules named for their job, I/O at the edges, as few directory levels as the module count needs. List the

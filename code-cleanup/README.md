@@ -47,6 +47,10 @@ You don't need to investigate anything first. The prompts below use the Claude C
   right level (Tidy, Reorganize, or Overhaul).
 - **Say what hurts, not how to fix it.** For one path, name where it starts and where the work happens.
   "Make one targeted change: flatten the path of X" tended to flatten only part of it.
+- **If errors are the pain, say so**, for example "when something breaks I can't tell where, and the error says
+  almost nothing". It keeps what each error does, because changing what a user sees is a behavior change, and
+  reports each place that hides where a failure starts, with a recommendation. Ask for those fixes as a
+  separate step.
 - **Add facts only you know**, if you have them. Append a line such as `Facts the repository can't show:
   nothing outside this repo imports the internal modules; the TSV export is retired, and removing it is
   wanted.` Without such facts the skill leaves those items alone and asks about them in its report.
@@ -58,6 +62,8 @@ You don't need to investigate anything first. The prompts below use the Claude C
   what the repository can't show.
 - **It never commits, tags, or stashes.** Read the diff and its report: what changed, what it left alone and
   why, each command's path before and after, and its questions for you.
+- **It may add tests.** When it restructures a command the test suite doesn't cover, it can add a test of that
+  command that also passes on the original code, so a later failure names the command that broke.
 
 ### The template, for the most control
 
@@ -101,7 +107,8 @@ original rejected. Review the diff.
 ## How it was tested
 
 Each prompt above ran headless in Claude Code on Claude Opus 5.5 and Sonnet 5.5, on 11 messy Python projects
-built for each level, and was compared with the exact same text without the skill. Two blind reviewers
+built for each level, and was compared with the exact same text without the skill. The tip on errors comes
+from a twelfth project whose error handling hides where failures start. Two blind reviewers
 (GPT-6-Astra and a fresh Opus 5.5) scored every run, and hidden behavior tests and scripted checks graded it.
 "Both models" means the skill scored at least 0.2 higher, on a 1 to 5 scale, on each model. The skill cost
 about 1.1 to 1.7 times as much as the same prompt without it.
@@ -147,6 +154,10 @@ without a permission prompt; other runtimes ignore the field.
   their caller or callee, keeps steps that do real work, and reports the paths before and after.
 - **A report-only request gets a full plan.** Findings with evidence, each command's path, the steps in order
   with what to verify before each, and the questions only the user can answer.
+- **Tests for what it changes.** In testing, agents checked each command's output before and after a
+  restructure and then threw those checks away. The capture step now keeps them as tests when the suite
+  doesn't cover the command, and has them pass on the original code first, so they pin the old behavior rather
+  than a change.
 
 Keep it generic: a rule belongs here only if it applies to most projects. Don't add rules shaped around one
 test case or one codebase. Before changing the advice in "How to ask", re-test the changed `SKILL.md` with the
