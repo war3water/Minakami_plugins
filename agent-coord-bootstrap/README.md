@@ -67,10 +67,11 @@ If the project already has agent docs (`AGENTS.md`, `CLAUDE.md` with content, `.
 
 Content with no obvious home goes to `.agent_works/upgrade_parking.md`. A content-bearing `CLAUDE.md` becomes an alias only after its content is merged. `README.md` is never touched; the report points you at `review-readme`.
 
-Upgrading from 0.5.x:
+Upgrading from 0.1 to 0.5.x:
 
 - `handoff/current_handoff.md` becomes `handoff.md`.
 - Open items in `plans.md` and `coordination/work_queue.md` go to the handoff's next steps, and settled choices go to `decisions.md`.
+- Rules that only work with those retired docs, such as claiming tickets or trimming `plans.md`, are dropped with them, and the plan quotes each one.
 - Skills in `.agent/skills/`, a folder Codex never scans, move to `.agents/skills/`.
 
 Upgrading from 0.6.x: anything else in `.agent_works/` (old audit folders, skill reports, screenshots, transcripts) is a working file.
@@ -112,6 +113,7 @@ These runs used the same four models, compared 0.6.2 with 0.7.0 and with no `AGE
 - **Nothing useful was cleaned away:** a script that regenerates demo data stayed as project code in 4/4 runs, and a guide for a teammate was kept in 4/4.
 - **Upgrade:** on a 0.6.2 project with old working files in `.agent_works/`, 8/8 runs moved them to `.local/agent_works-archive/` with no file lost. The unfixed finding went into the handoff, and the logo script that `README.md` points at stayed where it was. 0.6.2 left all of them in place in 4/4 runs.
 - **No regressions:** in the handoff experiment above, 0.7.0 finished 20/20 of the remaining steps, the same as 0.6.2. code-cleanup's working files were removed after every run inside both templates.
+- **Older layouts (0.7.1, 2026-10-28):** projects set up with 0.1.0 and 0.5.4 lost no file, decision or open item in any upgrade run. With 0.7.0, the GPT models carried the old work queue's rules (claiming tickets, replacing the handoff every session) into the new `AGENTS.md` in 6/6 runs; with 0.7.1 that was 0/10. Claude was clean on both versions.
 
 ## review-readme
 
