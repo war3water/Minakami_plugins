@@ -15,8 +15,9 @@ The page has four tabs, so finished rounds never pile up above the new questions
   up during the work sit under a heading that says where they came from.
 - **Work status**: what your earlier answers turned into, with before and after screenshots to check, and a
   count of the ones that need something from you.
-- **Decided**: earlier rounds, archived under their round's name, with what the agent did. You can still change
-  an answer there.
+- **Decided**: the latest round, under its name, with what the agent did; you can still change an answer there.
+  Rounds before it shrink to one line per decision and open their cards, read-only, when you click them. To
+  change an old answer, tell the agent.
 - **Glossary**: every short name, ticket number and codename on the page, with its plain meaning and a checked
   link to where it comes from. On the cards, a term is underlined where it first appears, and pointing at it
   (or tapping it) shows its meaning in place. A link to a term or a card opens the tab that holds it.
@@ -146,7 +147,8 @@ The agent keeps each task's page in `.decision-brief/<task>/` in your project:
     ├── agent.json      whether the agent is reading along, and what it has seen
     ├── page.html       the built page (Artifact and static backends)
     ├── server.json     the running local server's address and process id
-    └── server.log      the local server's log
+    ├── server.log      the local server's log
+    └── archive/        earlier rounds: index.json, one line per decision, and one file per round
 ```
 
 The decisions themselves end up where your project records decisions, once the agent acts on them.
@@ -223,6 +225,39 @@ The panel split evenly between 0.4.0 and 0.3.0 pages: 5 verdicts each and 2 ties
 card had dropped its example to save space. The skill now forbids that, and the build flags a card without one.
 In the four runs after that change, every card had an example with its source.
 
+**Fewer rounds of fixes, and history kept out of the way (0.5.0).** Most of a run's extra turns went to fixing
+the build's warnings one edit at a time. 0.5.0 removes the commonest cause: a glossary term from the project's
+own files no longer needs a hand-written source, because the page names the file it appears in. On a first round,
+cost stays where it was: about $0.26 a run on Claude Sonnet 5.5, with time within run-to-run noise. An earlier
+attempt cut cost by a fifth by letting everyday abbreviations such as EUR or CSV go unexplained. The panel
+preferred the older pages 9 to 3 for that, so the rule that every abbreviation is explained stayed.
+
+The savings come from the second round on. Marking a round now moves the older rounds into `archive/`, so the file
+the agent reads and edits each round holds only the open cards and the latest round. In the worked example, it
+shrank from 7.6 KB to 3.9 KB after two rounds. In a third-round test on both agents, the earlier round moved to
+the archive and neither agent read an archive file or the built page whole.
+
+A first comparison with the version before it, both shown in the same view, split 11 to 10. The graders found
+two weak spots in 0.5.0:
+
+- examples that restated the problem, or got a figure wrong;
+- read-backs that picked one reading of a written answer, or reopened a clear choice because of its note.
+
+The skill now has the agent work each example through with figures computed by a command. In the read-back it
+asks one direct question that names the readings, and a chosen option stands even when its note seems to pull
+another way. In a second comparison, the panel preferred 0.5.0 in 22 of 24 verdicts, with 1 tie:
+
+| | 0.5.0 | before |
+|---|---|---|
+| Examples | 4.4 | 4.0 |
+| Short names and codenames explained | 4.4 | 3.7 |
+| Options, consequences, reasoned recommendation | 4.0 | 3.7 |
+| Read-back | 4.6 | 4.5 |
+
+The same holds for the local page and the static file, not only on claude.ai. The agent never reads the built
+page, and `read` prints only this round's comment threads, leaving settled ones to `history --threads`. A static
+page keeps the reader's saved answers from round to round, and its Copy and Download carry only the current cards.
+
 - **Where the gap comes from.** Without the skill, the pages were a Markdown checklist, a static form that
   overflowed a phone screen by 590 pixels, or nothing. Twice Codex could not write its file in the Windows
   sandbox and asked in the chat instead; twice it made the page on chatgpt.com through the ChatGPT connector.
@@ -283,11 +318,12 @@ headless), clicking through the published Artifact, the tabs inside claude.ai, m
 | File | Role |
 |---|---|
 | `skills/decision-brief/SKILL.md` | the runbook: collect, write cards for a newcomer, publish, read along, read back in one pass, act, mark and republish |
-| `skills/decision-brief/references/questions-format.md` | the questions.json format, the markup, the labels, the answers and comments format |
+| `skills/decision-brief/references/questions-format.md` | the questions.json format, the markup, the labels |
+| `skills/decision-brief/references/answers-format.md` | how answers and comment threads are stored, for debugging; `brief.py read` reads them |
 | `skills/decision-brief/references/publish.md` | the Artifact and static backends, read only when one is used |
 | `skills/decision-brief/references/live.md` | reading along with `wait` and `reply`, and Ask now, read only when the user answers now |
 | `skills/decision-brief/assets/page.html` | the one page template: the three looks, tabs, rendering, threads, and the three answer stores |
-| `skills/decision-brief/scripts/brief.py` | `new`, `build`, `serve`, `wait`, `reply`, `read`, `mark`, `stop`, `links`, `example`; standard library only |
+| `skills/decision-brief/scripts/brief.py` | `new`, `build`, `serve`, `wait`, `reply`, `read`, `mark`, `history`, `stop`, `links`, `example`; standard library only |
 | `skills/decision-brief/assets/example/` | the worked example `example` copies |
 | `skills/decision-brief/agents/openai.yaml` | Codex: explicit invocation only |
 
@@ -307,11 +343,18 @@ without a permission prompt; other runtimes ignore the field.
   through a lock file, and every change raises its revision number.
 - **Checks the agent would otherwise skip.** `build` refuses duplicate ids, missing `alt` text, images outside
   the task folder, web images and links that are not http(s). It warns about all-capital short names missing
-  from the glossary, cards without a recommendation or an example, examples that do not say where they come from, and terms
-  without an origin link. `links` lists every link to check before publishing, and `read` lists the answers
-  given under Other for the agent to confirm. Codenames in ordinary words are left to the runbook's read-through.
+  from the glossary, cards without a recommendation or an example, examples that do not say where they come
+  from, and terms found neither in a source nor in the project's files. A term without a source shows the
+  project file it first appears in. `links` lists every link to check before publishing, and `read` lists the
+  answers given under Other for the agent to confirm. Codenames in ordinary words are left to the runbook's
+  read-through.
 - **A short runbook.** `SKILL.md` holds what every run needs; the Artifact, static and read-along details sit in
   `references/` and are read only when they apply.
 - **Answers keyed by stable ids**, so editing a card keeps its answer, and `mark` records what the agent read
   so a later change shows.
+- **History out of the way.** A long-running page would otherwise grow with every round. Marking a new round
+  moves the older ones out of `questions.json` into `archive/`, so each round the agent reads and edits only the
+  open cards and the latest round. The page fetches an earlier round only when you open it. The agent reaches
+  history through `brief.py history`, one line per decision or one card at a time. On claude.ai it never reads the
+  published page back, and asks the answer store only for answers given since the last round.
 - **No review rules.** The skill asks for no reviewer and no second model; a review happens when you ask.
