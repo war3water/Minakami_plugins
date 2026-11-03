@@ -268,6 +268,7 @@ footer { color: var(--muted); font-size: 0.85rem; }
     decided_default: "Decided earlier",
     earlier_rounds: "Earlier rounds",
     earlier_lede: "Answers from earlier rounds, kept for reference. To change one, tell me in the chat.",
+    n_decision: "{n} decision",
     n_decisions: "{n} decisions",
     show_cards: "Show the cards",
     load_failed: "This round could not be loaded ({why}).",
@@ -373,6 +374,7 @@ footer { color: var(--muted); font-size: 0.85rem; }
     decided_default: "之前已决定",
     earlier_rounds: "更早的轮次",
     earlier_lede: "之前几轮的回答，留作参考。要改其中某个答案，请在对话里告诉我。",
+    n_decision: "{n} 项决定",
     n_decisions: "{n} 项决定",
     show_cards: "显示卡片",
     load_failed: "这一轮没能加载（{why}）。",
@@ -794,7 +796,7 @@ footer { color: var(--muted); font-size: 0.85rem; }
         });
       });
       sec.append(el("details", { class: "round" }, el("summary", {}, el("b", { text: r.round || T.decided_default }), " ",
-        el("span", { class: "saved", text: fill(T.n_decisions, { n: (r.questions || []).length }) })), list, show, holder));
+        el("span", { class: "saved", text: fill((r.questions || []).length === 1 ? T.n_decision : T.n_decisions, { n: (r.questions || []).length }) })), list, show, holder));
     });
     return sec;
   }
