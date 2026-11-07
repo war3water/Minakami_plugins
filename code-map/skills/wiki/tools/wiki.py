@@ -646,7 +646,14 @@ def output_mismatch(expected: str, actual: str) -> str | None:
         e = norm(raw)
         if not e or e in ("…", "..."):
             continue
-        rx = re.compile("^" + ".*".join(re.escape(part) for part in re.split(r"…|\.\.\.", e)) + "$")
+        parts = re.split(r"…|\.\.\.", e)
+        pattern = re.escape(parts[0])
+        for part in parts[1:]:  # `a … b` also matches `a b`: the ellipsis may stand for nothing
+            if pattern.endswith(" ") and part.startswith(" "):
+                pattern += r"(?:.* )?" + re.escape(part[1:])
+            else:
+                pattern += ".*" + re.escape(part)
+        rx = re.compile("^" + pattern + "$")
         while pos < len(act) and not rx.match(act[pos]):
             pos += 1
         if pos == len(act):
