@@ -61,7 +61,7 @@ One paragraph: what this page covers and who it is for.
    - Re-render after every edit; the lint fails on an SVG older than its source.
 7. **Log format:** one heading per entry, `## [YYYY-MM-DD] <build|change|lint|decision> | <title>`, then one to three lines naming, by path, the pages updated and the pages checked and still true (`Updated: … Checked: …`). Naming a page records the check, so the lint stops reporting it as out of date. The log is append-only, with new entries at the end.
 8. **Commands that must keep working.** Every shell block in the README or a page is marked:
-   - `<!-- check:run -->` (with `os=…` or `background ready=…` where needed) runs it in a temporary clean checkout, README first;
+   - `<!-- check:run -->` (with `os=…` or `background ready=…` where needed, and `exit=<code>` for a block that shows a failure on purpose) runs it in a temporary clean checkout, README first;
    - `<!-- check:output -->` above the output shown after a command makes the real output match it;
    - `<!-- check:skip reason="…" -->` says why a block cannot run here.
 

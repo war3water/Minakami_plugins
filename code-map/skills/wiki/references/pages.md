@@ -87,11 +87,12 @@ Every block a reader would paste into a terminal is either checked or skipped wi
 |---|---|
 | `<!-- check:run -->` | runs the `bash` or `powershell` block in a temporary clean checkout; a non-zero exit fails the lint |
 | `<!-- check:run os=windows -->` (or `os=posix`, `os=linux,macos`) | the same, on that OS only; elsewhere it is reported as skipped |
+| `<!-- check:run exit=1 -->` | the same, for a block that shows a failure on purpose, such as a start-up error in the symptom table: the block passes only if it ends with that exit code. Keep the failing command last, so the reader sees only what to type |
 | `<!-- check:run background ready=http://127.0.0.1:8000/health -->` | starts the block as a service and waits until the URL answers below 500, or until `ready=/regex/` appears in its output, or `wait=<seconds>` passes. The page's later blocks can probe it, and it is stopped with its page |
 | `<!-- check:output -->`, above the fenced output that follows a run block | the run block's output must contain these lines in order; `…` matches any text inside a line, and extra lines are allowed |
 | `<!-- check:skip reason="needs an OpenAI API key" -->` | not run; the reason says what the step needs that a check cannot have. The viewer shows it to the reader above the block, so write it for them |
 
-- Blocks run in order, the README first and then the pages by path, in one clean checkout of the current change. A later block may use what an earlier one set up, such as a virtual environment. Each block runs as one script and stops at its first failing line.
+- Blocks run in order, the README first and then the pages by path, in one clean checkout of the current change. A later block may use what an earlier one set up, such as a virtual environment. Each block runs as one script and stops at its first failing command, in bash and in PowerShell 7.3 or later. Never add exit-code handling to a block to make a failure pass; mark it `exit=<code>` instead.
 - With `--clean-env` the blocks run with only system variables (PATH, the home and temp folders, proxies). A step that needs a variable must set it in the block or say where the value comes from, such as copying `.env.example`.
 - Mark as `check:run` only blocks that are safe to repeat and that finish on their own, apart from `background` services: no deploys to shared systems, no writes outside the checkout, no real credentials. When a stand-in exists (a mocked test, a local server, a dry run), show it as a run block next to the skipped real step.
 - Where a step differs by OS, give each form and mark it with `os=…`.
@@ -110,7 +111,7 @@ This is the page developers need most. Start from `templates/run-and-debug.md.tm
 5. **When it goes wrong.** A table `Symptom | Likely stage | Check`.
    - The first rows cover starting the program the wrong way, which is what a newcomer does first: the default interpreter instead of the one it needs, or a required service not running. Give the exact message, or how long it waits, and the fix.
    - Then the messages the code raises, the failure modes its tests cover, and the edge cases the code handles silently (a remainder dropped, a cap reached, a division by zero).
-   - Where a command reproduces the symptom safely, give it.
+   - Where a command reproduces the symptom safely, give it, marked `check:run exit=<code>` (§Command blocks).
 6. **Where each output value is set.** Include this when the program writes a structured result, such as a JSON or CSV file, a report, an API response or database rows. A table `Field | What it holds | Set in`, with one row per field a reader would question.
    - `Set in` is a link whose text is the symbol and whose target is its file, for example ``[`merge_signals`](../../src/pipeline.py)``. A wrong value in the output then leads straight to the function to break in.
    - Derive each row from the code that writes the field. When a reference page already describes the format, add the `Set in` column to its table and link it from here, instead of a second table (§Rules, "One home per fact").

@@ -575,7 +575,8 @@ def run_blocks(page: Page) -> tuple[list[dict], list[tuple[int, str]], dict]:
 
     `<!-- check:run -->` above a bash or powershell block runs it (`os=windows`, `os=posix`, `os=linux,macos` limit it
     to an OS; `background ready=<url or /regex/> wait=<s>` starts it as a server, waits until it answers, and keeps it
-    running for the page's later blocks). `<!-- check:output -->` above the next fenced block holds the output the
+    running for the page's later blocks; `exit=<code>` means the block shows a failure on purpose and must end with that
+    exit code). `<!-- check:output -->` above the next fenced block holds the output the
     preceding run block must print: its lines must appear in order, `…` matching any text. `<!-- check:skip
     reason="…" -->` marks a block that cannot run here, with the reason. Returns (run blocks, errors, coverage)."""
     lines = page.text.split("\n")
@@ -602,10 +603,14 @@ def run_blocks(page: Page) -> tuple[list[dict], list[tuple[int, str]], dict]:
             if lang not in SHELLS:
                 errors.append((i + 1, "check:run is not followed by a bash or powershell code block"))
                 continue
+            if "exit" in attrs and not str(attrs["exit"]).isdigit():
+                errors.append((i + 1, "check:run exit= needs the exit code the block is expected to end with, such as exit=1"))
+                continue
             oses = [o.strip().lower() for o in str(attrs.get("os", "any")).split(",")]
             last_run = {"page": page.label, "line": j + 1, "shell": SHELLS[lang], "os": oses, "body": body,
                         "background": bool(attrs.get("background")), "ready": attrs.get("ready") if attrs.get("ready") is not True else None,
-                        "wait": int(attrs["wait"]) if str(attrs.get("wait", "")).isdigit() else None, "expect": None}
+                        "wait": int(attrs["wait"]) if str(attrs.get("wait", "")).isdigit() else None, "expect": None,
+                        "exit": int(attrs.get("exit", 0))}
             blocks.append(last_run)
         elif kind == "output":
             if not last_run or last_run["background"]:
@@ -803,8 +808,17 @@ def execute(blocks: list[dict], cwd: Path, timeout: int, capture: Path | None = 
         elif b["shell"] == "pwsh" and not pwsh:
             res.update(status="failed", detail="no pwsh or powershell found")
         else:
-            cmd = ([bash, "-e", "-o", "pipefail", "-c", b["body"]] if b["shell"] == "bash" else
-                   [pwsh, "-NoProfile", "-NonInteractive", "-Command", "$ErrorActionPreference = 'Stop'\n" + b["body"]])
+            want = b.get("exit", 0)
+            if b["shell"] == "bash":
+                cmd = [bash, "-e", "-o", "pipefail", "-c", b["body"]]
+            else:
+                # Stop at the first failing program, as bash -e does (PowerShell 7.3+; older shells ignore the variable).
+                # A block that fails on purpose keeps going and ends with the program's own exit code instead.
+                cmd = [pwsh, "-NoProfile", "-NonInteractive", "-Command",
+                       "$ErrorActionPreference = 'Stop'\n"
+                       f"$PSNativeCommandUseErrorActionPreference = {'$false' if want else '$true'}\n"
+                       "if ($PSStyle) { $PSStyle.OutputRendering = 'PlainText' }\n"
+                       + b["body"] + ("\nexit $LASTEXITCODE" if want else "")]
             if b.get("background"):
                 log = logs / f"{k}.log"
                 fh = open(log, "w", encoding="utf-8", errors="replace")
@@ -826,8 +840,9 @@ def execute(blocks: list[dict], cwd: Path, timeout: int, capture: Path | None = 
                     if r.returncode == 127 and missing:
                         # the block needs a tool this machine lacks: not evidence that the docs are wrong, but not verified either
                         res.update(status="unavailable", detail=f"{missing.group(1)} is not installed here")
-                    elif r.returncode != 0:
-                        res.update(status="failed", detail=f"exit {r.returncode}: {(r.stderr or r.stdout).strip()[-400:]}")
+                    elif r.returncode != want:
+                        res.update(status="failed", detail=f"exit {r.returncode}{f', expected {want}' if want else ''}: "
+                                                           f"{(r.stderr or r.stdout).strip()[-400:]}")
                     elif b.get("expect") is not None:
                         diff = output_mismatch(b["expect"], (r.stdout or "") + "\n" + (r.stderr or ""))
                         if diff:
@@ -1713,7 +1728,8 @@ def main(argv: list[str] | None = None) -> int:
         if a.list_run:
             blocks = [b for p in collect_pages(repo, wiki) for b in run_blocks(p)[0]]
             for b in blocks:
-                print(f"--- {b['page']}:{b['line']} ({b['shell']}, os={','.join(b['os'])})\n{b['body']}")
+                print(f"--- {b['page']}:{b['line']} ({b['shell']}, os={','.join(b['os'])}"
+                      f"{', expected to exit ' + str(b['exit']) if b['exit'] else ''})\n{b['body']}")
             print(f"{len(blocks)} command blocks")
             return 0
         report = lint(repo, wiki, run=a.run, in_place=a.in_place, timeout=a.timeout,
