@@ -932,6 +932,23 @@ def lint(repo: Path, wiki: Path, run: bool = False, in_place: bool = False, time
                 bad(page, 1, f"source {ref}: {res['note']}")
             elif res["note"]:
                 warn(page, 1, f"source {ref}: {res['note']}")
+        # output-field tables: the symbol in each `Set in` cell exists and still mentions the field it sets
+        for line, field, symbol, target in set_in_rows(page):
+            dest = (page.path.parent / urllib.parse.unquote(target.partition("#")[0])).resolve()
+            try:
+                ref = f"{posix(dest, repo)}#{symbol}"
+            except ValueError:
+                continue  # a link that leaves the repository is reported by the link check
+            res = syms.find(ref)
+            if not res["ok"]:
+                bad(page, line, f"Set in {ref}: {res['note']}")
+                continue
+            names = [t for t in re.split(r"[.\[\]/\s'\"]+", field) if t]
+            code = "\n".join(read(dest).split("\n")[res["line"] - 1:res["end"]])
+            if names and not re.search(rf"(?<![\w-]){re.escape(names[-1])}(?![\w-])", code):
+                warn(page, line, f"field '{field}' does not appear in {ref}: the code that sets it moved, or the field was renamed")
+            if ref not in page.sources:
+                warn(page, line, f"Set in {ref} is not in sources:, so a change to it does not flag this page")
         # diagrams
         for block in mermaid_blocks(page):
             report["diagrams"] += 1
@@ -1089,6 +1106,33 @@ def tables(page: Page) -> list[tuple[int, set[str]]]:
                 keys.add(key)
         if keys:
             out.append((start, keys))
+    return out
+
+
+CELL_SPLIT = re.compile(r"(?<!\\)\|")
+CODE_LINK = re.compile(r"\[`?([^\]`]+?)`?\]\(\s*<?([^)\s>]+)>?\s*\)")
+
+
+def set_in_rows(page: Page) -> list[tuple[int, str, str, str]]:
+    """(1-based line, field, symbol, link target) for each row of a table, outside code, that has a `Set in` column:
+    the output-field tables of pages.md, whose cell links the symbol that sets the field to its file."""
+    lines = page.text.split("\n")
+    in_code = {k for start, end, _ in fences(lines) for k in range(start, end + 1)}
+    out, header, col = [], None, None
+    for i, line in enumerate(lines):
+        m = None if i in in_code else TABLE_ROW.match(line)
+        if not m:
+            header = col = None
+            continue
+        cells = [c.strip() for c in CELL_SPLIT.split(m.group(1))]
+        if header is None:
+            header = [c.strip("*").lower() for c in cells]
+            col = header.index("set in") if "set in" in header else None
+        elif col is not None and col < len(cells) and not re.fullmatch(r"[\s:-]*", cells[0]):
+            link = CODE_LINK.search(cells[col])
+            field = re.sub(r"[`*]", "", re.sub(r"\[([^\]]*)\]\([^)]*\)", r"\1", cells[0])).strip()
+            if link and field:
+                out.append((i + 1, field, link.group(1).strip(), link.group(2)))
     return out
 
 

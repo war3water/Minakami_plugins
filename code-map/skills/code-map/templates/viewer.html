@@ -201,7 +201,8 @@
     'high-fan-in': 'Called from many places; changes ripple',
     'long': 'Long body; refactor candidate',
     'todo': 'Contains TODO, FIXME, or HACK',
-    'no-callers': 'No static callers found; dead or dynamic'
+    'no-callers': 'No static callers found; dead or dynamic',
+    'other-process': 'Runs in another process; a debugger attached to the entry point does not stop here'
   };
 
   const state = { layer: 'overview', subsystem: null, expanded: null, selected: null, query: '', zoom: 1 };
@@ -354,6 +355,9 @@
   function renderPipeline() {
     view.append(el('section', { class: 'block' }, el('h2', { text: 'Algorithm pipeline' }),
       el('p', { class: 'muted small', text: stages.length ? 'Click a stage to expand the functions inside it; click again to collapse. The label on each arrow is the data type passed to the next stage.' : 'No pipeline recorded.' })));
+    const needs = (DATA.pipeline && DATA.pipeline.requires) || [];
+    if (needs.length) view.append(el('section', { class: 'block' }, el('h3', { text: 'Before the entry point can start' }),
+      el('ul', { class: 'rel' }, ...needs.map((t) => el('li', { text: t })))));
     if (!stages.length) return;
     const flow = el('div', { class: 'flow' });
     stages.forEach((s, i) => {
@@ -404,6 +408,7 @@
     if (kind === 'stage') put(detail, ioTable('Input', n.input ? [n.input] : []), ioTable('Output', n.output ? [n.output] : []));
     if (kind === 'function') put(detail, ioTable('Inputs', n.inputs || []), ioTable('Outputs', n.outputs || []), statLine(n));
     if ((n.flags || []).length) detail.append(section('Flags', el('ul', { class: 'flags' }, ...n.flags.map((f) => el('li', {}, el('span', { class: 'badge', text: f }), ' ', el('span', { class: 'muted small', text: FLAG_HELP[f] || '' }))))));
+    if (n.runsIn) detail.append(section('Runs in', el('p', { class: 'small', text: n.runsIn })));
     relations(n, kind);
     notesBlock(id);
   }

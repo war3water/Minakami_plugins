@@ -66,8 +66,8 @@ Build the data object defined in `references/data-schema.md`:
 
 - **Layer 1, overview**: subsystems, each with a one- or two-sentence summary, plus a 3 to 5 sentence architecture summary of the whole scope.
 - **Layer 2, module dependency map**: one node per file or module in scope; one edge per import, with the `path:line` where the import appears.
-- **Layer 3, pipeline**: ordered stages; for each, the input and the output with their types, one line each, and the functions it calls.
-- **Layer 4, functions inside each stage**: signature, one-sentence purpose, typed inputs and outputs, call edges among functions in scope, hotspot flags. Stop here: functions outside the pipeline appear only as names in their module's function list.
+- **Layer 3, pipeline**: ordered stages; for each, the input and the output with their types, one line each, and the functions it calls. Also what the entry point needs before it can start, beyond the install (`pipeline.requires`).
+- **Layer 4, functions inside each stage**: signature, one-sentence purpose, typed inputs and outputs, call edges among functions in scope, hotspot flags. For a function flagged `other-process`, also where it runs and how a debugger reaches it (`runsIn`). Stop here: functions outside the pipeline appear only as names in their module's function list.
 
 The node contract is the same at every layer: name, kind, `path` and `line`, a one-sentence purpose (two for stages), inputs and outputs with types. When the code carries no type information, state the type you inferred from usage and mark it `inferred`. Apply the hotspot rules and the stable-ID scheme from `extraction.md`; stable IDs are what keep the user's notes attached across regenerations.
 

@@ -1,7 +1,7 @@
 ---
 title: Run and debug
 kind: how-to
-sources: [{{every function the call chain and the break table name, as path#Symbol}}]
+sources: [{{every function the call chain, the break table and the Set in column name, as path#Symbol}}]
 updated: {{date}}
 ---
 
@@ -9,9 +9,11 @@ updated: {{date}}
 
 {{One paragraph: how to run {{project}} at each level and where to put breakpoints. Setup is in the [README]({{relative path}}#{{setup heading slug}}).}}
 
+{{What the entry point needs that a default install lacks, one line each with how to provide it, such as the interpreter it must run under or a service that must be running. Leave this out when it needs nothing more.}}
+
 ## The call chain, and where to break
 
-{{The rendered call-chain diagram, with its Mermaid source in a collapsed block below it: see pages.md, Diagrams. It is the wiki's only function-level call chain; other pages link here instead of drawing it again.}}
+{{The rendered call-chain diagram, with its Mermaid source in a collapsed block below it: see pages.md, Diagrams. It is the wiki's only function-level call chain; other pages link here instead of drawing it again. Code that runs in another process sits in a subgraph named for that process.}}
 
 | To see | Break in | Inspect | File |
 |---|---|---|---|
@@ -27,6 +29,7 @@ updated: {{date}}
 
 - **Breakpoints:** {{the launch configuration by name, or the debugger command}}.
 - **While paused:** {{timeouts, watchdogs or retries that fire while stopped at a breakpoint, and the setting that turns each off}}.
+- **In another process:** {{the code a breakpoint here never reaches, where it runs, and the switch or attach command that reaches it, or that none exists. Leave this out when everything runs in one process.}}
 
 ## Level 2: {{the next layer}}
 
@@ -40,7 +43,16 @@ updated: {{date}}
 
 | Symptom | Likely stage | Check |
 |---|---|---|
+| {{the message from starting it the wrong way: the default interpreter instead of the one it needs, or a required service not running}} | start-up | {{the fix}} |
 | {{a message the code raises, or a failure a test covers}} | `{{symbol}}` | {{what to look at}} |
+
+## Where each output value is set
+
+{{Only when the program writes a structured result. One row per field a reader would question, derived from the code that writes it. If a reference page already describes the format, put the Set in column there and link it here instead.}}
+
+| Field | What it holds | Set in |
+|---|---|---|
+| `{{field}}` | {{what it holds}} | [`{{symbol}}`]({{relative path to the file}}) |
 
 ## Debug configurations
 

@@ -24,7 +24,7 @@ Build an interactive, layered map of a repository as one local HTML file, so you
 
 Every node: name, kind, `path:line`, one-sentence purpose (two for stages), inputs and outputs with types (inferred types are marked), hotspot flags, callers and callees, a deep link to your editor, and a notes field that persists in your browser across regenerations.
 
-Hotspot flags: `no-doc`, `untyped`, `high-fan-in`, `long`, `todo`, `no-callers` — the places to comment, type, or refactor first. Definitions are in `references/extraction.md` §6; they are judgments relative to the code in scope, not fixed thresholds.
+Hotspot flags: `no-doc`, `untyped`, `high-fan-in`, `long`, `todo`, `no-callers` — the places to comment, type, or refactor first — and `other-process`, code a debugger attached to the entry point never stops in, with how to reach it. The pipeline layer also lists what the entry point needs before it starts, such as a particular interpreter or a running service. Definitions are in `references/extraction.md` §6; they are judgments relative to the code in scope, not fixed thresholds.
 
 ### Honesty rules
 

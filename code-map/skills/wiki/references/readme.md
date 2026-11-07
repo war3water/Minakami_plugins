@@ -17,7 +17,7 @@ Apply the items the project has something for; skip the rest rather than adding 
 | Section | Contents | Sources |
 |---|---|---|
 | Name and purpose | one sentence on what it does and who it is for; why it is useful; its status (active, experimental, deprecated) | SR, GH-R, OSG, MAR |
-| Setup | prerequisites with the runtime version from the manifest; install as copyable blocks marked `check:run` | SR, MAR, GH-R |
+| Setup | prerequisites with the runtime version from the manifest, and anything the entry point needs that a default install lacks, such as a particular interpreter or a service that must be running, with how to provide it and what the program prints without it (`../../references/extraction.md` §2); install as copyable blocks marked `check:run` | SR, MAR, GH-R |
 | Run | the one command to run it, and what success looks like (captured output) | SR, MAR |
 | Tests | the test command; how to run one test | MAR, OSG |
 | Debug | the short version: the trace switch, the committed debug configurations by name, and a link to the wiki's run-and-debug page | MAR, MOZ, MS-DX |

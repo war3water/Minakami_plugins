@@ -4,15 +4,16 @@ The goal: a newcomer can set the project up, run it, debug it, say what each par
 
 ## 1. Discover
 
-Use `../../references/extraction.md` §1, §2, §4, §8 and §9 for the languages, the entry points and the primary pipeline (the path from the main entry point's input to its output). Then collect, citing the file each fact comes from:
+Use `../../references/extraction.md` §1, §2, §4, §8 and §9 for the languages, the entry points with what they need before they can start, and the primary pipeline (the path from the main entry point's input to its output). Use its `other-process` rule (§6) for code that runs outside the process the debugger attaches to. Then collect, citing the file each fact comes from:
 
 | What | Where to look |
 |---|---|
 | Setup | manifests and lockfiles, runtime-version files (`.python-version`, `.nvmrc`, `.tool-versions`), setup scripts, `Makefile` or `justfile` targets, `Dockerfile` and compose files, and the CI workflow steps, which are the best record of commands that work from a clean checkout |
-| Run | the entry points, the command-line parser, sample inputs and fixtures already in the repository |
+| Run | the entry points, the command-line parser, sample inputs and fixtures already in the repository, and the wrapper scripts that start the entry point with the interpreter or services it needs |
 | Tests | the test command, how to run one test, what the tests need |
-| Debug | committed debug configurations (`.vscode/launch.json`, `.idea/runConfigurations/`), logging, verbosity and trace switches (environment variables the code reads, `--verbose` or `--debug` flags, log-level settings), and where output goes when a host hides it |
-| Errors | the messages and exceptions the code raises at each stage, and the failure modes the tests cover, for the symptom table |
+| Debug | committed debug configurations (`.vscode/launch.json`, `.idea/runConfigurations/`), logging, verbosity and trace switches (environment variables the code reads, `--verbose` or `--debug` flags, log-level settings), where output goes when a host hides it, and code that runs in another process with the switch that keeps it in one |
+| Errors | the messages and exceptions the code raises at each stage, what happens when the entry point is started without what it needs, and the failure modes the tests cover, for the symptom table |
+| Output | the structured result the program writes, if any (a file, a report, an API response), and the function that sets each field |
 | Docs | the README, `docs/`, `ARCHITECTURE.md`, `CONTRIBUTING.md`, design notes and decision records, any existing wiki or documentation site, `AGENTS.md` and `CLAUDE.md`, `.gitignore` |
 | Evidence | captured outputs already in the repository: fixtures, golden files, snapshots, benchmark results |
 
@@ -52,7 +53,7 @@ Present, in this order:
    - a CodeTour (`.tours/*.tour`, anchored with `pattern` rather than `line`);
    - a CI step that runs `wiki.py lint`, plus `lint --run` where the CI has the toolchain, so drift fails the build. Show the exact change to the CI file;
    - a `.gitignore` line for the built viewer, which holds absolute paths when editor links are on, so it is not meant to be committed.
-7. Recommendations that would change code or configuration, such as a trace switch or a small sample input. These are listed for the user to request separately; this skill does not apply them.
+7. Recommendations that would change code or configuration. Examples: a trace switch; a small sample input; a switch that keeps out-of-process code in one process for debugging; a one-line message when the entry point is started the wrong way (the wrong interpreter, a required service not running) that names the fix and the wiki page. These are listed for the user to request separately; this skill does not apply them.
 8. The questions only the user can answer, each with what the page will say if it stays unanswered.
 
 Then ask: apply all, apply some (by number), or stop. Write nothing until the user answers. When you cannot get an answer (a non-interactive run), stop here; the proposal is the deliverable.
@@ -84,7 +85,14 @@ Run each check from the repository root and fix what it finds before the next on
    - A failing block means the documentation is wrong or the step needs something it does not state. Fix the text, for example a missing prerequisite, an environment variable to set, or a per-OS form; never weaken, skip or unmark a block to make it pass.
    - A block whose tool is not installed on this machine (for example no Go toolchain) is reported as not verified here. Make sure the page names that prerequisite, and report the block as unverified.
 4. `python <skill folder>/tools/wiki.py viewer`, then `python <skill folder>/tools/wiki_browser.py check-viewer <viewer file>`. The check needs Python Playwright; without it, say that the viewer was not opened.
-5. **Read it as a newcomer.** Open the overview, then each page from the sidebar, and check: do the headings alone say what the page tells you? Does each diagram show something its page's text and tables do not? Can you finish each task without opening another page? Fix what fails.
+5. **Read it as a newcomer.** Open the overview, then each page from the sidebar, and check:
+   - Do the headings alone say what the page tells you?
+   - Does each diagram show something its page's text and tables do not?
+   - Can you finish each task without opening another page?
+   - Someone who starts the entry point the obvious way (the default interpreter, nothing else running) gets some message. Is that message in the symptom table, with its fix?
+   - Does any function the break table names run in another process? If so, does its row say how to reach it?
+
+   Fix what fails.
 6. **Audit the claims.** List every concrete claim a reader will act on: commands, versions, defaults, limits, flags, ports, environment variables, exit codes, error messages, file locations, and the behaviour of requests and responses. Verify each one, either by a `check:run` block (with `check:output` where the page shows output) or by the line of code it comes from. A claim you can verify neither way is removed, or labelled as unverified with what would verify it. Report the counts: verified by running, verified in the code, unverified.
 
 ## 6. Report
