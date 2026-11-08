@@ -1,6 +1,6 @@
 # First build
 
-The goal: a newcomer can set the project up, run it, debug it, say what each part of it does, and follow its main path, from the README and the wiki alone; and every claim can be checked against the code. Steps 1 to 3 write nothing in the repository; step 4 writes only what the user approved.
+The goal: a newcomer can set the project up, run it, debug it, say what each part of it does, and follow each core flow step by step to the method and the function behind it, from the README and the wiki alone, reading each fact once; and every claim can be checked against the code. Steps 1 to 3 write nothing in the repository; step 4 writes only what the user approved.
 
 ## 1. Discover
 
@@ -14,6 +14,8 @@ Use `../../references/extraction.md` §1, §2, §4, §8 and §9 for the language
 | Debug | committed debug configurations (`.vscode/launch.json`, `.idea/runConfigurations/`), logging, verbosity and trace switches (environment variables the code reads, `--verbose` or `--debug` flags, log-level settings), where output goes when a host hides it, and code that runs in another process with the switch that keeps it in one |
 | Errors | the messages and exceptions the code raises at each stage, what happens when the entry point is started without what it needs, and the failure modes the tests cover, for the symptom table |
 | Output | the structured result the program writes, if any (a file, a report, an API response), and the function that sets each field |
+| Core flows | what the project exists to do, and for each such flow: its steps from input to output (`extraction.md` §4), the method each step applies as the code or its documents name it (a docstring, a comment, a reference, a design note), its call map (`python <skill folder>/tools/wiki.py callgraph <path>#<function>` for Python), and one real input whose run shows values at each step |
+| Code to know first | the entry point, the dispatcher, the core function of each flow, and the most-called functions (`extraction.md` §6, `high-fan-in`) |
 | Docs | the README, `docs/`, `ARCHITECTURE.md`, `CONTRIBUTING.md`, design notes and decision records, any existing wiki or documentation site, `AGENTS.md` and `CLAUDE.md`, `.gitignore` |
 | Evidence | captured outputs already in the repository: fixtures, golden files, snapshots, benchmark results |
 
@@ -29,15 +31,15 @@ In a temporary copy of the repository, run the commands you will document that n
 
 - the README as the front page, following `readme.md`;
 - `concepts/overview.md`, following `pages.md` §The overview page: every part of the system, not only the primary path;
-- `howto/run-and-debug.md`, following `pages.md` §Run and debug;
-- one explanation of the primary path, for example `concepts/how-a-request-works.md`. It explains the stages and the decisions in words and links run-and-debug for the call chain, instead of drawing it again;
+- a how-it-works page for each core flow, starting with the primary path, following `pages.md` §How-it-works pages: the picture, the pipeline map, the call map and the rules that decide the result;
+- `howto/run-and-debug.md`, following `pages.md` §Run and debug, pointing into the call maps instead of drawing them again;
 - reference pages for what readers will look up while working: each subsystem the primary path passes through, the public API, the command-line flags, the configuration, the data formats, as far as the code has them;
 - how-to pages for the changes the code invites: an extension point, a registry or a plugin interface suggests "Add a …";
 - a tutorial only when one guided walk through the code would help a newcomer more than the pages above.
 
-Before writing, decide where each fact lives (`pages.md`, "One home per fact"). The README already holds the project's own tables and steps. Where a page would repeat one in full, either link to the README or propose moving the full table to the page and leaving the README the part a newcomer needs to start.
+Before writing, decide where each fact lives (`pages.md`, "One home per fact"). The README already holds the project's own tables and steps. Where a page would repeat one in full, either link to the README or propose moving the full table to the page and leaving the README the part a newcomer needs to start. Do the same for README sections a page will cover in full, such as a long debugging, configuration or architecture section: propose the short replacement (what a newcomer needs, and a link), so the reader is not given the same fact twice in different words.
 
-Everything else the code would support is listed at the end of `index.md`, under "Not written yet", as one line per topic, so the plan is visible and nothing is dropped silently. The test for "enough": could a newcomer set up, run and debug the project, say what each part does, and explain the main path, using only what is written? If not, write what is missing now. When the repository is larger than one wiki can cover well in one pass, cover the overview and the primary path now, list the other subsystems as not written yet, and say in the report how to extend it.
+Everything else the code would support is listed at the end of `index.md`, under "Not written yet", as one line per topic, so the plan is visible and nothing is dropped silently. The test for "enough": could a newcomer set up, run and debug the project, say what each part does, and explain each core flow down to its methods and functions, using only what is written? If not, write what is missing now. When the repository is larger than one wiki can cover well in one pass, cover the overview and the primary path now, list the other subsystems as not written yet, and say in the report how to extend it.
 
 ## 3. Propose (approval gate)
 
@@ -45,7 +47,7 @@ Present, in this order:
 
 1. One line: the stack and the files that show it.
 2. A table of what will be written: `# | File | New or changed | Purpose`. It covers the wiki pages, `SCHEMA.md`, `index.md`, `log.md`, the copied tools, and the README.
-3. The exact README text to add or replace (see `readme.md`), and the README content you will keep unchanged.
+3. The exact README text to add or replace (see `readme.md`), the README content you will keep unchanged, and each proposed trim with the section's words before and after, so the user sees what a reader is spared.
 4. The rules block from `templates/rules-block.md.tmpl`, with the file it goes in. Put it in `AGENTS.md`, which Codex reads and Claude Code reads when the repository has no `CLAUDE.md`. When a `CLAUDE.md` exists and does not import `AGENTS.md`, also propose a one-line `@AGENTS.md` import in `CLAUDE.md`. When neither file exists, propose creating `AGENTS.md` with only this block.
 5. The command blocks that will carry `<!-- check:run -->`, with exactly what each runs and what it installs and where. They run in a temporary clean checkout, so the user's working tree is not touched.
 6. Optional extras, each numbered so it can be approved alone:
@@ -89,11 +91,13 @@ Run each check from the repository root and fix what it finds before the next on
    - Do the headings alone say what the page tells you?
    - Does each diagram show something its page's text and tables do not?
    - Can you finish each task without opening another page?
+   - From each how-it-works page alone, can you name every step, its method, its function and file, and what it takes and gives? Does the picture fit, and does its table say where it stops fitting?
+   - Is any fact told on two pages, in any wording? Keep it in its home and replace the other copy with a link and the one line the task needs. Is any sentence there only to restate its heading, its table, or the page's purpose? Cut it. Compare the word count lint reports before and after this pass.
    - Someone who starts the entry point the obvious way (the default interpreter, nothing else running) gets some message. Is that message in the symptom table, with its fix?
    - Does any function the break table names run in another process? If so, does its row say how to reach it?
 
    Fix what fails.
-6. **Audit the claims.** List every concrete claim a reader will act on: commands, versions, defaults, limits, flags, ports, environment variables, exit codes, error messages, file locations, and the behaviour of requests and responses. Verify each one, either by a `check:run` block (with `check:output` where the page shows output) or by the line of code it comes from. A claim you can verify neither way is removed, or labelled as unverified with what would verify it. Report the counts: verified by running, verified in the code, unverified.
+6. **Audit the claims.** List every concrete claim a reader will act on: commands, versions, defaults, limits, flags, ports, environment variables, exit codes, error messages, file locations, the methods and formulas named on how-it-works pages, and the behaviour of requests and responses. Verify each one, either by a `check:run` block (with `check:output` where the page shows output) or by the line of code it comes from. A claim you can verify neither way is removed, or labelled as unverified with what would verify it. Report the counts: verified by running, verified in the code, unverified.
 
 ## 6. Report
 
@@ -104,6 +108,7 @@ Reply briefly; the files carry the detail:
 - the command blocks run (in the clean checkout and clean environment), those with their output checked, those skipped on this OS or as not installed here, and every `check:skip` with its reason;
 - the claim audit: how many claims were verified by running, how many in the code, and which are unverified;
 - the diagrams rendered, or why not;
+- the words a reader has to read (from lint), and what the read-through cut;
 - the viewer path;
 - what you could not verify, the recommendations you did not apply, and open questions;
 - how the wiki stays current: the rules block, `/code-map:wiki update` (or `$wiki update` in Codex), and `wiki.py lint` in CI if the user wants it.

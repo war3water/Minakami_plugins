@@ -42,7 +42,7 @@ Confidence:
 
 Trace from the primary entry point's input to its final output. A stage is one top-level transformation on that path: usually a function the entry point calls directly, or a clearly delimited block (a loop body, a phase behind a comment banner). One stage per transformation that changes the data's shape or meaning: fold steps that are only plumbing into the stage they serve, split a stage that hides two unrelated transformations. The test is whether a reader can hold the whole pipeline in one view.
 
-For each stage record the input and the output: type first, then one line on meaning. Types come from annotations, signatures, or declared struct types; when absent, infer from construction and use (`dict[str, Tensor]`, `list of Row`) and mark `inferred`. The output type of stage N is normally the input type of stage N+1; when it is not, say why in the stage purpose.
+For each stage record the input and the output: type first, then one line on meaning. When the stage applies a named method (an algorithm, a standard and its clause, a formula, a retry or caching policy) and the code or its documents name it, record that name with where it is named. Types come from annotations, signatures, or declared struct types; when absent, infer from construction and use (`dict[str, Tensor]`, `list of Row`) and mark `inferred`. The output type of stage N is normally the input type of stage N+1; when it is not, say why in the stage purpose.
 
 ## 5. Functions and call edges (layer 4)
 

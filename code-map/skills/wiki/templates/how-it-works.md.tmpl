@@ -1,0 +1,61 @@
+---
+title: How {{the flow, in the reader's words}} works
+kind: explanation
+sources: [{{every function the maps and tables name, as path#Symbol}}]
+updated: {{date}}
+---
+
+# How {{the flow}} works
+
+{{One or two sentences: what goes in, what comes out, and the method at the core, in plain words.}}
+
+## Think of it as {{an everyday picture}}
+
+{{Two to four sentences of the picture, chosen so each of its parts matches one step of the pipeline below.}}
+
+| In the picture | In the code | Where the picture stops fitting |
+|---|---|---|
+| {{a part of the picture}} | [{{the step}}](#{{pipeline heading slug}}) | {{the difference a reader must not carry over, or nothing}} |
+
+## {{The pipeline heading: the steps, the method of each, and its code}}
+
+![{{what the diagram shows}}](../diagrams/{{pipeline id}}.svg)
+
+<details><summary>Diagram source</summary>
+
+```mermaid
+%% id: {{pipeline id}}
+flowchart TB
+    IN["{{the input, in words}}<br/>{{its format or type}}"] -->|"{{what passes}}"| S1["{{step, in words}}<br/>{{method, algorithm or standard}}<br/>{{file}}: {{function}}"]
+    S1 -->|"{{what passes}}"| S2["{{step}}<br/>{{method}}<br/>{{file}}: {{function}}"]
+    S2 -->|"{{what passes}}"| OUT["{{the output, in words}}<br/>{{its format or type}}"]
+```
+</details>
+
+| # | Step | Method | Code | Takes | Gives | In the example |
+|---|---|---|---|---|---|---|
+| 1 | {{step}} | {{the named method, standard, formula or rule}} | [`{{function}}`]({{relative path to the file}}) | {{input}} | {{output}} | {{a value from a captured run, or leave the column out}} |
+
+## Who calls whom
+
+{{One line: where the map starts, and that solid arrows are direct calls and dotted ones indirect, with how on the arrow. Run and debug lists where to break in it.}}
+
+![{{what the diagram shows}}](../diagrams/{{call map id}}.svg)
+
+<details><summary>Diagram source</summary>
+
+```mermaid
+%% id: {{call map id}}
+%% calls
+flowchart TB
+    {{start from: python <tools folder>/wiki.py callgraph <path>#<core function>, then keep the boxes a reader needs}}
+```
+</details>
+
+## {{The rules that decide the result, as a heading that states them}}
+
+{{The formulas, thresholds and decision rules, each with the function it lives in: a table for many, a list for a few. Link the design document that derives them instead of copying it.}}
+
+## {{Why it is built this way, as a heading that states the decision}}
+
+{{Only decisions a reader would otherwise question or undo, each with its consequence. Leave this section out when there are none.}}

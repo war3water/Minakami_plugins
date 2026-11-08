@@ -36,11 +36,11 @@ sources: [<path>#<Symbol>, …]          # the code this page describes
 updated: YYYY-MM-DD
 ---
 # <name>
-One paragraph: what this page covers and who it is for.
+One or two sentences: what this page answers.
 ## …sections…
-## Sources
-- [<symbol>](<relative path>) in <file>: what it does
 ```
+
+There is no closing list of sources: the front matter holds them, and the viewer shows them as "Code this page explains".
 
 ## Rules for the agent
 
@@ -54,7 +54,7 @@ One paragraph: what this page covers and who it is for.
    - Each fact is written in full in one place. Another page gives only the part its task needs, with a link; the lint warns about repeated tables and diagrams.
    - A new part of the system goes on `concepts/overview.md`.
 6. **Diagrams.**
-   - Boxes say what a part is or what a step does, in words; code names go in the table under the diagram. The function-level call chain is drawn once, on `howto/run-and-debug.md`.
+   - Boxes say what a part is or what a step does, in words. A box that names code ends with a `file: function` line, and the lint checks that the code exists. On a call map (a diagram whose second line is `%% calls`), a solid arrow is a direct call and the lint checks the caller still makes it; indirect calls are dotted. Each flow's pipeline map and call map are drawn once, on its how-it-works page; other pages link there.
    - Write each diagram as a fenced `mermaid` block whose first line is `%% id: <name>`.
    - `wiki_browser.py render` renders it to `diagrams/<name>.svg`. Pages show the SVG and keep the source in a collapsed `details` block, because VS Code's built-in preview does not render Mermaid.
    - Put every label in double quotes, with no semicolons or angle brackets.
@@ -67,7 +67,7 @@ One paragraph: what this page covers and who it is for.
 
    `lint --run --strict --clean-env` fails on a failing command, on output that changed, and on an unmarked block.
 9. **The wiki describes the code; it never changes it.** A code change that would help readers, such as a trace switch, is proposed separately.
-10. **Lint** checks links and anchors, `path#symbol` sources, the `Set in` column of output-field tables (the symbol exists and still mentions the field), index coverage, current diagrams, the log, and, with `--run`, the commands. A periodic review by the agent adds what a script cannot check: claims the code no longer supports, facts kept in full on two pages, headings a newcomer would not understand, contradictions between pages{{, and with the design documents: …}}, and orphan pages.
+10. **Lint** checks links and anchors, `path#symbol` sources, the `Set in` column of output-field tables (the symbol exists and still mentions the field), the code boxes and call arrows of diagrams, index coverage, current diagrams, the log, and, with `--run`, the commands. It also reports the words a reader has to read. A periodic review by the agent adds what a script cannot check: claims the code no longer supports, facts kept in full on two pages, headings a newcomer would not understand, contradictions between pages{{, and with the design documents: …}}, and orphan pages.
 
 ## Commands
 
@@ -77,6 +77,7 @@ Run from the repository root. The tools in `{{tools_dir}}/` need only Python 3.9
 |---|---|
 | Which pages a change touches | `python {{tools_dir}}/wiki.py affected` |
 | Questions asked in sessions here, not answered yet | `python {{tools_dir}}/wiki.py questions` |
+| A call map read from Python code, to start a diagram from | `python {{tools_dir}}/wiki.py callgraph <path>#<function>` |
 | Render the diagrams | `python {{tools_dir}}/wiki_browser.py render` |
 | Lint | `python {{tools_dir}}/wiki.py lint --strict` |
 | Lint and run the documented commands as a newcomer would | `python {{tools_dir}}/wiki.py lint --run --strict --clean-env` |

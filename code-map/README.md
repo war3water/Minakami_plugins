@@ -76,9 +76,10 @@ The wiki follows Andrej Karpathy's ["LLM Wiki" pattern](https://gist.github.com/
 | Part | What it is |
 |---|---|
 | Front page | the root `README.md`: setup, run, tests, debug, layout, and a docs map. Setup commands are executed by the lint, so they cannot go stale silently |
-| Run and debug | the page developers need most: the call chain as a diagram, a "where to break" table, one way to run each layer alone, the trace switch, a symptom table, the debug configurations |
-| Overview | "How *project* fits together": what it does, its parts in plain words, one diagram of how they connect, and one request followed across them |
-| Explanation and reference pages | the primary path, then what readers look up. Each fact has one home, so a change is edited in one place; the lint warns about repeated tables and diagrams. Topics not written yet are listed at the end of the index, so the plan is visible |
+| Overview | "How *project* fits together": what it does, its parts in plain words with what each is built on, one diagram of how they connect, one request followed across them, and the few functions to read first |
+| How it works | one page per core flow: an everyday picture of it with where the picture stops fitting; a pipeline map whose boxes give each step, the method it applies and its `file: function`, with the data on each arrow; a table of what each step takes and gives, with values from one real run; and a call map of who calls whom, started from `wiki.py callgraph`, which reads the calls from Python code. The lint fails when a box names code that no longer exists, and warns when a drawn call is no longer in the caller's code |
+| Run and debug | the page developers need most: a "where to break" table pointing into the call maps, one way to run each layer alone, the trace switch, a symptom table, where each output value is set, the debug configurations |
+| Reference pages | what readers look up. Each fact has one home, so a change is edited in one place; the lint warns about repeated tables and diagrams, and reports how many words a reader has to read. Topics not written yet are listed at the end of the index, so the plan is visible |
 | `SCHEMA.md`, `index.md`, `log.md` | the rules, the catalog in reading order, and the append-only log (`## [YYYY-MM-DD] kind \| title`) |
 | `sources:` front matter | `path#Symbol` for every symbol a page explains, never line numbers; the lint proves each one still exists |
 | Diagrams | Mermaid source in the page, rendered to SVG so it shows where Mermaid is not supported (VS Code's built-in preview); the lint fails on an SVG older than its source |

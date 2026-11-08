@@ -1,19 +1,19 @@
 ---
 title: Run and debug
 kind: how-to
-sources: [{{every function the call chain, the break table and the Set in column name, as path#Symbol}}]
+sources: [{{every function the break table and the Set in column name, as path#Symbol}}]
 updated: {{date}}
 ---
 
 # Run and debug
 
-{{One paragraph: how to run {{project}} at each level and where to put breakpoints. Setup is in the [README]({{relative path}}#{{setup heading slug}}).}}
+{{One or two sentences: how to run {{project}} at each level and where to put breakpoints. Setup is in the [README]({{relative path}}#{{setup heading slug}}).}}
 
 {{What the entry point needs that a default install lacks, one line each with how to provide it, such as the interpreter it must run under or a service that must be running. Leave this out when it needs nothing more.}}
 
-## The call chain, and where to break
+## Where to break
 
-{{The rendered call-chain diagram, with its Mermaid source in a collapsed block below it: see pages.md, Diagrams. It is the wiki's only function-level call chain; other pages link here instead of drawing it again. Code that runs in another process sits in a subgraph named for that process.}}
+{{One line linking the call map on [How … works]({{relative path}}#who-calls-whom), the wiki's only function-level map. When the path to it crosses layers that page does not draw (a web client, a queue, a server's child process), a small diagram of only those layers goes here, with code in another process in a subgraph named for that process.}}
 
 | To see | Break in | Inspect | File |
 |---|---|---|---|
@@ -21,7 +21,7 @@ updated: {{date}}
 
 ## Level 1: {{the fastest layer, run alone}}
 
-{{Why this level first, and what it skips.}}
+{{One line: what this level shows, and what it skips.}}
 
 {{The command, as a bash block marked check:run when it is safe to repeat.}}
 
@@ -59,7 +59,3 @@ updated: {{date}}
 | Name | What it runs |
 |---|---|
 | {{launch configuration}} | {{program, arguments, environment}} |
-
-## Sources
-
-- [`{{symbol}}`]({{relative path}}) in `{{path}}`: {{what it does}}

@@ -413,7 +413,7 @@ class Symbols:
         else:
             d = None
         if d:
-            out.update(ok=True, line=d[1], end=d[2], how=how)
+            out.update(ok=True, line=d[1], end=d[2], how=how, qual=d[0])
         else:
             out["note"] = "symbol not found" + (" (ambiguous: " + ", ".join(x[0] for x in tail[:4]) + ")" if len(tail) > 1 else "")
         return out
@@ -882,7 +882,8 @@ def lint(repo: Path, wiki: Path, run: bool = False, in_place: bool = False, time
     syms = Symbols(repo)
     report = {"repo": repo.name, "wiki": posix(wiki, repo) if wiki.exists() else str(wiki), "pages": len(pages),
               "problems": problems, "warnings": warnings, "sources": {}, "diagrams": 0, "commands": [],
-              "coverage": {"run": 0, "skip": 0, "unmarked": 0}}
+              "coverage": {"run": 0, "skip": 0, "unmarked": 0}, "words": {}}
+    files = None
 
     def bad(page, line, msg):
         problems.append({"page": page.label, "line": line, "msg": msg})
@@ -989,6 +990,14 @@ def lint(repo: Path, wiki: Path, run: bool = False, in_place: bool = False, time
                 bad(page, block["line"], f"diagrams/{block['id']}.svg is older than its source (run wiki_browser.py render)")
             if f"diagrams/{block['id']}.svg" not in page.text:
                 warn(page, block["line"], f"the page does not show diagrams/{block['id']}.svg")
+        # boxes that name code, and the calls a call map draws
+        if "```mermaid" in page.text:
+            if files is None:
+                files = code_files(repo)
+            map_checks(repo, page, syms, files, bad, warn)
+        # how much a reader has to read (reported, never limited)
+        if page.is_readme or page.is_content:
+            report["words"][page.label] = len(re.findall(r"[^\W_]+", re.sub(r"\]\([^)]*\)", "]", "\n".join(prose_lines(page.text)))))
         # placeholders left from a template
         for i, line in enumerate(prose_lines(page.text), 1):
             for ph in re.findall(r"\{\{[^}]+\}\}", line):
@@ -1164,6 +1173,319 @@ def diagram_names(source: str) -> set[str]:
     return {t.lower() for t in re.findall(r"[A-Za-z_][A-Za-z0-9_]{3,}", labels)} - DIAGRAM_SYNTAX
 
 
+# ---------------------------------------------------------------- function maps
+
+LABEL_BREAK = re.compile(r"<br\s*/?>|\\n|\n", re.I)
+CODE_REF = re.compile(r"^`?(?P<path>[\w.\-/]+\.[A-Za-z0-9]+)`?\s*:\s*`?(?P<names>[\w.]+(?:\s*(?:,|\band\b)\s*`?[\w.]+`?)*)`?$")
+NODE_DEF = re.compile(r'(?<![\w-])([A-Za-z_][\w-]*)\s*(?:\[\[|\[\(|\(\(|\(\[|\[/|\[\\|\{\{|\[|\(|\{|>)\s*"([^"]*)"\s*'
+                      r'(?:\]\]|\)\]|\)\)|\]\)|/\]|\\\]|\}\}|\]|\)|\})')
+ARROW = re.compile(r'(--\s*"[^"]*"\s*-->|==\s*"[^"]*"\s*==>|-\.\s*"[^"]*"\s*\.->|(?:-->|==>|-\.->|---|-\.-|===)(?:\|[^|]*\|)?)')
+FLOW_KEYWORDS = ("flowchart", "graph", "subgraph", "end", "classdef", "class ", "style", "linkstyle", "click", "direction")
+
+
+def code_files(repo: Path) -> list[str]:
+    """Repository-relative paths of the source files a diagram may name."""
+    out = []
+    for root, dirs, files in os.walk(repo):
+        dirs[:] = [d for d in dirs if d not in SKIP_DIRS and not d.startswith(".")]
+        for f in files:
+            if Path(f).suffix.lower() in CODE_EXT:
+                out.append(posix(Path(root) / f, repo))
+    return out
+
+
+def resolve_code_path(path: str, files: list[str]) -> tuple[str | None, str]:
+    """A label's path may be shortened to any unique tail (`rating/life.py`). Returns (repository path, note)."""
+    path = path.lstrip("./")
+    hits = [f for f in files if f == path or f.endswith("/" + path)]
+    if len(hits) == 1:
+        return hits[0], ""
+    if not hits:
+        return None, "file not found"
+    return None, "path matches several files (" + ", ".join(hits[:3]) + "): write more of it"
+
+
+def flow_graph(source: str) -> tuple[dict[str, str], list[tuple[str, str, str]]]:
+    """({node id: label}, [(from, to, 'solid' | 'dotted' | 'line')]) of a Mermaid flowchart."""
+    labels: dict[str, str] = {}
+    edges: list[tuple[str, str, str]] = []
+    for raw in source.split("\n"):
+        line = raw.split("%%", 1)[0].strip()
+        if not line or line.lower().startswith(FLOW_KEYWORDS):
+            continue
+        for m in NODE_DEF.finditer(line):
+            labels.setdefault(m.group(1), m.group(2))
+        bare = NODE_DEF.sub(lambda m: m.group(1) + " ", line)
+        parts = ARROW.split(bare)
+        for i in range(1, len(parts) - 1, 2):
+            op = parts[i]
+            kind = "dotted" if "-." in op or ".-" in op else ("solid" if ">" in op else "line")
+            left = [t.strip() for t in parts[i - 1].split("&") if t.strip()]
+            right = [t.strip() for t in parts[i + 1].split("&") if t.strip()]
+            for a in left:
+                for b in right:
+                    if re.fullmatch(r"[A-Za-z_][\w-]*", a) and re.fullmatch(r"[A-Za-z_][\w-]*", b):
+                        edges.append((a, b, kind))
+    return labels, edges
+
+
+def label_code(label: str) -> tuple[str, list[str]] | None:
+    """(`path`, [names]) when a node's last label line is `path: function`, as boxes on function maps are written."""
+    lines = [re.sub(r"[*_]{2}", "", s).strip() for s in LABEL_BREAK.split(label) if s.strip()]
+    m = CODE_REF.match(lines[-1]) if lines else None
+    if not m or Path(m.group("path")).suffix.lower() not in CODE_EXT:
+        return None
+    names = [n.strip("` ") for n in re.split(r"\s*(?:,|\band\b)\s*", m.group("names")) if n.strip("` ")]
+    return m.group("path"), names
+
+
+def map_checks(repo: Path, page: Page, syms: Symbols, files: list[str], bad, warn) -> None:
+    """Boxes written `path: function` must name code that exists, on any diagram. On a call map (a diagram with a
+    `%% calls` line), each solid arrow between two such boxes says the first calls the second, so the callee's name
+    must appear in the caller's code; an indirect call (a registry, a callback, another process) is drawn dotted."""
+    for block in mermaid_blocks(page):
+        labels, edges = flow_graph(block["source"])
+        is_call_map = any(l.strip().lower() == "%% calls" for l in block["source"].split("\n"))
+        where = f"diagram '{block['id'] or '?'}'"
+        found: dict[str, list[tuple[str, dict]]] = {}
+        unlisted = []
+        for node, label in labels.items():
+            ref = label_code(label)
+            if not ref:
+                continue
+            rel, note = resolve_code_path(ref[0], files)
+            if not rel:
+                bad(page, block["line"], f"{where}: box '{ref[0]}: {', '.join(ref[1])}': {note}")
+                continue
+            for name in ref[1]:
+                res = syms.find(f"{rel}#{name}")
+                if not res["ok"]:
+                    bad(page, block["line"], f"{where}: box '{ref[0]}: {name}': {res['note']}")
+                    continue
+                found.setdefault(node, []).append((name, res))
+                if not any(s == rel or s.startswith(rel + "#") for s in page.sources):
+                    unlisted.append(rel)
+        if unlisted:
+            warn(page, block["line"], f"{where} draws code in {', '.join(sorted(set(unlisted))[:4])} that is not in sources:, "
+                                      "so a change there does not flag this page")
+        if not is_call_map:
+            continue
+        for a, b, kind in edges:
+            if kind != "solid" or a not in found or b not in found:
+                continue
+            for caller, res in found[a]:
+                body = read(repo / res["path"]).split("\n")[res["line"]:res["end"]]  # the definition line itself left out
+                code = "\n".join(l for l in body if not l.lstrip().startswith(("#", "//")))
+                resolved = py_callees(repo, res)  # Python: also calls through an import alias
+                if not any(re.search(rf"(?<![\w$]){re.escape(callee.split('.')[-1])}(?![\w$])", code)
+                           or (r["path"], r.get("qual")) in resolved for callee, r in found[b]):
+                    warn(page, block["line"], f"{where}: the arrow {caller} -> {', '.join(c for c, _ in found[b])} is a call that "
+                                              f"is not in {caller}'s code: the call moved, or it is indirect (draw it dotted, "
+                                              "-.->, with how it is reached)")
+
+
+_PYCALLS: dict[Path, "PyCalls"] = {}
+
+
+def py_callees(repo: Path, res: dict) -> set[tuple[str, str]]:
+    """{(path, qualified name)} a Python function calls, as PyCalls resolves them; empty for other languages."""
+    if not res["path"].endswith(".py") or not res.get("qual"):
+        return set()
+    pc = _PYCALLS.setdefault(repo, PyCalls(repo))
+    mod = pc.by_path.get((repo / res["path"]).resolve())
+    try:
+        callees, _ = pc.calls(mod, res["qual"]) if mod else ([], [])
+    except (KeyError, SyntaxError, ValueError):
+        return set()
+    return {(posix(pc.mods[m], repo), q) for m, q in callees}
+
+
+def py_module_index(repo: Path) -> dict[str, Path]:
+    """{dotted module name: file} for every Python file, named from the nearest folder without an __init__.py."""
+    out = {}
+    for rel in code_files(repo):
+        if not rel.endswith(".py"):
+            continue
+        path = repo / rel
+        parts = [] if path.stem == "__init__" else [path.stem]
+        d = path.parent
+        while (d / "__init__.py").exists() and d != repo:
+            parts.insert(0, d.name)
+            d = d.parent
+        if parts:
+            out.setdefault(".".join(parts), path)
+    return out
+
+
+class PyCalls:
+    """Static call edges between Python functions of one repository: direct calls by name, through an imported module,
+    or on self/cls. Calls on other objects and dynamic dispatch are listed as not followed, for the agent to draw."""
+
+    def __init__(self, repo: Path):
+        self.repo = repo
+        self.mods = py_module_index(repo)
+        self.by_path = {p.resolve(): m for m, p in self.mods.items()}
+        self.parsed: dict[str, tuple[dict, dict]] = {}
+
+    def module(self, mod: str) -> tuple[dict, dict]:
+        """({qualified name: def node}, {local alias: ('module', name) | ('symbol', module, name)})."""
+        if mod in self.parsed:
+            return self.parsed[mod]
+        tree = ast.parse(read(self.mods[mod]))
+        defs, imports = {}, {}
+        pkg = mod if self.mods[mod].stem == "__init__" else mod.rpartition(".")[0]
+        for n in tree.body:
+            if isinstance(n, (ast.FunctionDef, ast.AsyncFunctionDef)):
+                defs[n.name] = n
+            elif isinstance(n, ast.ClassDef):
+                defs[n.name] = n
+                for m in n.body:
+                    if isinstance(m, (ast.FunctionDef, ast.AsyncFunctionDef)):
+                        defs[f"{n.name}.{m.name}"] = m
+        for n in ast.walk(tree):
+            if isinstance(n, ast.Import):
+                for a in n.names:
+                    if a.asname:
+                        imports[a.asname] = ("module", a.name)
+                    else:
+                        imports[a.name.split(".")[0]] = ("module", a.name.split(".")[0])
+            elif isinstance(n, ast.ImportFrom):
+                base = n.module or ""
+                if n.level:
+                    up = pkg.split(".") if pkg else []
+                    up = up[:len(up) - (n.level - 1)] if n.level > 1 else up
+                    base = ".".join(up + ([base] if base else []))
+                for a in n.names:
+                    full = f"{base}.{a.name}" if base else a.name
+                    imports[a.asname or a.name] = ("module", full) if full in self.mods else ("symbol", base, a.name)
+        self.parsed[mod] = (defs, imports)
+        return defs, imports
+
+    def symbol(self, mod: str, name: str, hops: int = 0) -> tuple[str, str] | None:
+        """Follow re-exports to the module that defines `name`."""
+        if mod not in self.mods or hops > 6:
+            return None
+        defs, imports = self.module(mod)
+        if name in defs and isinstance(defs[name], (ast.FunctionDef, ast.AsyncFunctionDef)):
+            return mod, name
+        if name in defs:
+            return None  # a class: instantiation is not followed
+        imp = imports.get(name)
+        if imp and imp[0] == "symbol":
+            return self.symbol(imp[1], imp[2], hops + 1)
+        return None
+
+    def calls(self, mod: str, qual: str) -> tuple[list[tuple[str, str]], list[str]]:
+        """([(module, function) called, in call order], [calls not followed])."""
+        defs, imports = self.module(mod)
+        fn = defs[qual]
+        cls = qual.rpartition(".")[0]
+        out, skipped = [], []
+        nodes = sorted((n for stmt in fn.body for n in ast.walk(stmt) if isinstance(n, ast.Call)),  # decorators left out
+                       key=lambda n: (n.lineno, n.col_offset))
+        for call in nodes:
+            target, chain = None, []
+            f = call.func
+            while isinstance(f, ast.Attribute):
+                chain.insert(0, f.attr)
+                f = f.value
+            if not isinstance(f, ast.Name):
+                continue
+            head = f.id
+            if not chain:
+                if head in defs:
+                    target = self.symbol(mod, head)
+                elif head in imports:
+                    imp = imports[head]
+                    target = self.symbol(imp[1], imp[2]) if imp[0] == "symbol" else None
+            elif head in ("self", "cls") and cls and len(chain) == 1:
+                if f"{cls}.{chain[0]}" in defs:
+                    target = (mod, f"{cls}.{chain[0]}")
+            elif head in imports and imports[head][0] == "module":
+                base = imports[head][1]
+                while len(chain) > 1 and f"{base}.{chain[0]}" in self.mods:
+                    base = f"{base}.{chain.pop(0)}"
+                if len(chain) == 1:
+                    target = self.symbol(base, chain[0])
+            elif head in imports and imports[head][0] == "symbol" and f"{imports[head][1]}.{imports[head][2]}" in self.mods:
+                target = self.symbol(f"{imports[head][1]}.{imports[head][2]}", chain[0]) if len(chain) == 1 else None
+            if target:
+                if target not in out and target != (mod, qual):
+                    out.append(target)
+            elif chain and chain[-1] in self.repo_names() and not (head in imports and imports[head][0] == "module"
+                                                                  and imports[head][1] not in self.mods):
+                desc = f"{head}.{'.'.join(chain)}"  # a method on an object, or an inherited one: the type decides
+                if desc not in skipped:
+                    skipped.append(desc)
+        return out, skipped
+
+    def repo_names(self) -> set[str]:
+        """Names of every function and method defined in the repository, to tell a possible call into it from a
+        library call such as `items.append`."""
+        if not hasattr(self, "_names"):
+            names = set()
+            for m in self.mods:
+                try:
+                    names |= {q.split(".")[-1] for q, n in self.module(m)[0].items()
+                              if isinstance(n, (ast.FunctionDef, ast.AsyncFunctionDef))}
+                except (SyntaxError, ValueError):
+                    continue
+            self._names = names
+        return self._names
+
+
+def callgraph(repo: Path, start: str, depth: int, max_nodes: int, diagram_id: str | None) -> tuple[str, list[str]]:
+    """A Mermaid call map from `path#function` (Python), breadth first, for a page to start from."""
+    path_part, _, qual = start.partition("#")
+    pc = PyCalls(repo)
+    mod = pc.by_path.get((repo / path_part).resolve())
+    if not mod or not qual:
+        raise SystemExit(f"callgraph: {start} is not path#function in a Python file of this repository")
+    defs, _ = pc.module(mod)
+    if qual not in defs or not isinstance(defs[qual], (ast.FunctionDef, ast.AsyncFunctionDef)):
+        raise SystemExit(f"callgraph: no function {qual} in {path_part}")
+    files = code_files(repo)
+
+    def short(m: str) -> str:
+        rel = posix(pc.mods[m], repo)
+        parts = rel.split("/")
+        for k in range(1, len(parts) + 1):
+            tail = "/".join(parts[-k:])
+            if sum(1 for f in files if f == tail or f.endswith("/" + tail)) == 1:
+                return tail
+        return rel
+
+    ids: dict[tuple[str, str], str] = {}
+    order: list[tuple[str, str]] = []
+    edges: list[tuple[str, str]] = []
+    notes: list[str] = []
+    queue = [((mod, qual), 0)]
+    ids[(mod, qual)] = "n1"
+    order.append((mod, qual))
+    while queue:
+        (m, q), d = queue.pop(0)
+        if d >= depth:
+            continue
+        callees, skipped = pc.calls(m, q)
+        if skipped:
+            notes.append(f"{short(m)}: {q} also calls, not followed: {', '.join(skipped[:8])}{' …' if len(skipped) > 8 else ''}")
+        for t in callees:
+            if t not in ids:
+                if len(ids) >= max_nodes:
+                    notes.append(f"stopped at {max_nodes} boxes; raise --max-nodes or start deeper")
+                    queue = []
+                    break
+                ids[t] = f"n{len(ids) + 1}"
+                order.append(t)
+                queue.append((t, d + 1))
+            edges.append((ids[(m, q)], ids[t]))
+    did = diagram_id or "calls-" + re.sub(r"[^a-z0-9]+", "-", qual.lower()).strip("-")
+    out = [f"%% id: {did}", "%% calls", "flowchart TB"]
+    out += [f'    {ids[t]}["{short(t[0])}: {t[1]}"]' for t in order]
+    out += [f"    {a} --> {b}" for a, b in dict.fromkeys(edges)]
+    return "\n".join(out), notes
+
+
 def repeat_checks(pages: list[Page], warnings: list[dict]) -> None:
     """A fact kept in full in two places drifts: one copy gets the change and the other does not, and the reader cannot
     tell which is current. Flag a table that repeats most rows of a table on another page, and a diagram that repeats
@@ -1187,7 +1509,7 @@ def repeat_checks(pages: list[Page], warnings: list[dict]) -> None:
             names = diagram_names(block["source"])
             for other, oid, onames in drawn:
                 shared = names & onames
-                if len(shared) >= 6 and len(shared) >= 0.5 * min(len(names), len(onames)):
+                if other is not page and len(shared) >= 6 and len(shared) >= 0.5 * min(len(names), len(onames)):
                     warnings.append({"page": page.label, "line": block["line"],
                                      "msg": f"diagram '{block['id']}' names mostly the same code as diagram '{oid}' in "
                                             f"{other.label}: draw it once, and link to it from the other page"})
@@ -1249,6 +1571,10 @@ def summary(report: dict) -> str:
     cov = report.get("coverage", {})
     if cov.get("skip") or cov.get("unmarked"):
         parts.append(f"{cov.get('skip', 0)} skipped with a reason, {cov.get('unmarked', 0)} unmarked")
+    words = report.get("words") or {}
+    if words:
+        longest = sorted(words.items(), key=lambda kv: -kv[1])[:3]
+        parts.append(f"{sum(words.values())} words to read (longest: " + ", ".join(f"{k} {v}" for k, v in longest) + ")")
     return ", ".join(parts) + f": {len(report['problems'])} problems, {len(report['warnings'])} warnings"
 
 
@@ -1717,6 +2043,12 @@ def main(argv: list[str] | None = None) -> int:
     q.add_argument("--wiki", type=Path)
     q.add_argument("--since", help="YYYY-MM-DD: only messages from this day on")
     q.add_argument("--json", action="store_true")
+    g = sub.add_parser("callgraph", help="a Mermaid call map from a Python function, for a page to start from")
+    g.add_argument("start", help="path#function, for example src/app/run.py#main or src/app/engine.py#Engine.run")
+    g.add_argument("--repo", type=Path)
+    g.add_argument("--depth", type=int, default=3, help="call levels to follow from the start")
+    g.add_argument("--max-nodes", type=int, default=30, help="stop adding boxes after this many")
+    g.add_argument("--id", help="diagram id for the first line")
     c = sub.add_parser("copy-tools")
     c.add_argument("dest", type=Path)
     c.add_argument("--force", action="store_true")
@@ -1729,6 +2061,15 @@ def main(argv: list[str] | None = None) -> int:
         return 0
     if a.cmd == "copy-tools":
         return copy_tools(a.dest.resolve(), a.force, a.check)
+    if a.cmd == "callgraph":
+        repo = (a.repo or default_repo()).resolve()
+        diagram, notes = callgraph(repo, a.start.replace("\\", "/"), a.depth, a.max_nodes, a.id)
+        print(diagram)
+        if notes:
+            print("\nNot followed (method calls on objects, inherited methods, dynamic dispatch). Draw the ones that "
+                  "matter by hand: solid when the caller calls it directly, dotted (-.->) with how it is reached otherwise.")
+            print("\n".join("  " + n for n in notes))
+        return 0
     repo = (a.repo or default_repo()).resolve()
     wiki = (repo / a.wiki).resolve() if a.wiki and not a.wiki.is_absolute() else (a.wiki or default_wiki(repo)).resolve()
     if a.cmd == "lint":
