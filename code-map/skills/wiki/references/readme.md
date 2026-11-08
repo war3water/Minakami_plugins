@@ -21,6 +21,7 @@ Apply the items the project has something for; skip the rest rather than adding 
 | Run | the one command to run it, and what success looks like (captured output) | SR, MAR |
 | Tests | the test command; how to run one test | MAR, OSG |
 | Debug | the short version: the trace switch, the committed debug configurations by name, and a link to the wiki's run-and-debug page | MAR, MOZ, MS-DX |
+| Sources | where the README names a standard, handbook or paper the code follows, the name links to the wiki's `reference/sources.md` or to the repository's own chapter on it (proposed as an edit, like any README change) | — |
 | Behaviour a newcomer trips over | defaults, limits, error cases and what is not supported, as the code shows them | CLIG |
 | Layout | a short map of the main folders and entry points, when the root listing does not make it obvious | — |
 | Documentation | links to the wiki's `index.md` and run-and-debug page, and one line saying the README is part of the wiki and changes with the code | — |

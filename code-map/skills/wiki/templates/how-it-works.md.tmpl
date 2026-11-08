@@ -34,7 +34,7 @@ flowchart TB
 
 | # | Step | Method | Code | Takes | Gives | In the example |
 |---|---|---|---|---|---|---|
-| 1 | {{step}} | {{the named method, standard, formula or rule}} | [`{{function}}`]({{relative path to the file}}) | {{input}} | {{output}} | {{a value from a captured run, or leave the column out}} |
+| 1 | {{step}} | {{the named method, standard, formula or rule, linked to its source: the repository's chapter on it, or reference/sources.md}} | [`{{function}}`]({{relative path to the file}}) | {{input}} | {{output}} | {{a value from a captured run, or leave the column out}} |
 
 ## Who calls whom
 
@@ -50,6 +50,15 @@ flowchart TB
 flowchart TB
     {{start from: python <tools folder>/wiki.py callgraph <path>#<core function>, then keep the boxes a reader needs}}
 ```
+</details>
+
+<details><summary>Every call on this path</summary>
+
+{{the complete list from: python <tools folder>/wiki.py callgraph <path>#<core function> --table}}
+
+| Caller | Calls |
+|---|---|
+| `{{file}}: {{caller}}` | `{{file}}: {{callee}}` |
 </details>
 
 ## {{The rules that decide the result, as a heading that states them}}

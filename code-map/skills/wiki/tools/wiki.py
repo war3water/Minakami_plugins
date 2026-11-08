@@ -9,6 +9,8 @@ any coding agent) can run it without the plugin. Standard library only, Python 3
   python wiki.py affected   [--repo R] [--wiki W] [--since REF] [--json]
   python wiki.py questions  [--repo R] [--wiki W] [--since YYYY-MM-DD] [--json]
   python wiki.py viewer     [--repo R] [--wiki W] [--out FILE] [--editor NAME|TEMPLATE|none] [--title T]
+  python wiki.py callgraph  PATH#FUNCTION [--depth N] [--max-nodes N] [--id ID] [--table]
+  python wiki.py fill       --capture DIR [--repo R] [--wiki W] [--max-lines N]
   python wiki.py copy-tools DEST [--force] [--check]
   python wiki.py version
 
@@ -615,6 +617,8 @@ def run_blocks(page: Page) -> tuple[list[dict], list[tuple[int, str]], dict]:
         elif kind == "output":
             if not last_run or last_run["background"]:
                 errors.append((i + 1, "check:output has no check:run block above it on this page"))
+            elif attrs.get("fill"):
+                last_run["fill"] = j + 1  # a placeholder `wiki.py fill` replaces with the captured output
             else:
                 last_run["expect"] = body
         elif kind == "skip" and (not isinstance(attrs.get("reason"), str) or not attrs["reason"].strip()):
@@ -1012,6 +1016,18 @@ def lint(repo: Path, wiki: Path, run: bool = False, in_place: bool = False, time
         for line in cov["unmarked"]:
             report["coverage"]["unmarked"] += 1
             (bad if strict else warn)(page, line, 'command block neither checked (check:run) nor skipped with a reason (check:skip reason="…")')
+        for b in blocks:
+            if b.get("fill"):
+                warn(page, b["fill"], "output waiting to be filled: run lint --run --capture <folder>, then wiki.py fill --capture <folder>")
+        # sources the code follows: a standard named on a page is linked, at least once on that page
+        for line, cite in unlinked_citations(page):
+            warn(page, line, f"names {cite} without linking its source: link it to the document in the repository that covers "
+                             "it, or to its entry on the wiki's sources page")
+        # complete call lists (`Caller | Calls` tables): each row is a call in the caller's code
+        if "| caller" in page.text.lower():
+            if files is None:
+                files = code_files(repo)
+            call_table_checks(repo, page, syms, files, bad, warn)
 
     # diagrams nobody uses any more
     if (wiki / "diagrams").exists():
@@ -1300,6 +1316,123 @@ def py_callees(repo: Path, res: dict) -> set[tuple[str, str]]:
     return {(posix(pc.mods[m], repo), q) for m, q in callees}
 
 
+CITATION = re.compile(r"\b(?:ISO|IEC|DIN|AGMA|DNV(?: ?GL)?(?: ?CN)?|VDI|ASTM|ANSI|ASME|JIS|GB/T|RFC|IEEE|BS|EN)[  ]?"
+                      r"\d[\d.]*(?:-\d+)*(?::\d{4})?")
+LINK_TEXT = re.compile(r"\[((?:[^\[\]]|\[[^\]]*\])*)\]\([^)]*\)")
+
+
+def unlinked_citations(page: Page) -> list[tuple[int, str]]:
+    """(line, citation) for each standard a page names (ISO 6336-1, DNV CN 41.2, RFC 9457, …) that no occurrence on the
+    page links: the reader cannot reach the source. The sources page itself is exempt; it is where the links point."""
+    if page.wiki_rel and Path(page.wiki_rel).name == "sources.md":
+        return []
+    first, linked = {}, set()
+    for i, line in enumerate(prose_lines(page.text), 1):
+        if i <= page.fm_lines:
+            continue
+        spans = [m.span(1) for m in LINK_TEXT.finditer(line)]
+        for m in CITATION.finditer(line):
+            key = re.sub(r"[\s ]+", " ", m.group(0)).upper()
+            first.setdefault(key, (i, m.group(0)))
+            if any(a <= m.start() < b for a, b in spans):
+                linked.add(key)
+    return [first[k] for k in first if k not in linked]
+
+
+def call_table_checks(repo: Path, page: Page, syms: Symbols, files: list[str], bad, warn) -> None:
+    """A complete call list is a table whose header starts `Caller | Calls` (or `Callee`), one row per call, each cell
+    `file: function`. Like a call map's solid arrows: both functions must exist, and the callee must be called in the
+    caller's code."""
+    lines = page.text.split("\n")
+    in_code = {k for start, end, _ in fences(lines) for k in range(start, end + 1)}
+    header = None
+    for i, line in enumerate(lines):
+        m = None if i in in_code else TABLE_ROW.match(line)
+        if not m:
+            header = None
+            continue
+        cells = [re.sub(r"\[([^\]]*)\]\([^)]*\)", r"\1", c).strip().strip("`* ") for c in CELL_SPLIT.split(m.group(1))]
+        if header is None:
+            header = [c.lower() for c in cells]
+            continue
+        if not (len(header) >= 2 and header[0] == "caller" and header[1] in ("calls", "callee")) or re.fullmatch(r"[\s:-]*", cells[0]):
+            continue
+        ends = []
+        for cell in cells[:2]:
+            ref = label_code(cell)
+            if not ref:
+                bad(page, i + 1, f"call list: '{cell}' is not `file: function`")
+                break
+            rel, note = resolve_code_path(ref[0], files)
+            res = syms.find(f"{rel}#{ref[1][0]}") if rel else {"ok": False, "note": note}
+            if not res["ok"]:
+                bad(page, i + 1, f"call list: '{cell}': {res['note']}")
+                break
+            ends.append((ref[1][0], res))
+        if len(ends) < 2:
+            continue
+        (caller, a), (callee, b) = ends
+        body = "\n".join(l for l in read(repo / a["path"]).split("\n")[a["line"]:a["end"]] if not l.lstrip().startswith(("#", "//")))
+        if not (re.search(rf"(?<![\w$]){re.escape(callee.split('.')[-1])}(?![\w$])", body)
+                or (b["path"], b.get("qual")) in py_callees(repo, a)):
+            warn(page, i + 1, f"call list: {callee} is not called in {caller}'s code: the call moved, or it is indirect")
+
+
+VOLATILE = [  # values that differ on every run; `wiki.py fill` writes … in their place, which check:output matches
+    (re.compile(r"[A-Za-z]:[\\/][^\s\"'<>|]*?wiki-run-\w+[\\/]repo"), "…"),
+    (re.compile(r"/[^\s\"'<>|]*?wiki-run-\w+/repo"), "…"),
+    (re.compile(r"\b\d{4}-\d{2}-\d{2}[T ]\d{2}:\d{2}(?::\d{2}(?:[.,]\d+)?)?(?:Z|[+-]\d{2}:?\d{2})?"), "…"),
+    (re.compile(r"\b[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\b", re.I), "…"),
+    (re.compile(r"\bin \d+(?:\.\d+)?s\b"), "in …s"),
+    (re.compile(r"\b\d+(?:\.\d+)? ?ms\b"), "… ms"),
+]
+ANSI = re.compile(r"\x1b\[[0-9;?]*[A-Za-z]|\x1b\][^\x07]*\x07")
+
+
+def captured_output(path: Path) -> str:
+    """The stdout, then the stderr, of one capture file written by lint --run --capture."""
+    text = read(path)
+    out = text.split("\n--- stdout\n", 1)[1] if "\n--- stdout\n" in text else ""
+    out, _, err = out.partition("\n--- stderr\n")
+    return "\n".join(x.rstrip("\n") for x in (out, err) if x.strip())
+
+
+def fill(repo: Path, wiki: Path, capture: Path, max_lines: int = 40) -> dict:
+    """Put the captured output of each run block under it, where the page marks the place with
+    `<!-- check:output fill -->`: run-specific values become …, long output keeps its first and last lines, and the
+    marker becomes `<!-- check:output -->` so the next run compares against it. The agent then reviews each block and
+    its label; this does the copying."""
+    filled, missing = [], []
+    for page in collect_pages(repo, wiki):
+        todo = [b for b in run_blocks(page)[0] if b.get("fill")]
+        if not todo:
+            continue
+        lines = page.text.split("\n")
+        ends = {start: end for start, end, _ in fences(lines)}
+        for b in sorted(todo, key=lambda x: -x["fill"]):
+            name = re.sub(r"[^\w.-]+", "_", f"{b['page']}-{b['line']}") + ".txt"
+            if not (capture / name).exists():
+                missing.append(f"{page.label}:{b['line']}")
+                continue
+            out = ANSI.sub("", captured_output(capture / name)).replace("\r\n", "\n")
+            for rx, rep in VOLATILE:
+                out = rx.sub(rep, out)
+            body = [l.rstrip() for l in out.split("\n")]
+            total = len(body)
+            if total > max_lines:
+                body = body[:max_lines // 2] + ["…"] + body[-(max_lines // 2 - 5):]
+            start = b["fill"] - 1
+            marker = start - 1
+            while marker > 0 and not lines[marker].strip():
+                marker -= 1
+            lines[marker] = re.sub(r"check:output\s+fill", "check:output", lines[marker])
+            lines[start + 1:ends[start]] = body
+            filled.append({"page": page.label, "line": b["line"], "lines": total, "kept": len(body)})
+        newline = "\r\n" if b"\r\n" in page.path.read_bytes() else "\n"  # keep the page's own line endings
+        page.path.write_text("\n".join(lines), encoding="utf-8", newline=newline)
+    return {"filled": filled, "missing": missing}
+
+
 def py_module_index(repo: Path) -> dict[str, Path]:
     """{dotted module name: file} for every Python file, named from the nearest folder without an __init__.py."""
     out = {}
@@ -1434,8 +1567,10 @@ class PyCalls:
         return self._names
 
 
-def callgraph(repo: Path, start: str, depth: int, max_nodes: int, diagram_id: str | None) -> tuple[str, list[str]]:
-    """A Mermaid call map from `path#function` (Python), breadth first, for a page to start from."""
+def callgraph(repo: Path, start: str, depth: int, max_nodes: int, diagram_id: str | None,
+              table: bool = False) -> tuple[str, list[str]]:
+    """A Mermaid call map from `path#function` (Python), breadth first, for a page to start from; with `table`, the
+    same calls as a `Caller | Calls` table, the complete list a page keeps beside a pruned map."""
     path_part, _, qual = start.partition("#")
     pc = PyCalls(repo)
     mod = pc.by_path.get((repo / path_part).resolve())
@@ -1479,6 +1614,11 @@ def callgraph(repo: Path, start: str, depth: int, max_nodes: int, diagram_id: st
                 order.append(t)
                 queue.append((t, d + 1))
             edges.append((ids[(m, q)], ids[t]))
+    if table:
+        names = {v: k for k, v in ids.items()}
+        rows = ["| Caller | Calls |", "|---|---|"]
+        rows += [f"| `{short(names[a][0])}: {names[a][1]}` | `{short(names[b][0])}: {names[b][1]}` |" for a, b in dict.fromkeys(edges)]
+        return "\n".join(rows), notes
     did = diagram_id or "calls-" + re.sub(r"[^a-z0-9]+", "-", qual.lower()).strip("-")
     out = [f"%% id: {did}", "%% calls", "flowchart TB"]
     out += [f'    {ids[t]}["{short(t[0])}: {t[1]}"]' for t in order]
@@ -2049,6 +2189,12 @@ def main(argv: list[str] | None = None) -> int:
     g.add_argument("--depth", type=int, default=3, help="call levels to follow from the start")
     g.add_argument("--max-nodes", type=int, default=30, help="stop adding boxes after this many")
     g.add_argument("--id", help="diagram id for the first line")
+    g.add_argument("--table", action="store_true", help="print the calls as a `Caller | Calls` table instead of a diagram")
+    f = sub.add_parser("fill", help="put captured outputs where a page marks <!-- check:output fill -->")
+    f.add_argument("--capture", type=Path, required=True, help="the folder lint --run --capture wrote")
+    f.add_argument("--repo", type=Path)
+    f.add_argument("--wiki", type=Path)
+    f.add_argument("--max-lines", type=int, default=40, help="keep the first and last lines of longer output")
     c = sub.add_parser("copy-tools")
     c.add_argument("dest", type=Path)
     c.add_argument("--force", action="store_true")
@@ -2063,7 +2209,7 @@ def main(argv: list[str] | None = None) -> int:
         return copy_tools(a.dest.resolve(), a.force, a.check)
     if a.cmd == "callgraph":
         repo = (a.repo or default_repo()).resolve()
-        diagram, notes = callgraph(repo, a.start.replace("\\", "/"), a.depth, a.max_nodes, a.id)
+        diagram, notes = callgraph(repo, a.start.replace("\\", "/"), a.depth, a.max_nodes, a.id, a.table)
         print(diagram)
         if notes:
             print("\nNot followed (method calls on objects, inherited methods, dynamic dispatch). Draw the ones that "
@@ -2086,6 +2232,16 @@ def main(argv: list[str] | None = None) -> int:
             print("clean environment left out: " + ", ".join(report["env_left_out"]))  # names only, never values
         print(json.dumps(report, indent=2, ensure_ascii=False)) if a.json else print_lint(report)
         return 1 if report["problems"] else 0
+    if a.cmd == "fill":
+        res = fill(repo, wiki, a.capture.resolve(), a.max_lines)
+        for r in res["filled"]:
+            short = f", kept {r['kept']} of {r['lines']} lines" if r["kept"] < r["lines"] else ""
+            print(f"filled {r['page']}:{r['line']}{short}")
+        for m in res["missing"]:
+            print(f"no capture for {m}: the block did not run (another OS, or a failed run before it)")
+        print(f"{len(res['filled'])} filled, {len(res['missing'])} without a capture. Review each one: shorten it, keep "
+              "what the reader compares, and change its label to say it was captured, with the date.")
+        return 1 if res["missing"] else 0
     if a.cmd == "questions":
         res = questions(repo, wiki, a.since)
         print(json.dumps(res, indent=2, ensure_ascii=False)) if a.json else print_questions(res)
