@@ -1044,6 +1044,7 @@ def lint(repo: Path, wiki: Path, run: bool = False, in_place: bool = False, time
     stale_checks(repo, wiki, pages, warnings)
     tour_checks(repo, warnings)
     repeat_checks(pages, warnings)
+    first_read_checks(pages, warnings)
 
     report["commands"] = [dict(b, status="not run") for b in all_blocks]
     if run and all_blocks:
@@ -1376,6 +1377,74 @@ def call_table_checks(repo: Path, page: Page, syms: Symbols, files: list[str], b
         if not (re.search(rf"(?<![\w$]){re.escape(callee.split('.')[-1])}(?![\w$])", body)
                 or (b["path"], b.get("qual")) in py_callees(repo, a)):
             warn(page, i + 1, f"call list: {callee} is not called in {caller}'s code: the call moved, or it is indirect")
+
+
+def table_rows(page: Page) -> list[tuple[int, list[str], list[tuple[int, list[str]]]]]:
+    """(1-based header line, lower-case header cells, [(1-based line, raw cells)]) for each table outside code."""
+    lines = page.text.split("\n")
+    in_code = {k for start, end, _ in fences(lines) for k in range(start, end + 1)}
+    out, cur = [], None
+    for i, line in enumerate(lines):
+        m = None if i in in_code else TABLE_ROW.match(line)
+        if not m:
+            cur = None
+            continue
+        cells = [c.strip() for c in CELL_SPLIT.split(m.group(1))]
+        if cur is None:
+            cur = (i + 1, [re.sub(r"[`*]", "", c).strip().lower() for c in cells], [])
+            out.append(cur)
+        elif not re.fullmatch(r"[\s:-]*", "".join(cells)):
+            cur[2].append((i + 1, cells))
+    return out
+
+
+def code_names(cell: str) -> dict[tuple[str, str], str]:
+    """The functions a cell links, such as [`Resolver.search`](…/resolver.py): {(file name, last part of the name):
+    the name as written}, so `LLMClient.chat` and `chat` linked to the same file are one function, and `search` in
+    api/search.py is not `Resolver.search` in resolver.py."""
+    out = {}
+    for text, target in CODE_LINK.findall(cell):
+        name = re.sub(r"\(\)$", "", text.strip())
+        out[(Path(target.partition("#")[0]).name.lower(), name.split(".")[-1].lower())] = name
+    return out
+
+
+def first_read_checks(pages: list[Page], warnings: list[dict]) -> None:
+    """The overview's "code to know first" table (header `Code | What it decides …`) covers each step of the main
+    flow: every step of the pipeline table on a how-it-works page linked from that section has at least one of its
+    functions in the table. Reading agents name exactly the functions in this table, so a step it skips, they skip."""
+    by_path = {p.path.resolve(): p for p in pages}
+    for page in pages:
+        lines = page.text.split("\n")
+        for start, header, rows in table_rows(page):
+            if not (header and header[0] == "code" and any(h.startswith("what it decides") for h in header)):
+                continue
+            listed = {k for _, cells in rows for k in code_names(cells[0])}
+            top = next((k for k in range(start - 1, -1, -1) if re.match(r"#{1,6} ", lines[k])), 0)
+            end = next((k for k in range(start, len(lines)) if re.match(r"#{1,6} ", lines[k])), len(lines))
+            flows = []
+            for _, target in links("\n".join(lines[top:end])):
+                path = target.partition("#")[0]
+                if is_external(target) or not re.search(r"how-[\w-]+-works\.md$", path):
+                    continue
+                other = by_path.get((page.path.parent / path).resolve())
+                if other and other not in flows:
+                    flows.append(other)
+            if not flows:
+                warnings.append({"page": page.label, "line": start, "msg": "the code-to-know-first section links no how-it-works "
+                                 "page: link the main flow's page in its lead, so a reader can go on to the steps"})
+            for flow in flows:
+                for _, fheader, frows in table_rows(flow):
+                    if not (fheader and fheader[0] == "#" and "step" in fheader and "code" in fheader):
+                        continue
+                    col, scol = fheader.index("code"), fheader.index("step")
+                    for _, cells in frows:
+                        names = code_names(cells[col]) if col < len(cells) else {}
+                        if names and not names.keys() & listed:
+                            step = re.sub(r"\s+", " ", cells[scol])[:70] if scol < len(cells) else ""
+                            warnings.append({"page": page.label, "line": start, "msg": f"step {cells[0]} of {flow.label} ({step}) "
+                                             f"has none of its functions in this table ({', '.join(sorted(names.values()))}): readers "
+                                             "who start here skip that step; add the function that decides it"})
 
 
 VOLATILE = [  # values that differ on every run; `wiki.py fill` writes … in their place, which check:output matches
