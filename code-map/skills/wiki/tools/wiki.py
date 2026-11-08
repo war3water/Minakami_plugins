@@ -1412,7 +1412,8 @@ def code_names(cell: str) -> dict[tuple[str, str], str]:
 def first_read_checks(pages: list[Page], warnings: list[dict]) -> None:
     """The overview's "code to know first" table (header `Code | What it decides …`) covers each step of the main
     flow: every step of the pipeline table on a how-it-works page linked from that section has at least one of its
-    functions in the table. Reading agents name exactly the functions in this table, so a step it skips, they skip."""
+    functions in the table. Reading agents name exactly the functions in this table, so a step it skips, they skip;
+    they also stop near its end, so the fix is a swap or a stated reason, not a longer table (trial of 2026-11-08)."""
     by_path = {p.path.resolve(): p for p in pages}
     for page in pages:
         lines = page.text.split("\n")
@@ -1444,7 +1445,9 @@ def first_read_checks(pages: list[Page], warnings: list[dict]) -> None:
                             step = re.sub(r"\s+", " ", cells[scol])[:70] if scol < len(cells) else ""
                             warnings.append({"page": page.label, "line": start, "msg": f"step {cells[0]} of {flow.label} ({step}) "
                                              f"has none of its functions in this table ({', '.join(sorted(names.values()))}): readers "
-                                             "who start here skip that step; add the function that decides it"})
+                                             "who start here skip that step. Put its deciding function in place of a row that "
+                                             "decides less, or leave the step out with a reason; a longer table pushes its last "
+                                             "rows out of what readers take"})
 
 
 VOLATILE = [  # values that differ on every run; `wiki.py fill` writes … in their place, which check:output matches
