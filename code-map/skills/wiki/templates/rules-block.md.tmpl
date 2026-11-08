@@ -1,11 +1,11 @@
 <!-- code-map:wiki begin -->
 ## Code wiki
 
-This repository keeps a code wiki: the root README and `{{wiki_dir}}/`. Start at `{{wiki_dir}}/index.md`; the rules are in `{{wiki_dir}}/SCHEMA.md`.
+This repository keeps a code wiki: the root README and `{{wiki_dir}}/`. Start at `{{wiki_dir}}/index.md`: its first table names the page for each task, so read that page first rather than every page. `{{wiki_dir}}/SCHEMA.md` holds the rules for editing the wiki; read it when you edit pages.
 
 - Before exploring the code to answer a question, read the index: the answer may already be written. When you answer a question about this repository that the wiki did not answer, and it is likely to be asked again, add it to `{{wiki_dir}}/questions.md` (the question, a short answer, a link to the section that explains it) and improve that section if the answer belongs there.
 - A change that alters behaviour, setup, commands or layout updates, in the same change, every wiki page whose `sources:` names a changed file or symbol, and the README when setup or commands change. `python {{tools_dir}}/wiki.py affected` lists them.
 - Append one entry at the end of `{{wiki_dir}}/log.md`: `## [YYYY-MM-DD] change | <title>`, then what changed, the pages updated, and the pages checked and still true, by path.
-- After editing a diagram, run `python {{tools_dir}}/wiki_browser.py render`. Before you finish, run `python {{tools_dir}}/wiki.py lint --strict`, and `--run --clean-env` as well when setup or commands changed, then fix what it reports.
+- After editing a diagram, run `python {{tools_dir}}/wiki_browser.py render`. When your change edits a wiki page, or code that a page's `sources:` names, run `python {{tools_dir}}/wiki.py lint --strict` before you finish, and `--run --clean-env` as well when setup or commands changed, then fix what it reports. `lint` and `affected` only read; they never change a file.
 - Wiki pages describe the code; they never change it.
 <!-- code-map:wiki end -->
