@@ -89,6 +89,7 @@ Upgrading from 0.6.x: anything else in `.agent_works/` (old audit folders, skill
 - check before deleting anything public-facing;
 - every layer earns its existence; one implementation per behavior;
 - debug profiles are recorded at creation, including how to start and debug a front end and a back end together;
+- an entry point that needs a particular interpreter or a running service says in one line what's missing and how to get it, and README §Debug names code a breakpoint can't reach;
 - a task's working files live in `.local/` and are deleted when the task is done, so old notes don't show up in later searches next to live code.
 
 The rules are one line each where the decision happens, and `conventions.md` holds the examples.
@@ -114,6 +115,7 @@ These runs used the same four models, compared 0.6.2 with 0.7.0 and with no `AGE
 - **Upgrade:** on a 0.6.2 project with old working files in `.agent_works/`, 8/8 runs moved them to `.local/agent_works-archive/` with no file lost. The unfixed finding went into the handoff, and the logo script that `README.md` points at stayed where it was. 0.6.2 left all of them in place in 4/4 runs.
 - **No regressions:** in the handoff experiment above, 0.7.0 finished 20/20 of the remaining steps, the same as 0.6.2. code-cleanup's working files were removed after every run inside both templates.
 - **Older layouts (0.7.1, 2026-10-28):** projects set up with 0.1.0 and 0.5.4 lost no file, decision or open item in any upgrade run. With 0.7.0, the GPT models carried the old work queue's rules (claiming tickets, replacing the handoff every session) into the new `AGENTS.md` in 6/6 runs; with 0.7.1 that was 0/10. Claude was clean on both versions.
+- **Debugging prerequisites (0.7.2, 2026-11-07, Opus 5.5 and GPT-6.1 Sol, one run each per version):** asked for a command that talks to a server that wasn't running, every run printed one line with no traceback. With 0.7.2 that line also said how to start the server or change its address (2/2; 0.7.1: 0/2). For a git pre-commit hook, every run gave a way to debug it; with 0.7.2, README §Debug also said git runs it outside the debugger (2/2; 0.7.1: 0/2). No regressions: the 20,000-task benchmark left no files on either version, and an ordinary feature got no added checks or README §Debug text.
 
 ## review-readme
 

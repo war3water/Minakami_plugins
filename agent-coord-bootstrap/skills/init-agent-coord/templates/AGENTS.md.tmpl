@@ -105,7 +105,12 @@ audiences, no overlap.
 - **Debuggability is part of done.** A new entry point gets its debug
   launch profile and its address recorded in README §Debug at creation;
   when parts run together (front end + back end), README also says how
-  to start and debug them together.
+  to start and debug them together. An entry point that needs more than
+  the usual setup (a particular interpreter, a running service) checks
+  for it, and when it is missing prints one line saying what is missing
+  and how to get it, not a traceback. Code a breakpoint can't reach —
+  it runs inside another program, or in a process the debugger doesn't
+  follow — is named in README §Debug with how to debug it.
 
 ## 5. Code Conventions
 

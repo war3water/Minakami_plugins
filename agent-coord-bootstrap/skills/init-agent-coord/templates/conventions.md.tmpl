@@ -15,6 +15,15 @@
   reaches the back end in development (dev-server proxy, CORS setting,
   or an API-URL env var), and which launch profile attaches to both at
   once (VS Code `compounds`, or your IDE's equivalent).
+- A missing prerequisite gets one line, not a traceback: what was
+  looked for and where (the interpreter that ran, the address it
+  tried), and the command or README §Debug row that fixes it, with a
+  non-zero exit code. Any other error still surfaces in full.
+- Code a breakpoint can't reach: a git hook, a plugin loaded by a host
+  application, code sent into another process or a container. README
+  §Debug names it and the way in: a command that runs the same code
+  directly, a flag or env var that keeps it in the debugged process,
+  or an attach profile.
 - Frontend local-file access during debug: temporarily expand
   `vite.config.*` `server.fs.allow` (or the equivalent) and drive
   uploads from in-page JS — native file dialogs break headless and
