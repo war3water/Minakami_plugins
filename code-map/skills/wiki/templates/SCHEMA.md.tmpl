@@ -58,7 +58,7 @@ There is no closing list of sources: the front matter holds them, and the viewer
    - Write each diagram as a fenced `mermaid` block whose first line is `%% id: <name>`.
    - `wiki_browser.py render` renders it to `diagrams/<name>.svg`. Pages show the SVG and keep the source in a collapsed `details` block, because VS Code's built-in preview does not render Mermaid.
    - Put every label in double quotes, with no semicolons or angle brackets.
-   - A section whose reader must hold an order, a choice, a comparison, a number built from parts or a quantity across a range shows it, as a diagram, a table, or a Mermaid `xychart-beta` or `pie` chart whose values come from a captured run. Words stay words where they read easily.
+   - A section whose reader must hold an order, a choice, a comparison, a number built from parts or a quantity across a range shows it, as a diagram or a table. A chart (Mermaid `xychart-beta` or `pie`, values from a captured run) only where its point is a shape no table or sentence gives. Words stay words where they read easily.
    - Re-render after every edit; the lint fails on an SVG older than its source.
 7. **Log format:** one heading per entry, `## [YYYY-MM-DD] <build|change|lint|decision> | <title>`, then one to three lines naming, by path, the pages updated and the pages checked and still true (`Updated: … Checked: …`). Naming a page records the check, so the lint stops reporting it as out of date. The log is append-only, with new entries at the end.
 8. **Commands that must keep working.** Every shell block in the README or a page is marked:

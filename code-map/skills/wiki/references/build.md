@@ -95,7 +95,7 @@ Run each check from the repository root and fix what it finds before the next on
    - Can you finish each task without opening another page?
    - From each how-it-works page alone, can you name every step, its method, its function and file, and what it takes and gives? Does the picture fit, and does its table say where it stops fitting?
    - Can you go from every standard, handbook or paper a page names, and from every step's method, to its source in one click, landing on its row or clause?
-   - Does any section make you build a picture in your head: an order of steps, a choice, things compared on the same properties, a number built from parts, a quantity across a range? Show it (`pages.md` §Pictures, tables and charts). Is any picture there only to repeat its table? Remove it.
+   - Does any section make you build a picture in your head: an order of steps, a choice, things compared on the same properties, a number built from parts, a quantity across a range? Show it (`pages.md` §Pictures, tables and charts). Is any picture there only to repeat its table, or a chart of what one sentence says (a doubling, which factor is largest)? Replace it with the sentence.
    - Is any fact told on two pages, in any wording? Keep it in its home and replace the other copy with a link and the one line the task needs. Is any sentence there only to restate its heading, its table, or the page's purpose? Cut it. Compare the word count lint reports before and after this pass.
    - Someone who starts the entry point the obvious way (the default interpreter, nothing else running) gets some message. Is that message in the symptom table, with its fix?
    - Does any function the break table names run in another process? If so, does its row say how to reach it?
