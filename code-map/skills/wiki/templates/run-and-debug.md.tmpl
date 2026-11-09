@@ -1,0 +1,61 @@
+---
+title: Run and debug
+kind: how-to
+sources: [{{every function the break table and the Set in column name, as path#Symbol}}]
+updated: {{date}}
+---
+
+# Run and debug
+
+{{One or two sentences: how to run {{project}} at each level and where to put breakpoints. Setup is in the [README]({{relative path}}#{{setup heading slug}}).}}
+
+{{What the entry point needs that a default install lacks, one line each with how to provide it, such as the interpreter it must run under or a service that must be running. Leave this out when it needs nothing more.}}
+
+## Where to break
+
+{{One line linking the call map on [How … works]({{relative path}}#who-calls-whom), the wiki's only function-level map. When the path to it crosses layers that page does not draw (a web client, a queue, a server's child process), a small diagram of only those layers goes here, with code in another process in a subgraph named for that process.}}
+
+| To see | Break in | Inspect | File |
+|---|---|---|---|
+| {{a question a debugger answers}} | `{{symbol}}` | `{{variables or expressions worth printing}}` | `{{path}}` |
+
+## Level 1: {{the fastest layer, run alone}}
+
+{{One line: what this level shows, and what it skips.}}
+
+{{The command, as a bash block marked check:run when it is safe to repeat.}}
+
+{{The trace switch, if the code has one, with a captured sample, one line per stage.}}
+
+- **Breakpoints:** {{the launch configuration by name, or the debugger command}}.
+- **While paused:** {{timeouts, watchdogs or retries that fire while stopped at a breakpoint, and the setting that turns each off}}.
+- **In another process:** {{the code a breakpoint here never reaches, where it runs, and the switch or attach command that reaches it, or that none exists. Leave this out when everything runs in one process.}}
+
+## Level 2: {{the next layer}}
+
+{{As above.}}
+
+## Level 3: {{the whole system}}
+
+{{As above, and where the output goes when the host hides it.}}
+
+## When it goes wrong
+
+| Symptom | Likely stage | Check |
+|---|---|---|
+| {{the message from starting it the wrong way: the default interpreter instead of the one it needs, or a required service not running}} | start-up | {{the fix}} |
+| {{a message the code raises, or a failure a test covers}} | `{{symbol}}` | {{what to look at}} |
+
+## Where each output value is set
+
+{{Only when the program writes a structured result. One row per field a reader would question, derived from the code that writes it. If a reference page already describes the format, put the Set in column there and link it here instead.}}
+
+| Field | What it holds | Set in |
+|---|---|---|
+| `{{field}}` | {{what it holds}} | [`{{symbol}}`]({{relative path to the file}}) |
+
+## Debug configurations
+
+| Name | What it runs |
+|---|---|
+| {{launch configuration}} | {{program, arguments, environment}} |

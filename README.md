@@ -8,7 +8,7 @@ Personal marketplace of cross-runtime plugins for [Claude Code](https://claude.c
 |---|---|
 | `agent-coord-bootstrap` | Scaffold or upgrade an agent-coordination doc layer (`AGENTS.md` + `.agent_works/` + cross-runtime aliases) that Claude Code, Codex CLI, and Gemini CLI all read. Fresh init for new projects; content-preserving migration for existing ones. A second skill, `review-readme`, checks a project's README against best practices for its type and proposes edits traced to the project's files. |
 | `prompt-audit` | Audit one prompt's effectiveness for a specific target coding model — token efficiency, goal clarity, confusion/hallucination triggers, capability limiting, and more. Evidence-cited findings tables, an honest verdict, prioritized refinement advice, and an optional approval-gated rewrite. A second command, `check-sources`, lists the vendors' docs indexes to catch newly published model prompting pages and reports when the official guidance has moved ahead of the plugin's reference files. |
-| `code-map` | Build an interactive, layered code map of a repository as one local HTML file — architecture overview, module dependency map, algorithm pipeline with typed data flow, and the functions inside each stage. Every node deep-links to your editor with typed inputs/outputs, hotspot flags, search, and notes; every edge cites its source line, and unconfirmed edges are marked inferred. |
+| `code-map` | Build an interactive, layered code map of a repository as one local HTML file — architecture overview, module dependency map, algorithm pipeline with typed data flow, and the functions inside each stage. Every node deep-links to your editor with typed inputs/outputs, hotspot flags, search, and notes; every edge cites its source line, and unconfirmed edges are marked inferred. A second skill, `wiki`, builds a code wiki that an agent keeps current with the code: the README as front page, pages that name the source symbols they explain (checked by a lint), a run-and-debug page, rendered diagrams, executable setup commands, and a one-file viewer. |
 | `code-cleanup` | Clean up a codebase so a maintainer can read, debug, and change it, without changing what it does — from one targeted change, to removing dead code and junk, to flattening call paths that jump through needless layers and splitting god functions, to a full overhaul, or a map and plan only. An empty or vague request gets a short survey and one question about the level. Its README lists the tested one-line requests for each need. |
 | `decision-brief` | Put every open question of a task on one page a newcomer can answer in one pass: every short name and codename explained in a glossary with its source, then one card per question with plain-words background, a real example, options with what each changes, and a labelled recommendation, plus an Other answer and a note. Select any text to comment; the agent answers in the thread while it reads along, or a read-only headless agent answers on request. When you press I'm done, the agent reads every answer at once, acts, and updates the page. A local page served from 127.0.0.1 in every runtime, or a claude.ai Artifact when you pick one. |
 
@@ -148,13 +148,12 @@ prompt-audit/                       Plugin source
     skills/check-sources/           Skill wrapper (Codex, Grok, and pi surface)
     references/                     Per-model-family durable prompt guidance the audit cites
     SOURCES.md                      Source registry: discovery indexes, registered pages, outline snapshots (read by check-sources)
-code-map/                           Plugin source
+code-map/                           Plugin source (skills only; one SKILL.md serves every runtime)
     .codex-plugin/plugin.json       Manifest (canonical)
     .claude-plugin/plugin.json      Manifest (duplicate)
-    commands/code-map.md            Slash command runbook (Claude Code surface)
-    skills/code-map/                Skill wrapper (Codex, Grok, and pi surface)
-    references/                     Extraction method, data contract, editor link schemes
-    templates/viewer.html           Reference viewer the run fills with data
+    references/extraction.md        Method shared by both skills: entry points, pipeline, stable names, editor link schemes
+    skills/code-map/                Map runbook; references/data-schema.md is the data contract, templates/viewer.html the viewer
+    skills/wiki/                    Wiki runbook; references/ (build, update, pages, readme), templates/, tools/ copied into repositories
 code-cleanup/                       Plugin source (skills only; one SKILL.md serves every runtime)
     .codex-plugin/plugin.json       Manifest (canonical)
     .claude-plugin/plugin.json      Manifest (duplicate)

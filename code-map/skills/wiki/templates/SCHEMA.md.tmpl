@@ -1,0 +1,87 @@
+---
+title: How this wiki is kept
+kind: schema
+updated: {{date}}
+---
+
+# How this wiki is kept
+
+This wiki follows the "LLM Wiki" pattern ([Karpathy](https://gist.github.com/karpathy/442a6bf555914893e9891c11519de94f)): an agent writes and maintains it, in the same change as the code it describes, so it compounds instead of going stale. There are three layers:
+
+| Layer | What it is | Who changes it |
+|---|---|---|
+| **Sources** | {{the code, tests and captured outputs, by folder}} | developers; the wiki never edits them |
+| **Wiki** | the root `README.md` (the front page) and the pages in `{{wiki_dir}}/` | the agent, in the same change as the code |
+| **Schema** | this file: page kinds, the page template, and the update and lint rules | the maintainers and the agent, together |
+
+Each page names the code symbols it explains, as code wikis such as Google's Code Wiki and DeepWiki do, and a lint proves those symbols still exist. Pages are sorted into the four [Diátaxis](https://diataxis.fr/) kinds, so a reader knows whether they are learning, doing, looking up, or understanding. Readers see the labels in the second column, not the kind names.
+
+## Page kinds and folders
+
+| Kind | Readers see | Folder | Answers |
+|---|---|---|---|
+| front page | Start here | the root `README.md` | what it is; how to set it up, run, test and debug it |
+| tutorial | Tutorials | `start/` | walk me through it once |
+| explanation | How it works | `concepts/`, starting with `overview.md` | how is it put together, and why |
+| how-to | Guides | `howto/` | how do I … |
+| reference | Reference | `reference/`{{, and the folders for this project's subsystems}} | what exactly does X do |
+
+## Page template
+
+```text
+---
+title: <name>
+kind: tutorial | how-to | reference | explanation
+sources: [<path>#<Symbol>, …]          # the code this page describes
+updated: YYYY-MM-DD
+---
+# <name>
+One or two sentences: what this page answers.
+## …sections…
+```
+
+There is no closing list of sources: the front matter holds them, and the viewer shows them as "Code this page explains".
+
+## Rules for the agent
+
+1. **Read the index first, and keep good answers.** Before exploring the code to answer a question, read `index.md`: the answer may already be written. When you answer a question the wiki did not cover and it is likely to come up again, write the answer into the page it belongs on, and add the question to `questions.md` with a link there. `wiki.py questions` lists the questions people asked in Claude Code and Codex sessions in this repository that `questions.md` does not hold yet.
+2. **Update in the same change.** A change that alters behaviour, setup, commands or layout updates every page whose `sources` name a changed file or symbol, and the README when setup or commands change. `affected` (below) lists them. Add renamed or new pages to `index.md`, and append one entry to `log.md`.
+3. **Point to symbols, not line numbers**, for example `{{an example path#symbol from this repository}}`. Line numbers drift; the lint checks that every named symbol still exists.
+4. **Every claim is traceable** to a source symbol or a captured output. Captured examples are copied from a real run or a file ({{where captured evidence lives}}) and say where they came from; examples that were not captured are labelled illustrative.
+5. **Write for a newcomer.**
+   - Headings say the point in the reader's words ("If a setting is set in more than one place", not "Which value wins").
+   - A section opens with what to do or expect, with one concrete example; the mechanism follows.
+   - Each fact is written in full in one place. Another page gives only the part its task needs, with a link; the lint warns about repeated tables and diagrams.
+   - A new part of the system goes on `concepts/overview.md`.
+6. **Diagrams.**
+   - Boxes say what a part is or what a step does, in words. A box that names code ends with a `file: function` line, and the lint checks that the code exists. On a call map (a diagram whose second line is `%% calls`), a solid arrow is a direct call and the lint checks the caller still makes it; indirect calls are dotted. Each flow's pipeline map and call map are drawn once, on its how-it-works page; other pages link there.
+   - Write each diagram as a fenced `mermaid` block whose first line is `%% id: <name>`.
+   - `wiki_browser.py render` renders it to `diagrams/<name>.svg`. Pages show the SVG and keep the source in a collapsed `details` block, because VS Code's built-in preview does not render Mermaid.
+   - Put every label in double quotes, with no semicolons or angle brackets.
+   - Re-render after every edit; the lint fails on an SVG older than its source.
+7. **Log format:** one heading per entry, `## [YYYY-MM-DD] <build|change|lint|decision> | <title>`, then one to three lines naming, by path, the pages updated and the pages checked and still true (`Updated: … Checked: …`). Naming a page records the check, so the lint stops reporting it as out of date. The log is append-only, with new entries at the end.
+8. **Commands that must keep working.** Every shell block in the README or a page is marked:
+   - `<!-- check:run -->` (with `os=…` or `background ready=…` where needed, and `exit=<code>` for a block that shows a failure on purpose) runs it in a temporary clean checkout, README first;
+   - `<!-- check:output -->` above the output shown after a command makes the real output match it;
+   - `<!-- check:skip reason="…" -->` says why a block cannot run here.
+
+   `lint --run --strict --clean-env` fails on a failing command, on output that changed, and on an unmarked block.
+9. **The wiki describes the code; it never changes it.** A code change that would help readers, such as a trace switch, is proposed separately.
+10. **Lint** checks links and anchors, `path#symbol` sources, the `Set in` column of output-field tables (the symbol exists and still mentions the field), the code boxes and call arrows of diagrams and the rows of `Caller | Calls` lists, standards named without a link to their source, main-flow steps the overview's code-to-know-first table leaves out, index coverage, current diagrams, the log, and, with `--run`, the commands. It also reports the words a reader has to read.
+11. **Sources.** A standard, handbook, paper or specification the code follows is listed once on `reference/sources.md` with its full citation, and every page that names it links it there or to the repository's own chapter on it. A periodic review by the agent adds what a script cannot check: claims the code no longer supports, facts kept in full on two pages, headings a newcomer would not understand, contradictions between pages{{, and with the design documents: …}}, and orphan pages.
+
+## Commands
+
+Run from the repository root. The tools in `{{tools_dir}}/` need only Python 3.9 or later; rendering diagrams and checking the viewer also need Chrome, Edge or Python Playwright.
+
+| Task | Command |
+|---|---|
+| Which pages a change touches | `python {{tools_dir}}/wiki.py affected` |
+| Questions asked in sessions here, not answered yet | `python {{tools_dir}}/wiki.py questions` |
+| A call map read from Python code, to start a diagram from | `python {{tools_dir}}/wiki.py callgraph <path>#<function>` (`--table` for the complete `Caller | Calls` list) |
+| Write captured outputs into blocks marked `check:output fill` | `python {{tools_dir}}/wiki.py fill --capture <folder from lint --run --capture>` |
+| Render the diagrams | `python {{tools_dir}}/wiki_browser.py render` |
+| Lint | `python {{tools_dir}}/wiki.py lint --strict` |
+| Lint and run the documented commands as a newcomer would | `python {{tools_dir}}/wiki.py lint --run --strict --clean-env` |
+| Build the browsable viewer | `python {{tools_dir}}/wiki.py viewer` |
+| Check the viewer like a reader | `python {{tools_dir}}/wiki_browser.py check-viewer {{wiki_dir}}/viewer.html` |

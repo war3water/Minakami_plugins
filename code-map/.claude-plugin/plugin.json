@@ -1,18 +1,18 @@
 {
   "name": "code-map",
-  "version": "0.1.1",
-  "description": "Build an interactive, layered code map of a repository as a local HTML file — architecture overview, module dependency map, algorithm pipeline with typed data flow, and the functions inside each stage. Every node deep-links to your editor and carries typed inputs/outputs, hotspot flags, search, and per-node notes. Every edge cites the source line it was seen on; unconfirmed edges are drawn dashed and labeled inferred.",
+  "version": "0.2.0",
+  "description": "Understand a repository and keep its documentation true. code-map builds an interactive, layered code map as a local HTML file: architecture overview, module dependency map, algorithm pipeline with typed data flow, and the functions inside each stage, every node deep-linked to your editor and every edge citing its source line. wiki builds a code wiki an agent keeps current with the code: the README as front page, pages that name the source symbols they explain (checked by a lint), a run-and-debug page, rendered diagrams, executable setup commands, and a one-file viewer.",
   "author": {
     "name": "war3water",
     "url": "https://github.com/war3water/Minakami_plugins"
   },
-  "commands": "./commands",
   "skills": "./skills",
   "interface": {
     "displayName": "Code Map",
     "category": "review",
     "defaultPrompt": [
-      "Run /code-map:code-map (Claude Code) or $code-map (Codex) in the repository you want mapped; add a path or --entry <symbol> to focus it."
+      "Run /code-map:code-map (Claude Code) or $code-map (Codex) in the repository you want mapped; add a path or --entry <symbol> to focus it.",
+      "Run /code-map:wiki (Claude Code) or $wiki (Codex) to build a code wiki for this repository, then /code-map:wiki update after a change."
     ]
   }
 }

@@ -1,0 +1,55 @@
+---
+title: {{project}} wiki
+kind: index
+updated: {{date}}
+---
+
+# {{project}} wiki
+
+{{One paragraph: what the project does, and who this wiki is for.}}
+
+## Start here by task
+
+Read the page for your task first; the others are there when you need them.
+
+| You want to | Read |
+|---|---|
+| set it up, run it, run the tests | [README]({{relative path to README.md}}#{{setup heading slug}}) |
+| fix a failing test or a wrong result | [Run and debug: when it goes wrong](howto/run-and-debug.md#when-it-goes-wrong), then the call map on [How {{a core flow}} works](concepts/how-{{flow}}-works.md#who-calls-whom) |
+| understand what each part does | [How {{project}} fits together](concepts/overview.md) |
+| understand how {{a core flow}} works | [How {{a core flow}} works](concepts/how-{{flow}}-works.md) |
+| look up a command, setting or output field | the [Reference](#reference) pages below |
+
+## How it works
+
+| Page | What you learn |
+|---|---|
+| [How {{project}} fits together](concepts/overview.md) | what it does, its parts, how a request crosses them, and the code to read first |
+| [How {{a core flow}} works](concepts/how-{{flow}}-works.md) | {{its steps, the method of each, and who calls whom}} |
+
+## Guides
+
+| Page | What you do |
+|---|---|
+| [Run and debug](howto/run-and-debug.md) | run each layer alone, where to break, trace, what each error means |
+
+## Reference
+
+| Page | What you look up |
+|---|---|
+| [{{title}}]({{path}}) | {{one line}} |
+| [Standards and sources](reference/sources.md) | {{the standards, handbooks and papers the code follows, and where each is used; delete this row when the code follows none}} |
+
+## Tutorials
+
+| Page | What you walk through |
+|---|---|
+| [{{title}}]({{path}}) | {{one line, or delete this section}} |
+
+<details><summary>Not written yet</summary>
+
+{{One line per topic the code would support, with what the page will cover: "Deploy: the Compose package, its variables and upgrades".}}
+
+</details>
+
+How this wiki is kept: [SCHEMA.md](SCHEMA.md). What changed recently: the end of [log.md](log.md).

@@ -1,6 +1,8 @@
 # Extraction method
 
-How `/code-map` turns a repository into the nodes and edges the viewer draws. The method is language-agnostic; §9 gives per-language starting points and §10 the editor link schemes. Read this before discovering scope (runbook Step 2) and keep it open while extracting (Step 3).
+How the `code-map` skill turns a repository into the nodes and edges the viewer draws. The method is language-agnostic; §9 gives per-language starting points and §10 the editor link schemes. Read this before discovering scope (runbook Step 2) and keep it open while extracting (Step 3).
+
+The plugin's `wiki` skill shares this file: §1, §2, §4, §8 and §9 find what its first build covers, §2 and the `other-process` rule of §6 give what its run-and-debug page warns about, the qualified names of §7 (without the `fn:` prefix) are its `path#Symbol` sources, and its viewer uses the schemes of §10, which `skills/wiki/tools/wiki.py` repeats in `EDITORS` and must keep in step with.
 
 ## 1. Languages and repository root
 
@@ -18,6 +20,13 @@ Look in this order and stop at the first class that yields candidates:
 
 `--entry` always wins. When several candidates remain, one is primary if the others call it, the README or manifest names it, or it has the largest fan-out into the repository. If none of those separates them, that is the ambiguity the runbook asks about.
 
+Then record what the primary entry point needs before it can start, beyond installing the project:
+
+- **An interpreter or host other than the default one**, such as an application's bundled Python, a specific Node version or a GPU runtime.
+- **Services that must already be running**, such as a database, a renderer or a queue.
+
+Take each one from the code that imports or connects to it, and from the scripts that wrap the entry point. Note what the program does when one is missing: the error it raises, or how long it waits before giving up. Starting the entry point without them is the first thing a newcomer tries.
+
 ## 3. Modules and import edges (layer 2)
 
 A module is a source file, or a package or crate when files are too fine (C++ translation units, Java packages, Go packages). One node per module in scope.
@@ -33,7 +42,7 @@ Confidence:
 
 Trace from the primary entry point's input to its final output. A stage is one top-level transformation on that path: usually a function the entry point calls directly, or a clearly delimited block (a loop body, a phase behind a comment banner). One stage per transformation that changes the data's shape or meaning: fold steps that are only plumbing into the stage they serve, split a stage that hides two unrelated transformations. The test is whether a reader can hold the whole pipeline in one view.
 
-For each stage record the input and the output: type first, then one line on meaning. Types come from annotations, signatures, or declared struct types; when absent, infer from construction and use (`dict[str, Tensor]`, `list of Row`) and mark `inferred`. The output type of stage N is normally the input type of stage N+1; when it is not, say why in the stage purpose.
+For each stage record the input and the output: type first, then one line on meaning. When the stage applies a named method (an algorithm, a standard and its clause, a formula, a retry or caching policy) and the code or its documents name it, record that name with where it is named. Types come from annotations, signatures, or declared struct types; when absent, infer from construction and use (`dict[str, Tensor]`, `list of Row`) and mark `inferred`. The output type of stage N is normally the input type of stage N+1; when it is not, say why in the stage purpose.
 
 ## 5. Functions and call edges (layer 4)
 
@@ -56,8 +65,11 @@ Record per function: `signature` verbatim on one line, `line` and `endLine`, `fa
 | `long` | Markedly longer than its neighbors in the same module, or long enough to hold more than one responsibility | refactor candidate |
 | `todo` | `TODO`, `FIXME`, `HACK`, or `XXX` in the body or leading comments | the author already flagged it |
 | `no-callers` | `fanIn` is 0 and the function is not an entry point | possibly dead, possibly dynamic; check before deleting |
+| `other-process` | Runs outside the process that starts it: in a subprocess, a worker pool, a server's reloader child, or a host application's interpreter that the code is sent into | a debugger attached to the entry point never stops here |
 
 Flags describe the code; they never change scope.
+
+For `other-process`, find the boundary in the code. Examples are `subprocess`, `multiprocessing` and executor pools, a fork or spawn, code passed as a string or file to a host's interpreter, and a reloader. Record two things: where the code runs, and how a debugger reaches it. That is either a switch the code or framework already has to keep the work in one process (a worker count of 1, an in-process mode, `--no-reload`), or a way to attach to the other process. If there is neither, say so.
 
 ## 7. Stable IDs
 

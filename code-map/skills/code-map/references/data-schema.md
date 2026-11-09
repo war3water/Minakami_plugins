@@ -13,7 +13,7 @@ All paths are relative to the repository root with forward slashes. Lines are 1-
 | `subsystems` | array | layer 1 nodes |
 | `modules` | array | layer 2 nodes |
 | `moduleEdges` | array | layer 2 import edges |
-| `pipeline` | object | layer 3: `entry` (a function id) and `stages` |
+| `pipeline` | object | layer 3: `entry` (a function id), `stages`, and `requires`: what the entry point needs before it can start, beyond installing the project, as short strings naming the thing, how to provide it and what happens without it (`extraction.md` §2). Leave it out when there is nothing |
 | `functions` | array | layer 4 nodes; call edges live inside each function's `calls` |
 
 ### `meta`
@@ -56,7 +56,8 @@ All paths are relative to the repository root with forward slashes. Lines are 1-
 | `outputs` | array | type objects |
 | `calls` | array | `{ "to": function id, "confidence", "evidence": "path:line" }` |
 | `fanIn`, `length` | number | as defined in `extraction.md` §5 |
-| `flags` | array | subset of `no-doc`, `untyped`, `high-fan-in`, `long`, `todo`, `no-callers` |
+| `flags` | array | subset of `no-doc`, `untyped`, `high-fan-in`, `long`, `todo`, `no-callers`, `other-process` |
+| `runsIn` | string | only with `other-process`: where the function runs, and how a debugger reaches it (the switch that keeps it in one process, or how to attach), or that nothing does |
 | `stage` | string or null | stage id when this is a stage's own function |
 
 ## Canonical example
@@ -124,3 +125,4 @@ One subsystem, two modules, one import edge, two stages, two functions. Every re
 3. Every node has `path` and `line`; every edge has `evidence` in `path:line` form.
 4. Every edge has `confidence` equal to `seen` or `inferred`; every type object has a boolean `inferred`.
 5. `meta.scope.cut` names everything left out of the map, so nothing disappears silently.
+6. Every function flagged `other-process` has a `runsIn`.

@@ -1,0 +1,433 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>__WIKI_TITLE__</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<style>
+/* One-file wiki viewer built by wiki.py viewer: README first, a sidebar in the index's reading order, search, working
+   page links, source chips that open the editor, diagrams that open in a zoom and pan view, a note on each command the
+   check does not run, and a notice on pages that may be out of date. No network access. */
+:root {
+  --bg: #f4f6f8; --panel: #ffffff; --ink: #18212b; --muted: #5b6672; --line: #d9dee4; --accent: #1f5fa8; --accent-soft: #e4ecf6;
+  --code: #eef1f4; --warn: #9a5b00; --warn-soft: #fbf0dc; --bad: #a3261b; --bad-soft: #fbe5e2;
+  --body: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --mono: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --bg: #10151b; --panel: #171e27; --ink: #e4e9ef; --muted: #98a4b0; --line: #2a3441; --accent: #84b3ea; --accent-soft: #1c2a3a;
+  --code: #1d2530; --warn: #f0b860; --warn-soft: #33270f; --bad: #f08a80; --bad-soft: #3a1c19; color-scheme: dark } }
+:root[data-theme="dark"] {
+  --bg: #10151b; --panel: #171e27; --ink: #e4e9ef; --muted: #98a4b0; --line: #2a3441; --accent: #84b3ea; --accent-soft: #1c2a3a;
+  --code: #1d2530; --warn: #f0b860; --warn-soft: #33270f; --bad: #f08a80; --bad-soft: #3a1c19; color-scheme: dark }
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--ink); font: 16px/1.6 var(--body); }
+[hidden] { display: none !important; }  /* an id rule with display would otherwise beat the hidden attribute */
+.shell { display: grid; grid-template-columns: 270px minmax(0, 1fr); gap: 28px; max-width: 1280px; margin: 0 auto; padding-block: 24px 48px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+aside { display: grid; gap: 14px; align-content: start; position: sticky; top: calc(env(safe-area-inset-top, 0px) + 12px); max-height: calc(100vh - 24px); overflow: auto; }
+#comment-sel { position: absolute; z-index: 40; font: 600 13px/1 var(--body); padding: 8px 12px; border-radius: 6px; border: 1px solid var(--accent); background: var(--accent); color: var(--panel); cursor: pointer; box-shadow: 0 4px 14px rgba(0,0,0,.18); }
+#comment-sel:focus-visible, .page-comment:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.chip.page-comment { border: 1px solid var(--accent); background: none; color: var(--accent); cursor: pointer; }
+.brand { font-weight: 650; font-size: 22px; line-height: 1.15; }
+.brand small { display: block; font-weight: 400; font-size: 13px; line-height: 1.4; color: var(--muted); margin-top: 4px; }
+#q { width: 100%; padding: 8px 10px; border: 1px solid var(--line); border-radius: 6px; background: var(--panel); color: var(--ink); font: inherit; }
+.group { display: grid; gap: 2px; }
+.group h3 { margin: 8px 0 2px; font-size: 12px; letter-spacing: .12em; text-transform: uppercase; color: var(--muted); }
+.group button { text-align: left; border: 0; background: none; color: var(--ink); font: inherit; padding: 5px 8px; border-radius: 5px; cursor: pointer; }
+.group button:hover { background: var(--code); }
+.group button[aria-current="true"] { background: var(--accent-soft); color: var(--accent); font-weight: 600; }
+.group button:focus-visible, #q:focus-visible, .theme:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+.status { font-size: 13.5px; line-height: 1.45; color: var(--warn); background: var(--warn-soft); border-radius: 6px; padding: 8px 10px; }
+.status button { display: block; text-align: left; border: 0; background: none; color: inherit; font: inherit; padding: 2px 0; text-decoration: underline; cursor: pointer; }
+.foot { display: flex; flex-wrap: wrap; gap: 4px 12px; border-top: 1px solid var(--line); padding-top: 10px; }
+.foot button { border: 0; background: none; padding: 0; font: 13px var(--body); color: var(--muted); text-decoration: underline; cursor: pointer; }
+.foot button[aria-current="true"] { color: var(--accent); }
+.notice { border: 1px solid var(--warn); background: var(--warn-soft); color: var(--warn); border-radius: 6px; padding: 8px 12px; margin: 0 0 16px; font-size: 14.5px; }
+.notice ul { margin: 4px 0 0; padding-left: 18px; }
+.check-note { font-size: 14px; color: var(--muted); border-left: 3px solid var(--warn); padding: 2px 0 2px 10px; margin: 12px 0 -4px; }
+.theme { justify-self: start; font: 13px var(--body); color: var(--muted); background: none; border: 1px solid var(--line); border-radius: 5px; padding: 3px 8px; cursor: pointer; }
+main { min-width: 0; background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 26px 32px; }
+.meta { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 14px; align-items: center; }
+.chip { font: 500 12px/1 var(--mono); padding: 5px 8px; border-radius: 4px; background: var(--accent-soft); color: var(--accent); text-decoration: none; }
+.chip.src { background: var(--code); color: var(--ink); }
+a.chip.src:hover { outline: 1px solid var(--accent); }
+.chip.missing { background: var(--bad-soft); color: var(--bad); }
+.chip.more { border: 1px dashed var(--line); background: none; color: var(--muted); cursor: pointer; font: 500 12px/1 var(--mono); }
+.meta .when { font-size: 13px; color: var(--muted); }
+article h1 { font-size: 32px; line-height: 1.15; margin: 0 0 12px; text-wrap: balance; }
+article h2 { font-size: 23px; line-height: 1.25; margin: 30px 0 8px; }
+article h3 { font-size: 18px; margin: 22px 0 6px; }
+article p, article li { max-width: 76ch; }
+article p:has(> img) { max-width: none; }
+article table { border-collapse: collapse; display: block; overflow-x: auto; margin: 10px 0; }
+article th, article td { border: 1px solid var(--line); padding: 6px 10px; vertical-align: top; text-align: left; }
+article th { background: var(--code); }
+article code { font: 13.5px var(--mono); background: var(--code); padding: 1px 4px; border-radius: 3px; }
+article pre { background: var(--code); border: 1px solid var(--line); border-radius: 6px; padding: 12px 14px; overflow-x: auto; }
+article pre code { background: none; padding: 0; }
+article img { display: block; background: #ffffff; border: 1px solid var(--line); border-radius: 6px; padding: 10px; max-width: 100%; }
+article img.zoomable { cursor: zoom-in; }
+article img.zoomable:hover, article img.zoomable:focus-visible { border-color: var(--accent); outline: none; }
+article details { margin: 8px 0 18px; } article summary { cursor: pointer; color: var(--muted); font-size: 14px; }
+article a { color: var(--accent); }
+article a.code-link { color: var(--ink); text-decoration: none; border-bottom: 1px dashed var(--muted); }
+article blockquote { margin: 0; padding: 8px 14px; border-left: 3px solid var(--accent); background: var(--accent-soft); }
+.zoom-hint { font-size: 13px; color: var(--muted); margin: -2px 0 12px; }
+.missing-diagram { padding: 10px 12px; border: 1px dashed var(--warn); background: var(--warn-soft); color: var(--warn); border-radius: 6px; font-size: 14px; }
+@media (max-width: 860px) { .shell { grid-template-columns: 1fr; } aside { position: static; max-height: none; } main { padding: 20px 16px; } }
+#zoom { position: fixed; inset: 0; z-index: 50; display: grid; grid-template-rows: auto minmax(0, 1fr); background: rgba(12, 16, 22, .9); }
+.zbar { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; color: #f2f5f8;
+  padding: calc(env(safe-area-inset-top, 0px) + 10px) max(16px, env(safe-area-inset-right, 0px)) 10px max(16px, env(safe-area-inset-left, 0px)); }
+.zbar .ztitle { flex: 1 1 auto; font-weight: 600; font-size: 17px; min-width: 0; }
+.zbar .zlevel { font: 13px var(--mono); min-width: 52px; text-align: right; }
+.zbar button { font: 600 14px/1 var(--body); padding: 8px 11px; border-radius: 6px; border: 1px solid rgba(255,255,255,.35); background: rgba(255,255,255,.1); color: #f2f5f8; cursor: pointer; }
+.zbar button:focus-visible { outline: 2px solid #84b3ea; outline-offset: 1px; }
+.zstage { position: relative; overflow: hidden; cursor: grab; touch-action: none; }
+.zstage.dragging { cursor: grabbing; }
+.zcanvas { position: absolute; left: 0; top: 0; transform-origin: 0 0; background: #ffffff; border-radius: 6px; box-shadow: 0 8px 30px rgba(0,0,0,.35); }
+.zcanvas svg { display: block; max-width: none !important; }
+.zhelp { position: absolute; left: 50%; bottom: calc(env(safe-area-inset-bottom, 0px) + 12px); transform: translateX(-50%); font-size: 13px; color: #c9d2db; background: rgba(0,0,0,.45); padding: 6px 10px; border-radius: 6px; pointer-events: none; white-space: nowrap; }
+</style>
+</head>
+<body>
+<div class="shell">
+  <aside>
+    <div class="brand" id="brand">__WIKI_TITLE__<small id="sub"></small></div>
+    <input id="q" type="search" placeholder="Search pages" aria-label="Search pages">
+    <div class="status" id="status" hidden></div>
+    <nav id="nav" aria-label="Wiki pages"></nav>
+    <div class="foot" id="foot"></div>
+    <button class="theme" id="theme" type="button">Theme: system</button>
+  </aside>
+  <main id="page"></main>
+</div>
+
+<div id="zoom" hidden role="dialog" aria-modal="true" aria-label="Diagram viewer">
+  <div class="zbar">
+    <span class="ztitle" id="ztitle"></span>
+    <span class="zlevel" id="zlevel">100%</span>
+    <button id="zout" type="button" aria-label="Zoom out">−</button>
+    <button id="zin" type="button" aria-label="Zoom in">+</button>
+    <button id="zfit" type="button">Fit</button>
+    <button id="z100" type="button">100%</button>
+    <button id="zclose" type="button" aria-label="Close">Close</button>
+  </div>
+  <div class="zstage" id="zstage"><div class="zcanvas" id="zcanvas"></div><div class="zhelp">Wheel or pinch to zoom · drag to move · double-click to zoom in · Esc to close</div></div>
+</div>
+
+<script>/*MARKED*/</script>
+<script>
+const W = /*WIKI_DATA*/null;
+// The sidebar in the words docs sites use; the page kinds behind them are the schema's (Diátaxis). The wiki's own
+// rules and log are for its maintainers, so they sit in the footer, not among the pages.
+const GROUPS = [["Start here", ["readme", "index"]], ["Tutorials", ["tutorial"]], ["How it works", ["explanation"]],
+                ["Guides", ["how-to"]], ["Reference", ["reference"]]];
+const FOOT = [["schema", "How this wiki is kept"], ["log", "Change log"]];
+const byId = new Map(W.pages.map(p => [p.id, p]));
+const rank = p => [p.kind === "readme" ? -2 : p.kind === "index" ? -1 : (p.order ?? 1e6), p.title];  // the index's reading order
+const byRank = (a, b) => { const [x, y] = [rank(a), rank(b)]; return x[0] - y[0] || x[1].localeCompare(y[1]); };
+let current = byId.has("README.md") ? "README.md" : (W.pages[0] && W.pages[0].id);
+
+// Page addresses: anchors may only hold letters, digits and . _ ~ -, so "/" becomes "~" and "~~" starts a heading.
+const toHash = (id, sec) => "#" + id.replace(/\//g, "~") + (sec ? "~~" + sec : "");
+function fromHash(h) { const [id, sec] = decodeURIComponent(h.replace(/^#/, "")).split("~~"); return [id.replace(/~/g, "/"), sec || ""]; }
+
+const esc = s => String(s).replace(/[&<>"']/g, c => ({"&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;"}[c]));
+const slugify = t => t.trim().toLowerCase().replace(/[^\p{L}\p{N}\p{M}_\- ]/gu, "").replace(/ /g, "-");  // GitHub's anchors
+function resolve(from, href) {  // a link's target, relative to the repository root
+  const parts = from.split("/").slice(0, -1);
+  const segs = href.startsWith("/") ? (parts.length = 0, href.slice(1).split("/")) : href.split("/");
+  for (const seg of segs) { if (seg === "..") parts.pop(); else if (seg !== "." && seg !== "") parts.push(seg); }
+  return parts.join("/");
+}
+function editorUrl(path, line) {
+  if (!W.editor) return null;
+  return W.editor.replace("{abs_path}", W.repoRoot + "/" + path).replace("{rel_path}", path).replace("{line}", line || 1)
+                 .replace("{col}", 1).replace("{project}", encodeURIComponent(W.repo));
+}
+
+// Page HTML comes from repository files; keep the structure Markdown needs and drop anything that could run code.
+const ALLOWED = new Set(("a abbr b blockquote br caption code col colgroup dd del details div dl dt em figcaption figure h1 h2 h3 h4 h5 h6 hr i " +
+  "img input kbd li mark ol p picture pre q s samp small source span strong sub summary sup table tbody td tfoot th thead tr u ul var").split(" "));
+const DROP = new Set("script style iframe frame frameset object embed link meta base form template svg math noscript".split(" "));
+function clean(node) {
+  for (const child of [...node.childNodes]) {
+    if (child.nodeType === 8) { child.remove(); continue; }
+    if (child.nodeType !== 1) continue;
+    const tag = child.tagName.toLowerCase();
+    if (DROP.has(tag) || (tag === "input" && child.getAttribute("type") !== "checkbox")) { child.remove(); continue; }
+    clean(child);
+    if (!ALLOWED.has(tag)) { child.replaceWith(...child.childNodes); continue; }
+    for (const a of [...child.attributes]) {
+      const n = a.name.toLowerCase();
+      const url = ["href", "src", "srcset", "xlink:href", "action", "formaction", "poster"].includes(n);
+      if (n.startsWith("on") || n === "srcdoc" || (url && /^\s*(javascript|vbscript|data):/i.test(a.value) && !/^\s*data:image\/(png|gif|jpe?g|webp);/i.test(a.value)))
+        child.removeAttribute(a.name);
+    }
+  }
+}
+// A command the wiki's check does not run says why, for the reader: what the step needs that a check cannot have.
+// The note is followed by a blank line, so the fenced block under it stays a code block.
+const skipNotes = src => src.replace(/^([ \t]*)<!--\s*check:skip\b([^>]*?)-->[ \t]*$/gm, (m, indent, attrs) => {
+  const reason = (/reason="([^"]*)"/.exec(attrs) || [])[1];
+  return reason ? `${indent}<p class="check-note">Not run by the wiki's automatic check: ${esc(reason)}</p>\n` : m;
+});
+function renderMarkdown(src, id) {
+  if (!window.marked) return "<pre>" + esc(src) + "</pre>";
+  src = skipNotes(src);
+  const doc = new DOMParser().parseFromString("<body>" + marked.parse(src, {headerIds: false, mangle: false}) + "</body>", "text/html");
+  clean(doc.body);
+  fixMedia(doc.body, id);
+  return doc.body.innerHTML;
+}
+// Images are rewritten before the page is shown: their paths are relative to the page in the repository, not to
+// wherever this file was opened from, so they come embedded (or as file links) in the data.
+function fixMedia(root, id) {
+  const local = src => src && !/^[a-z][a-z0-9+.-]+:/i.test(src) && !src.startsWith("//");
+  root.querySelectorAll("source[srcset]").forEach(s => {
+    const first = s.getAttribute("srcset").trim().split(/[\s,]+/)[0];
+    if (!local(first)) return;
+    const u = W.images[resolve(id, first)];
+    if (u) s.setAttribute("srcset", u); else s.remove();
+  });
+  root.querySelectorAll("img").forEach(img => {
+    const src = img.getAttribute("src") || "";
+    if (!local(src)) return;
+    const path = resolve(id, src), svg = W.svgs[path];
+    if (svg) {
+      img.setAttribute("src", "data:image/svg+xml;charset=utf-8," + encodeURIComponent(svg));
+      img.dataset.diagram = path;
+    } else if (W.images[path]) {
+      img.setAttribute("src", W.images[path]);
+    } else {
+      const note = document.createElement("div"); note.className = "missing-diagram";
+      note.textContent = /\.svg$/i.test(path) && path.includes("/diagrams/")
+        ? `Diagram not rendered yet (${path}); its Mermaid source is below.` : `Image not in this viewer: ${path}`;
+      img.replaceWith(note);
+    }
+  });
+}
+
+function nav(filter) {
+  const q = (filter || "").trim().toLowerCase(); let html = "", shown = 0;
+  const known = GROUPS.flatMap(g => g[1]).concat(FOOT.map(f => f[0]));
+  for (const [label, kinds] of GROUPS.concat([["Other", null]])) {
+    const items = W.pages.filter(p => (kinds ? kinds.includes(p.kind) : !known.includes(p.kind)) &&
+                                      (!q || (p.title + "\n" + p.body).toLowerCase().includes(q))).sort(byRank);
+    if (!items.length) continue;
+    html += `<div class="group"><h3>${esc(label)}</h3>` +
+      items.map(p => `<button type="button" data-id="${esc(p.id)}" aria-current="${p.id === current}">${esc(p.kind === "index" ? "All pages" : p.title)}</button>`).join("") + "</div>";
+    shown += items.length;
+  }
+  document.getElementById("nav").innerHTML = html || "<p>No page matches.</p>";
+  document.getElementById("foot").innerHTML = FOOT.map(([kind, label]) => W.pages.filter(p => p.kind === kind)
+    .map(p => `<button type="button" data-id="${esc(p.id)}" aria-current="${p.id === current}">${esc(label)}</button>`).join("")).join("");
+  return shown;
+}
+
+// Every page is rendered once, into its own section with a stable id, and navigation only shows and hides them:
+// the DOM under a page never changes, so anything anchored to it (a comment pin, a selection) stays put.
+const sections = new Map();
+const sectionId = id => "pg-" + id.replace(/[^A-Za-z0-9_-]+/g, "-");
+
+function build(p) {
+  const id = p.id;
+  const sect = document.createElement("section");
+  sect.className = "wikipage"; sect.id = sectionId(id); sect.hidden = true; sect.dataset.page = id;
+  sect.innerHTML = `<div class="meta"></div><article></article>`;
+  // The code a page explains is for the developer who goes there next; it opens on request, so the page starts
+  // with its text. The page's kind is already the sidebar group it sits in.
+  const chips = [p.updated && `<span class="when">Updated ${esc(p.updated)}</span>`];
+  p.sources.forEach(s => {
+    const url = s.ok ? editorUrl(s.path, s.line) : null, title = s.ok ? `${s.path}${s.line ? ":" + s.line : ""}` : "not found in the code";
+    chips.push(url ? `<a class="chip src extra" href="${esc(url)}" title="Open in editor: ${esc(title)}" hidden>${esc(s.ref)}</a>`
+                   : `<span class="chip src extra${s.ok ? "" : " missing"}" title="${esc(title)}" hidden>${esc(s.ref)}</span>`);
+  });
+  if (p.sources.length) chips.push(`<button type="button" class="chip more" aria-expanded="false">Code this page explains (${p.sources.length})</button>`);
+  const meta = sect.querySelector(".meta");
+  meta.innerHTML = chips.filter(Boolean).join("");
+  const more = meta.querySelector(".more");
+  if (more) more.onclick = () => { meta.querySelectorAll(".extra").forEach(c => c.hidden = false); more.remove(); };
+  const notes = (W.notices || {})[id];
+  if (notes && notes.length) {
+    const box = document.createElement("div"); box.className = "notice"; box.setAttribute("role", "note");
+    box.innerHTML = "Parts of this page may be out of date:<ul>" + notes.map(n => `<li>${esc(n)}</li>`).join("") + "</ul>";
+    meta.after(box);
+  }
+  const el = sect.querySelector("article"); el.innerHTML = renderMarkdown(p.body, id);
+  const seen = {};
+  el.querySelectorAll("h1, h2, h3, h4, h5, h6").forEach(h => {
+    const base = slugify(h.textContent), n = seen[base] || 0; seen[base] = n + 1; h.dataset.slug = n ? `${base}-${n}` : base;
+  });
+  el.querySelectorAll("img[data-diagram]").forEach(img => {
+    const path = img.dataset.diagram, svg = W.svgs[path];
+    // natural size, capped at the page width: an SVG with width="100%" would otherwise be blown up to fill the column
+    const natural = (svg.match(/max-width:\s*([\d.]+)px/) || svg.match(/viewBox="[-\d.]+[ ,]+[-\d.]+[ ,]+([\d.]+)/) || [])[1];
+    if (natural) img.style.width = Math.round(+natural + 22) + "px";
+    img.classList.add("zoomable"); img.tabIndex = 0; img.title = "Click to zoom";
+    const hint = document.createElement("div"); hint.className = "zoom-hint"; hint.textContent = "Click the diagram to zoom and pan.";
+    (img.closest("p") || img).after(hint);
+    const open = () => openZoom(path, img.alt);
+    img.addEventListener("click", open);
+    img.addEventListener("keydown", e => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); open(); } });
+  });
+  el.querySelectorAll("a[href]").forEach(a => {
+    const href = a.getAttribute("href");
+    if (/^[a-z][a-z0-9+.-]+:/i.test(href) || href.startsWith("//")) { a.target = "_blank"; a.rel = "noopener"; return; }
+    const [pathPart, frag] = href.split("#");
+    const target = pathPart ? resolve(id, pathPart) : id;
+    if (target === id) {  // a section of this page
+      a.classList.add("anchor-link");
+      a.addEventListener("click", e => {
+        e.preventDefault();
+        const sec = frag ? slugify(decodeURIComponent(frag)) : "";
+        const to = sec && el.querySelector(`[data-slug="${CSS.escape(sec)}"]`);
+        try { history.replaceState(null, "", toHash(id, sec)); } catch (err) {}
+        if (to) to.scrollIntoView(); else window.scrollTo(0, 0);
+      });
+    } else if (byId.has(target)) {
+      a.classList.add("page-link");
+      a.addEventListener("click", e => { e.preventDefault(); show(target, frag ? slugify(decodeURIComponent(frag)) : ""); });
+    } else {
+      const line = frag && W.symbols[target + "#" + frag];
+      const url = editorUrl(target, line);
+      a.className = "code-link"; a.title = (url ? "Open in editor: " : "Repository file: ") + target + (line ? ":" + line : "");
+      if (url) a.href = url; else a.addEventListener("click", e => e.preventDefault());
+    }
+  });
+  document.getElementById("page").appendChild(sect);
+  sections.set(id, sect);
+}
+
+function show(id, sec) {
+  if (!byId.has(id)) return; current = id;
+  try { history.replaceState(null, "", toHash(id, sec)); } catch (e) {}
+  for (const [pid, s] of sections) s.hidden = pid !== id;
+  nav(document.getElementById("q").value);
+  const anchor = sec && sections.get(id).querySelector(`[data-slug="${CSS.escape(sec)}"]`);
+  if (anchor) anchor.scrollIntoView(); else window.scrollTo(0, 0);
+}
+
+// Diagram viewer: its own zoom and pan; the wheel zooms the diagram around the pointer, never the page behind it.
+const zoom = document.getElementById("zoom"), stage = document.getElementById("zstage"), canvas = document.getElementById("zcanvas");
+const Z = { s: 1, x: 0, y: 0, w: 1, h: 1, last: null };
+function zApply() { canvas.style.transform = `translate(${Z.x}px, ${Z.y}px) scale(${Z.s})`; document.getElementById("zlevel").textContent = Math.round(Z.s * 100) + "%"; }
+function zFit() { const r = stage.getBoundingClientRect(); Z.s = Math.min((r.width - 48) / Z.w, (r.height - 48) / Z.h, 4); Z.x = (r.width - Z.w * Z.s) / 2; Z.y = (r.height - Z.h * Z.s) / 2; zApply(); }
+function zAt(f, cx, cy) { const s = Math.min(12, Math.max(0.1, Z.s * f)), k = s / Z.s; Z.x = cx - (cx - Z.x) * k; Z.y = cy - (cy - Z.y) * k; Z.s = s; zApply(); }
+function zCenter(f) { const r = stage.getBoundingClientRect(); zAt(f, r.width / 2, r.height / 2); }
+function openZoom(path, title) {
+  const doc = new DOMParser().parseFromString(W.svgs[path], "image/svg+xml");
+  doc.querySelectorAll("script, foreignObject").forEach(n => n.remove());
+  canvas.replaceChildren(document.importNode(doc.documentElement, true));
+  const svg = canvas.querySelector("svg"), vb = svg.viewBox && svg.viewBox.baseVal;
+  Z.w = vb && vb.width ? vb.width : svg.getBBox().width; Z.h = vb && vb.height ? vb.height : svg.getBBox().height;
+  svg.setAttribute("width", Z.w); svg.setAttribute("height", Z.h); svg.style.maxWidth = "none";
+  document.getElementById("ztitle").textContent = title || "Diagram";
+  Z.last = document.activeElement; zoom.hidden = false; document.body.style.overflow = "hidden"; zFit(); document.getElementById("zclose").focus();
+}
+function closeZoom() { zoom.hidden = true; document.body.style.overflow = ""; canvas.replaceChildren(); Z.last && Z.last.focus && Z.last.focus(); }
+stage.addEventListener("wheel", e => { e.preventDefault(); const r = stage.getBoundingClientRect(); zAt(Math.exp(-e.deltaY * 0.0015), e.clientX - r.left, e.clientY - r.top); }, { passive: false });
+const ptrs = new Map(); let pinch = 0;
+stage.addEventListener("pointerdown", e => { stage.setPointerCapture(e.pointerId); ptrs.set(e.pointerId, { x: e.clientX, y: e.clientY }); stage.classList.add("dragging"); });
+stage.addEventListener("pointermove", e => {
+  if (!ptrs.has(e.pointerId)) return; const prev = ptrs.get(e.pointerId); ptrs.set(e.pointerId, { x: e.clientX, y: e.clientY });
+  if (ptrs.size === 2) {  // pinch: zoom around the midpoint of the two fingers
+    const [a, b] = [...ptrs.values()], d = Math.hypot(a.x - b.x, a.y - b.y), r = stage.getBoundingClientRect();
+    if (pinch) zAt(d / pinch, (a.x + b.x) / 2 - r.left, (a.y + b.y) / 2 - r.top); pinch = d;
+  } else { Z.x += e.clientX - prev.x; Z.y += e.clientY - prev.y; zApply(); }
+});
+const endPtr = e => { ptrs.delete(e.pointerId); if (ptrs.size < 2) pinch = 0; if (!ptrs.size) stage.classList.remove("dragging"); };
+stage.addEventListener("pointerup", endPtr); stage.addEventListener("pointercancel", endPtr);
+stage.addEventListener("dblclick", e => { const r = stage.getBoundingClientRect(); zAt(1.8, e.clientX - r.left, e.clientY - r.top); });
+document.getElementById("zin").onclick = () => zCenter(1.4); document.getElementById("zout").onclick = () => zCenter(1 / 1.4);
+document.getElementById("zfit").onclick = zFit; document.getElementById("zclose").onclick = closeZoom;
+document.getElementById("z100").onclick = () => { const r = stage.getBoundingClientRect(); Z.s = 1; Z.x = (r.width - Z.w) / 2; Z.y = (r.height - Z.h) / 2; zApply(); };
+document.addEventListener("keydown", e => {
+  if (zoom.hidden) return;
+  if (e.key === "Escape") closeZoom(); else if (e.key === "+" || e.key === "=") zCenter(1.4); else if (e.key === "-") zCenter(1 / 1.4); else if (e.key === "0") zFit();
+});
+window.addEventListener("resize", () => { if (!zoom.hidden) zFit(); });
+
+// Theme: follow the system unless the reader picks one (remembered in this browser when storage is available).
+const themes = ["system", "light", "dark"]; let theme = "system";
+try { theme = localStorage.getItem("code-map-wiki-theme") || "system"; } catch (e) {}
+function applyTheme() {
+  if (theme === "system") document.documentElement.removeAttribute("data-theme"); else document.documentElement.dataset.theme = theme;
+  document.getElementById("theme").textContent = "Theme: " + theme;
+}
+document.getElementById("theme").onclick = () => {
+  theme = themes[(themes.indexOf(theme) + 1) % themes.length]; applyTheme();
+  try { localStorage.setItem("code-map-wiki-theme", theme); } catch (e) {}
+};
+applyTheme();
+
+for (const box of ["nav", "foot", "status"])
+  document.getElementById(box).addEventListener("click", e => { const b = e.target.closest("button[data-id]"); if (b) show(b.dataset.id); });
+document.getElementById("q").addEventListener("input", e => nav(e.target.value));
+const reading = W.pages.filter(p => !FOOT.some(f => f[0] === p.kind)).length;
+document.getElementById("sub").textContent = `${reading} pages` + (window.marked ? "" : " · Markdown renderer missing: showing source");
+// Only what a reader should know: pages whose code moved on, or whose links lead nowhere. The lint's full report is
+// for the maintainer, in the terminal.
+const stale = Object.keys(W.notices || {}).filter(id => byId.has(id));
+if (stale.length) {
+  const st = document.getElementById("status"); st.hidden = false;
+  st.innerHTML = `${stale.length === 1 ? "1 page" : stale.length + " pages"} may be out of date:` +
+    stale.map(id => `<button type="button" data-id="${esc(id)}">${esc(byId.get(id).title)}</button>`).join("");
+}
+function fromAddress() {
+  try { const [h, sec] = fromHash(location.hash); if (byId.has(h)) { show(h, sec); return; } } catch (e) {}
+  show(current);
+}
+W.pages.forEach(build);
+window.addEventListener("hashchange", fromAddress);  // typed addresses and the browser's back and forward buttons
+fromAddress();
+
+// Review comments, where this page is published as an Artifact: select text in a page and press Comment, or comment
+// on the page as a whole. The platform's own comment box opens, quoting the selection; the platform stores and shows
+// every thread. Opened from a file, there is no comment service and nothing below appears.
+(async () => {
+  let comments = null;
+  try { comments = window.claude && window.claude.use ? await window.claude.use("comments") : null; } catch (e) {}
+  if (!comments) return;
+  const btn = document.createElement("button");
+  btn.type = "button"; btn.id = "comment-sel"; btn.textContent = "Comment"; btn.hidden = true;
+  document.body.appendChild(btn);
+  let range = null, timer = null;
+  const off = () => { btn.hidden = true; range = null; };
+  const place = () => {
+    const sel = document.getSelection();
+    if (!sel || sel.isCollapsed || !sel.rangeCount) return off();
+    const r = sel.getRangeAt(0);
+    if (!document.getElementById("page").contains(r.commonAncestorContainer)) return off();
+    range = r.cloneRange();
+    const box = r.getBoundingClientRect();
+    btn.style.top = Math.round(box.bottom + window.scrollY + 8) + "px";
+    btn.style.left = Math.round(Math.max(8, Math.min(box.left + window.scrollX, document.documentElement.clientWidth - 110))) + "px";
+    btn.hidden = false;
+  };
+  document.addEventListener("selectionchange", () => { clearTimeout(timer); timer = setTimeout(place, 120); });
+  btn.addEventListener("mousedown", e => e.preventDefault());  // keep the selection while pressing
+  const open = async target => {
+    try { await comments.openComposer(target); }
+    catch (e) {
+      if (e && ["unavailable", "not_granted", "forbidden", "capability_disabled", "capability_removed"].includes(e.code)) {
+        btn.remove(); document.querySelectorAll(".page-comment").forEach(b => b.remove());
+        document.getElementById("sub").textContent += " · commenting is off here";
+      }
+    }
+  };
+  btn.addEventListener("click", () => { if (range) open({ range }); off(); });
+  for (const [, sect] of sections) {  // one control per page for comments on the page as a whole
+    const b = document.createElement("button");
+    b.type = "button"; b.className = "chip page-comment"; b.textContent = "Comment on this page";
+    b.addEventListener("click", () => open({ element: sect.querySelector("article h1") || sect.querySelector("article") }));
+    sect.querySelector(".meta").appendChild(b);
+  }
+  document.getElementById("sub").textContent += " · select text to comment";
+})();
+</script>
+</body>
+</html>
