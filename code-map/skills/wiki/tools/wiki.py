@@ -888,6 +888,7 @@ def lint(repo: Path, wiki: Path, run: bool = False, in_place: bool = False, time
               "problems": problems, "warnings": warnings, "sources": {}, "diagrams": 0, "commands": [],
               "coverage": {"run": 0, "skip": 0, "unmarked": 0}, "words": {}}
     files = None
+    vocab = None  # the sources page's short names, read on first use
 
     def bad(page, line, msg):
         problems.append({"page": page.label, "line": line, "msg": msg})
@@ -1019,10 +1020,19 @@ def lint(repo: Path, wiki: Path, run: bool = False, in_place: bool = False, time
         for b in blocks:
             if b.get("fill"):
                 warn(page, b["fill"], "output waiting to be filled: run lint --run --capture <folder>, then wiki.py fill --capture <folder>")
-        # sources the code follows: a standard named on a page is linked, at least once on that page
-        for line, cite in unlinked_citations(page):
-            warn(page, line, f"names {cite} without linking its source: link it to the document in the repository that covers "
-                             "it, or to its entry on the wiki's sources page")
+        # sources the code follows: a source named in a section is linked in that section, and in each step of a step table
+        if vocab is None:
+            vocab = source_vocab(pages)
+        for line, cite in unlinked_citations(page, vocab):
+            warn(page, line, f"names {cite} without linking its source in this section: link it to the document in the "
+                             "repository that covers it, or to its entry on the wiki's sources page")
+        step_citation_checks(repo, page, syms, vocab, warn)
+        bare = [line for line, t in links(page.text) if not is_external(t) and re.search(r"(^|/)sources\.md$", t)
+                and not (page.wiki_rel and Path(page.wiki_rel).name == "sources.md")]
+        if bare:
+            warn(page, bare[0], f"{len(bare)} link(s) to the sources page name no entry: end each with the source's anchor "
+                                "(sources.md#dnv-cn-41-2), so the reader lands on that source's row, with its clauses and "
+                                "public link, instead of the top of the table")
         # complete call lists (`Caller | Calls` tables): each row is a call in the caller's code
         if "| caller" in page.text.lower():
             if files is None:
@@ -1322,22 +1332,139 @@ CITATION = re.compile(r"\b(?:ISO|IEC|DIN|AGMA|DNV(?: ?GL)?(?: ?CN)?|VDI|ASTM|ANS
 LINK_TEXT = re.compile(r"\[((?:[^\[\]]|\[[^\]]*\])*)\]\([^)]*\)")
 
 
-def unlinked_citations(page: Page) -> list[tuple[int, str]]:
-    """(line, citation) for each standard a page names (ISO 6336-1, DNV CN 41.2, RFC 9457, …) that no occurrence on the
-    page links: the reader cannot reach the source. The sources page itself is exempt; it is where the links point."""
+def source_vocab(pages: list[Page]) -> list[tuple[re.Pattern, str]]:
+    """(pattern, short name) for each source on the wiki's sources page, read from the first column of its table: the
+    short name itself, and its first word alone when no other source starts with that word and the rest of the name
+    is a document number (`DNV` of DNV CN 41.2, `Zhang` of Zhang et al. 2020; not `API` of API contract). So `DNV p. 12` and `DNV cl. 1.9.3.2` count as citations of DNV CN 41.2, which the bare standard
+    pattern misses."""
+    page = next((p for p in pages if p.wiki_rel and Path(p.wiki_rel).name == "sources.md"), None)
+    if not page:
+        return []
+    names: list[str] = []
+    for _, header, rows in table_rows(page):
+        if not header or header[0] not in ("source", "sources", "short name", "name"):
+            continue
+        for _, cells in rows:
+            name = re.sub(r"<[^>]+>", "", cells[0])
+            name = re.sub(r"\[([^\]]*)\]\([^)]*\)", r"\1", name)
+            name = re.sub(r"\([^)]*\)", "", name).replace("`", "").replace("*", "").strip()
+            if len(name) >= 3 and name not in names:
+                names.append(name)
+    out = [(re.compile(r"(?<![\w/-])" + r"[\s ]+".join(map(re.escape, n.split())) + r"(?!\w)"), n) for n in names]
+    firsts: dict[str, int] = {}
+    for n in names:
+        firsts[n.split()[0]] = firsts.get(n.split()[0], 0) + 1
+    for n in names:
+        w = n.split()[0]
+        if firsts[w] == 1 and w != n and len(w) >= 3 and w[0].isupper() and re.search(r"\d", n[len(w):]):
+            out.append((re.compile(r"(?<![\w/-])" + re.escape(w) + r"(?![\w/-])"), n))
+    return out
+
+
+def cite_mentions(text: str, vocab: list[tuple[re.Pattern, str]]) -> list[tuple[int, int, str, str]]:
+    """(start, end, source key, text as written) for each citation in the text: a standard by number (ISO 6336-1,
+    RFC 9457), or a source the sources page lists, by its short name or its own first word."""
+    found = []
+    for m in CITATION.finditer(text):
+        s = re.sub(r"[\s ]+", " ", m.group(0))
+        key = next((n for _, n in vocab if s.upper().startswith(n.upper())), s.upper())
+        found.append((m.start(), m.end(), key, m.group(0)))
+    for rx, name in vocab:
+        for m in rx.finditer(text):
+            if not any(a <= m.start() < b for a, b, _, _ in found):
+                found.append((m.start(), m.end(), name, m.group(0)))
+    return sorted(found)
+
+
+def unlinked_citations(page: Page, vocab: list[tuple[re.Pattern, str]] = ()) -> list[tuple[int, str]]:
+    """(line, citation) for each source a section names (ISO 6336-1, DNV CN 41.2, RFC 9457, or `DNV` in `DNV p. 12`
+    when the sources page lists DNV CN 41.2) that no mention in that section links: a reader checking a number in that
+    section cannot reach the source. The rule is the first mention in each section; one linked mention anywhere in the
+    section passes. The sources page itself is exempt; it is where the links point."""
     if page.wiki_rel and Path(page.wiki_rel).name == "sources.md":
         return []
-    first, linked = {}, set()
+    out: list[tuple[int, str]] = []
+    first: dict[str, tuple[int, str]] = {}
+    linked: set[str] = set()
     for i, line in enumerate(prose_lines(page.text), 1):
         if i <= page.fm_lines:
             continue
+        if re.match(r"\s{0,3}#{1,6}\s", line):
+            out += [first[k] for k in first if k not in linked]
+            first, linked = {}, set()
         spans = [m.span(1) for m in LINK_TEXT.finditer(line)]
-        for m in CITATION.finditer(line):
-            key = re.sub(r"[\s ]+", " ", m.group(0)).upper()
-            first.setdefault(key, (i, m.group(0)))
-            if any(a <= m.start() < b for a, b in spans):
+        for a, _, key, text in cite_mentions(line, vocab):
+            first.setdefault(key, (i, text))
+            if any(x <= a < y for x, y in spans):
                 linked.add(key)
-    return [first[k] for k in first if k not in linked]
+    return out + [first[k] for k in first if k not in linked]
+
+
+DOC_TARGET = re.compile(r"\.(?:md|markdown|rst|txt|pdf|html?)(?:#|$)", re.I)
+INLINE_CODE = re.compile(r"(`+)(?!`).+?(?<!`)\1(?!`)")
+
+
+def step_citation_checks(repo: Path, page: Page, syms: "Symbols", vocab: list[tuple[re.Pattern, str]], warn) -> None:
+    """In a step table (header `# | Step | Method | Code …`), the Method cell is where a reader checking a number goes
+    to the clause it comes from. Each source the cell names is linked in that cell; and a step whose code cites a
+    source (a docstring or comment such as "DNV p.12"), in its own functions or in a function of the same file they
+    call, links its source in the Method cell. Review of 2026-11-08: steps 5-7 of a spur rating cited `DNV p. 12` and
+    `DNV cl. 1.9.3.2`, or nothing, without a link, and the page-level check passed because DNV CN 41.2 was linked
+    once higher up."""
+    for _, header, rows in table_rows(page):
+        if not (header and header[0] == "#" and "step" in header and "method" in header):
+            continue
+        mcol, scol = header.index("method"), header.index("step")
+        ccol = header.index("code") if "code" in header else None
+        for line, cells in rows:
+            if mcol >= len(cells):
+                continue
+            cell = INLINE_CODE.sub(lambda m: " " * len(m.group(0)), cells[mcol])
+            label = re.sub(r"[*`]", "", re.sub(r"\s+", " ", cells[scol]))[:60] if scol < len(cells) else ""
+            step = f"step {cells[0]} ({label})"
+            spans = [m.span(1) for m in LINK_TEXT.finditer(cell)]
+            mentions = cite_mentions(cell, vocab)
+            done = {k for a, _, k, _ in mentions if any(x <= a < y for x, y in spans)}
+            for a, _, key, text in mentions:
+                if key not in done:
+                    done.add(key)
+                    warn(page, line, f"{step} names {text} in its Method cell without a link: link it there, to the section "
+                                     "of the repository's document that covers the clause, or to the source's entry on the "
+                                     "sources page")
+            targets = re.findall(r"\]\(\s*<?([^)\s>]+)", cells[mcol])
+            if mentions or ccol is None or ccol >= len(cells) or any(DOC_TARGET.search(t) or is_external(t) for t in targets):
+                continue
+            cited: list[str] = []
+            for text, target in CODE_LINK.findall(cells[ccol]):
+                if is_external(target):
+                    continue
+                path = (page.path.parent / urllib.parse.unquote(target.partition("#")[0])).resolve()
+                try:
+                    rel = path.relative_to(repo.resolve()).as_posix()
+                except ValueError:
+                    continue
+                name = re.sub(r"\(\)$", "", text.strip())
+                res = syms.find(f"{rel}#{name}")
+                if not res["ok"] or not res.get("end"):
+                    continue
+                lines = read(path).split("\n")
+                code = "\n".join(lines[res["line"] - 1:res["end"]])
+                bodies = [(name, code)]
+                for qual, start, end in syms.defs(path)[1]:
+                    short = qual.split(".")[-1]
+                    if short != name.split(".")[-1] and re.search(rf"(?<![\w.]){re.escape(short)}\s*\(", code):
+                        bodies.append((f"{short}, called by {name}", "\n".join(lines[start - 1:end])))
+                for who, body in bodies:
+                    for _, _, _, t in cite_mentions(body, vocab):
+                        item = re.sub(r"[\s ]+", " ", t) + f" ({who})"
+                        if item not in cited:
+                            cited.append(item)
+            if cited:
+                more = " …" if len(cited) > 3 else ""
+                warn(page, line, f"{step}: its code cites {', '.join(cited[:3])}{more}, and its Method cell links no source: "
+                                 "name the method as the code does and link the clause, or link the repository's chapter "
+                                 "that describes the step")
+
 
 
 def call_table_checks(repo: Path, page: Page, syms: Symbols, files: list[str], bad, warn) -> None:

@@ -58,6 +58,7 @@ There is no closing list of sources: the front matter holds them, and the viewer
    - Write each diagram as a fenced `mermaid` block whose first line is `%% id: <name>`.
    - `wiki_browser.py render` renders it to `diagrams/<name>.svg`. Pages show the SVG and keep the source in a collapsed `details` block, because VS Code's built-in preview does not render Mermaid.
    - Put every label in double quotes, with no semicolons or angle brackets.
+   - A section whose reader must hold an order, a choice, a comparison, a number built from parts or a quantity across a range shows it, as a diagram, a table, or a Mermaid `xychart-beta` or `pie` chart whose values come from a captured run. Words stay words where they read easily.
    - Re-render after every edit; the lint fails on an SVG older than its source.
 7. **Log format:** one heading per entry, `## [YYYY-MM-DD] <build|change|lint|decision> | <title>`, then one to three lines naming, by path, the pages updated and the pages checked and still true (`Updated: … Checked: …`). Naming a page records the check, so the lint stops reporting it as out of date. The log is append-only, with new entries at the end.
 8. **Commands that must keep working.** Every shell block in the README or a page is marked:
@@ -67,7 +68,7 @@ There is no closing list of sources: the front matter holds them, and the viewer
 
    `lint --run --strict --clean-env` fails on a failing command, on output that changed, and on an unmarked block.
 9. **The wiki describes the code; it never changes it.** A code change that would help readers, such as a trace switch, is proposed separately.
-10. **Lint** checks links and anchors, `path#symbol` sources, the `Set in` column of output-field tables (the symbol exists and still mentions the field), the code boxes and call arrows of diagrams and the rows of `Caller | Calls` lists, standards named without a link to their source, main-flow steps the overview's code-to-know-first table leaves out, index coverage, current diagrams, the log, and, with `--run`, the commands. It also reports the words a reader has to read.
+10. **Lint** checks links and anchors, `path#symbol` sources, the `Set in` column of output-field tables (the symbol exists and still mentions the field), the code boxes and call arrows of diagrams and the rows of `Caller | Calls` lists, sources named without a link (in each section, and in each step's Method cell, including a source the step's code cites), links to the sources page that name no row, main-flow steps the overview's code-to-know-first table leaves out, index coverage, current diagrams, the log, and, with `--run`, the commands. It also reports the words a reader has to read.
 11. **Sources.** A standard, handbook, paper or specification the code follows is listed once on `reference/sources.md` with its full citation, and every page that names it links it there or to the repository's own chapter on it. A periodic review by the agent adds what a script cannot check: claims the code no longer supports, facts kept in full on two pages, headings a newcomer would not understand, contradictions between pages{{, and with the design documents: …}}, and orphan pages.
 
 ## Commands

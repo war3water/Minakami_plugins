@@ -33,8 +33,11 @@ MERMAID_VERSION = "11.4.1"
 MERMAID_URL = f"https://cdn.jsdelivr.net/npm/mermaid@{MERMAID_VERSION}/dist/mermaid.min.js"
 MERMAID_SHA256 = "a43bc1afd446f9c4cc66ac5dd45d02e8d65e26fc5344ec0ef787f88d6ddb6f9e"
 NO_BROWSER = 3
+# The neutral theme draws chart bars, lines and pie slices in pale greys; charts get a palette that reads on white.
+CHART_COLORS = ["#2f6db3", "#d9822b", "#3a9a5b", "#c0504d", "#7b5ea7", "#6b7a89"]
 MERMAID_INIT = ('mermaid.initialize({startOnLoad: false, theme: "neutral", securityLevel: "strict", htmlLabels: false, '
-                'flowchart: {htmlLabels: false}});')
+                'flowchart: {htmlLabels: false}, themeVariables: {xyChart: {plotColorPalette: "' + ", ".join(CHART_COLORS) + '"}, '
+                + ", ".join(f'pie{i + 1}: "{c}"' for i, c in enumerate(CHART_COLORS)) + '}});')
 RENDER_ONE = """async ([id, src]) => {
   try { const r = await mermaid.render("wiki-" + id, src); return {ok: true, svg: r.svg}; }
   catch (e) { document.querySelectorAll('[id^="dwiki-"], [id^="wiki-"]').forEach(n => n.remove());

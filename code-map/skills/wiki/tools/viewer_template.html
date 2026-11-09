@@ -262,6 +262,8 @@ function build(p) {
   el.querySelectorAll("h1, h2, h3, h4, h5, h6").forEach(h => {
     const base = slugify(h.textContent), n = seen[base] || 0; seen[base] = n + 1; h.dataset.slug = n ? `${base}-${n}` : base;
   });
+  // explicit anchors, such as <a id="dnv-cn-41-2"></a> on a row of the sources table, are link targets too
+  el.querySelectorAll("[id], a[name]").forEach(a => { if (!a.dataset.slug) a.dataset.slug = (a.id || a.getAttribute("name")).toLowerCase(); });
   el.querySelectorAll("img[data-diagram]").forEach(img => {
     const path = img.dataset.diagram, svg = W.svgs[path];
     // natural size, capped at the page width: an SVG with width="100%" would otherwise be blown up to fill the column
