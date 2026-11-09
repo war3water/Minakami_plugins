@@ -41,7 +41,7 @@
     },
     {
       "name": "code-map",
-      "version": "0.2.0",
+      "version": "0.2.1",
       "description": "Build an interactive, layered code map of a repository as a local HTML file, every node deep-linked to your editor and every edge citing its source line; and build a code wiki that an agent keeps current with the code: the README as front page, pages that name the source symbols they explain (checked by a lint), a run-and-debug page, rendered diagrams, executable setup commands, and a one-file viewer.",
       "category": "review",
       "source": {
