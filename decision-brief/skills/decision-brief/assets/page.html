@@ -99,6 +99,15 @@ section { display: grid; gap: 16px; }
 details.more summary { cursor: pointer; color: var(--accent); font-size: 0.9rem; width: fit-content; }
 details.more[open] { display: grid; gap: 6px; }
 .outcome { background: var(--ok-soft); border-radius: var(--radius); padding: 8px 12px; }
+/* Earlier rounds: one line per decision; the cards load, read-only, when a round is opened. */
+details.round { border-top: 1px solid var(--line); padding-top: 8px; display: grid; gap: 8px; }
+details.round summary { cursor: pointer; }
+ul.past { list-style: none; padding: 0; display: grid; gap: 6px; }
+.past-answer { color: var(--ok); font-weight: 600; }
+ul.past-opts { list-style: none; padding: 0; display: grid; gap: 4px; color: var(--muted); font-size: 0.93rem; }
+ul.past-opts li.chosen { color: var(--ink); }
+ul.past-opts li.chosen::before { content: "\2713  "; color: var(--ok); }
+.q.frozen { background: transparent; }
 .notice { background: var(--wait-soft); color: var(--ink); border-radius: var(--radius); padding: 8px 12px; font-size: 0.95rem; }
 fieldset.opts { border: 1px solid var(--line); border-radius: var(--radius); margin: 0; padding: 0; display: grid; min-width: 0; overflow: hidden; }
 .opt { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 10px; align-items: start; padding: 9px 12px; border-top: 1px solid var(--line); cursor: pointer; }
@@ -247,6 +256,7 @@ footer { color: var(--muted); font-size: 0.85rem; }
     how_done: "Press I'm done when you have answered, or tell me in the chat. I read every answer at once.",
     glossary_title: "Words and short names used here",
     glossary_source: "Source:",
+    glossary_found: "Appears in:",
     tabs_label: "Sections of this page",
     tab_open: "Waiting for you",
     tab_status: "Work status",
@@ -256,6 +266,12 @@ footer { color: var(--muted); font-size: 0.85rem; }
     status_lede: "",
     decided_lede: "Decided earlier and kept for reference. You can still change an answer or add a note; I see changes the next time I read the page.",
     decided_default: "Decided earlier",
+    earlier_rounds: "Earlier rounds",
+    earlier_lede: "Answers from earlier rounds, kept for reference. To change one, tell me in the chat.",
+    n_decision: "{n} decision",
+    n_decisions: "{n} decisions",
+    show_cards: "Show the cards",
+    load_failed: "This round could not be loaded ({why}).",
     group_from: "From: {title}",
     preview: "Compare the options",
     count_open: "{n} without an answer",
@@ -346,6 +362,7 @@ footer { color: var(--muted); font-size: 0.85rem; }
     how_done: "答完后按“我答完了”，或在对话里告诉我。我会一次读完所有回答。",
     glossary_title: "本页用到的词和简称",
     glossary_source: "出处：",
+    glossary_found: "出现在：",
     tabs_label: "页面分区",
     tab_open: "等你决定",
     tab_status: "工作进展",
@@ -355,6 +372,12 @@ footer { color: var(--muted); font-size: 0.85rem; }
     status_lede: "",
     decided_lede: "之前已决定的内容，留在这里备查。你仍然可以改答案或加备注；我下次读页面时会看到改动。",
     decided_default: "之前已决定",
+    earlier_rounds: "更早的轮次",
+    earlier_lede: "之前几轮的回答，留作参考。要改其中某个答案，请在对话里告诉我。",
+    n_decision: "{n} 项决定",
+    n_decisions: "{n} 项决定",
+    show_cards: "显示卡片",
+    load_failed: "这一轮没能加载（{why}）。",
     group_from: "来自：{title}",
     preview: "对比各个选项",
     count_open: "{n} 个未回答",
@@ -744,6 +767,76 @@ footer { color: var(--muted); font-size: 0.85rem; }
     return root;
   }
 
+  // ---------- earlier rounds: kept in archive files, listed one line per decision, loaded only when opened, and
+  // shown read-only (an old answer is changed by telling the agent in the chat).
+  function earlierRounds() {
+    var rounds = DATA.archive || [];
+    if (!rounds.length) return null;
+    var sec = el("section", { class: "block earlier", style: "gap:12px" }, el("h2", { text: T.earlier_rounds }),
+      el("p", { class: "lede", text: T.earlier_lede }));
+    rounds.slice().reverse().forEach(function (r) {  // the most recent first
+      var list = el("ul", { class: "past" });
+      (r.questions || []).forEach(function (q) {
+        list.append(el("li", {}, el("span", { html: inline(q.title || q.id) }), " ",
+          el("span", { class: "past-answer", text: "→ " + (q.answer || "") }),
+          q.note ? el("span", { class: "saved", text: " · " + T.note + ": " + q.note }) : null));
+      });
+      (r.reports || []).forEach(function (p) { list.append(el("li", { class: "saved", text: p.title || p.id })); });
+      var show = el("button", { type: "button", class: "link", text: T.show_cards });
+      var holder = el("div", { class: "block", style: "gap:12px" });
+      show.addEventListener("click", function () {
+        show.disabled = true;
+        loadRound(r.file).then(function (data) {
+          (data.questions || []).forEach(function (q) { holder.append(frozenCard(q)); });
+          (data.progress || []).forEach(function (p) { holder.append(frozenReport(p)); });
+          show.hidden = true;
+        }, function (e) {
+          holder.append(el("p", { class: "saved bad", text: fill(T.load_failed, { why: (e && e.message) || "error" }) }));
+          show.disabled = false;
+        });
+      });
+      sec.append(el("details", { class: "round" }, el("summary", {}, el("b", { text: r.round || T.decided_default }), " ",
+        el("span", { class: "saved", text: fill((r.questions || []).length === 1 ? T.n_decision : T.n_decisions, { n: (r.questions || []).length }) })), list, show, holder));
+    });
+    return sec;
+  }
+  function loadRound(file) {
+    if (DATA.archive_rounds && DATA.archive_rounds[file]) return Promise.resolve(DATA.archive_rounds[file]);  // a static file
+    return fetch(file, { credentials: "same-origin" }).then(function (res) {
+      if (!res.ok) throw new Error("HTTP " + res.status);
+      return res.json();
+    });
+  }
+  function frozenCard(q) {
+    var read = q.read || {};
+    var root = el("article", { class: "q frozen" });
+    root.append(el("div", { class: "qhead" }, el("h3", {}, q.title, q.ref ? el("span", { class: "ref", text: q.ref }) : null),
+      el("span", { class: "state done", text: T.chip_done })));
+    if (q.outcome) { var o = section(T.outcome, "outcome"); o.append(blocks(q.outcome)); root.append(o); }
+    var body = el("div", { class: "block" });
+    body.append(blocks(q.plain));
+    root.append(body);
+    var opts = el("ul", { class: "past-opts" });
+    (q.options || []).forEach(function (o) {
+      opts.append(el("li", { class: read.choice === o.id ? "chosen" : "" }, el("b", { html: inline(o.label) }),
+        o.effect ? el("span", { html: " — " + inline(o.effect) }) : null));
+    });
+    if (read.choice === "other") opts.append(el("li", { class: "chosen" }, el("b", { text: T.other }), " " + (read.other || "")));
+    root.append(opts);
+    if (read.note) root.append(el("p", { class: "saved", text: T.note + ": " + read.note }));
+    annotate(root);
+    return root;
+  }
+  function frozenReport(p) {
+    var root = el("article", { class: "q report frozen" });
+    root.append(el("div", { class: "qhead" }, el("h3", { text: p.title }), el("span", { class: "state done", text: p.status || T.chip_done })));
+    var body = el("div", { class: "block" });
+    body.append(blocks(p.text));
+    root.append(body);
+    annotate(root);
+    return root;
+  }
+
   // ---------- glossary terms on cards: the first mention of each term on a card is underlined, and pointing at it,
   // focusing it or tapping it shows the term's meaning in place, with a link to the Glossary tab.
   var termRules = (function () {
@@ -758,7 +851,7 @@ footer { color: var(--muted); font-size: 0.85rem; }
             ? esc_re(part.replace(/(?:n{1,4}|\d+)$/, "")) + "\\d+" : esc_re(part);
           var ascii = /^[\x20-\x7e]+$/.test(part);
           if (ascii) src = "(?<![\\w-])" + src + "(?![\\w-])";
-          rules.push({ re: new RegExp(src, /[A-Z]/.test(part) || !ascii ? "" : "i"), g: g, size: part.length });
+          rules.push({ re: new RegExp(src, /[A-Z]/.test(part.slice(1)) || !ascii ? "" : "i"), g: g, size: part.length });  // "Herringbone" matches "herringbone"
         });
       });
     });
@@ -890,7 +983,7 @@ footer { color: var(--muted); font-size: 0.85rem; }
     }
     tab("open", DATA.questions_title || T.tab_open, open.length ? T.open_lede : T.none_open, grouped(open, true));
     if (status.length) tab("status", DATA.progress_title || T.tab_status, T.status_lede, grouped(status.map(function (s) { s.group = ""; return s; }), false));
-    if (decided.length) tab("decided", T.tab_decided, T.decided_lede, grouped(decided, true));
+    if (decided.length || (DATA.archive || []).length) tab("decided", T.tab_decided, T.decided_lede, grouped(decided, true).concat([earlierRounds()]));
     if (DATA.glossary && DATA.glossary.length) {
       var dl = el("dl", { class: "gloss" });
       DATA.glossary.forEach(function (g) {
@@ -898,8 +991,12 @@ footer { color: var(--muted); font-size: 0.85rem; }
         dd.append(blocks(g.meaning));
         if (g.sources && g.sources.length) {
           dd.append(el("span", { class: "src", html: esc(T.glossary_source) + " " + g.sources.map(function (s) {
-            return '<a href="' + esc(s.url) + '" target="_blank" rel="noopener noreferrer">' + esc(s.label || s.url) + "</a>" + (s.note ? " " + inline(s.note) : "");
+            var where = s.url ? '<a href="' + esc(s.url) + '" target="_blank" rel="noopener noreferrer">' + esc(s.label || s.url) + "</a>"
+              : (s.label ? esc(s.label) + " " : "") + "<code>" + esc(s.path || "") + "</code>";  // a file in the project
+            return where + (s.note ? " " + inline(s.note) : "");
           }).join(" · ") }));
+        } else if (g.found_in) {  // no source given: the helper found the project file the term appears in
+          dd.append(el("span", { class: "src", html: esc(T.glossary_found) + " <code>" + esc(g.found_in) + "</code>" }));
         }
         var row = el("div", { id: "g-" + g.anchor }, el("dt", { text: g.term }), dd);
         dd.append(place("g-" + g.anchor, row));

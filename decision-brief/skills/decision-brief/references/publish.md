@@ -8,16 +8,18 @@ Use it when the user asks for one and the Artifact tools are available (Claude C
 
 1. Load the Artifact design and capabilities guidance first (the Artifact tool's quickstart gives it).
 2. Run `brief.py build <q> --mode artifact`. Fix every error it prints and act on each warning.
-3. Publish `page.html` with capabilities `{db:{}, user:{}, comments:{}}` and every image as a supporting file, using the paths the build prints (`shots/...`).
+3. Publish `page.html` with capabilities `{db:{}, user:{}, comments:{}}` and every image as a supporting file, using the paths the build prints (`shots/...`). The build also lists the archive's round files (`archive/...json`) once earlier rounds exist; publish those too.
 4. After the first publish, list the `answers` collection once with ArtifactData to confirm the page's store answers. It is empty until the user picks something.
+
+Never `Artifact read` the published page: its source is `page.html` in the task folder, and its earlier rounds are in `archive/` (see `brief.py history`).
 
 Answers go to the `answers` collection, one document per question id: `choice` (an option id, `"other"`, or `null` after Clear), `other`, `note`, `at` and `by`.
 
 Comments sent with Send to Claude reach this session as notifications; answer each in its thread with ArtifactComments.
 
-To read back, in one turn: call ArtifactData `list` on the `answers` collection with `out_dir` set to the task folder, and ArtifactComments `read` for the threads. The listing lands as one file per answer in `<task folder>/answers/`; `brief.py read <q> --answers <task folder>/answers` reads them, and `brief.py mark` takes the same `--answers`.
+To read back, in one turn: get this round's answers with ArtifactData, with `out_dir` set to the task folder, and call ArtifactComments `read` for the threads. On the first round, `list` the `answers` collection. After a `brief.py mark`, `query` it for answers with `at` at or after the time `build` prints (`marked_at` in questions.json), so earlier rounds' answers stay out; never list the whole collection again. The result lands as one file per answer in `<task folder>/answers/`; `brief.py read <q> --answers <task folder>/answers` reads them, and `brief.py mark` takes the same `--answers`.
 
-To republish, update the existing Artifact rather than creating a new one, so the stored answers and comments stay with it.
+To republish, update the existing Artifact rather than creating a new one, so the stored answers and comments stay with it. Pass only the files that are new or changed; files left out stay published.
 
 ## A static file
 

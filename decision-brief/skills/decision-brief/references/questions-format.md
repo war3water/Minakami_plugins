@@ -2,7 +2,9 @@
 
 One JSON file per task drives the page. `brief.py build` checks it and names every problem; `assets/example/questions.json` is a complete example to copy from.
 
-The page sorts the cards into tabs. **Waiting for you** holds every question whose `state` is `open`, under a heading per `group`; a report's follow-up questions without a `group` get "From: `<report title>`". **Work status** holds the progress reports that are not `archived`. **Decided** holds the questions whose `state` is `answered` and the archived reports, under a heading per `round`. **Glossary** holds the terms. A tab with nothing in it is left out, except Waiting for you.
+The page sorts the cards into tabs. **Waiting for you** holds every question whose `state` is `open`, under a heading per `group`; a report's follow-up questions without a `group` get "From: `<report title>`". **Work status** holds the progress reports that are not `archived`. **Decided** holds the questions whose `state` is `answered` and the archived reports, under a heading per `round`, then the earlier rounds from `archive/`. **Glossary** holds the terms. A tab with nothing in it is left out, except Waiting for you.
+
+`brief.py mark` with a new `--round` moves older rounds out of this file into `archive/` next to it: `index.json` lists each round's decisions in one line each, and `<round>.json` keeps its full cards and reports. Do not edit or read those files; `brief.py history` prints them. `mark` also records the time in `marked_at`.
 
 ## Top level
 
@@ -26,7 +28,7 @@ The page sorts the cards into tabs. **Waiting for you** holds every question who
 |---|---|---|
 | `term` | yes | The short name as readers meet it, such as `OD-1 ... OD-16` or `T6, T651` |
 | `meaning` | yes | Its plain meaning (markup allowed) |
-| `sources` | no | Where it comes from: a list of `{"label": ..., "url": "https://..."}`, each one checked before publishing; add `"note"` for text after the link |
+| `sources` | no | Where it comes from: a list of `{"label": ..., "url": "https://..."}` (each link checked before publishing), or `{"path": "docs/spec.md"}` for a file in the project; add `"note"` for text after it. Without `sources`, the page shows the project file the term first appears in, found when the page is built |
 | `aka` | no | Other spellings the page uses, so the abbreviation check counts them as explained |
 
 Each entry gets an anchor `g-` plus the term in lowercase with dashes, so a card can link to it: `[localStorage](#g-localstorage)`, `[WCAG 2.2 AA](#g-wcag-2-2-aa)`. The build warns when such a link points nowhere. A term written as `NFR-nnn` covers `NFR-001`, `NFR-002` and so on.
@@ -112,35 +114,4 @@ The keys and their English text are at the top of the script in `assets/page.htm
 
 ## Answers and comments
 
-Every backend stores one answer per question id:
-
-```json
-{"choice": "server", "other": "", "note": "Email link sign-in is fine.", "at": "2026-10-26T10:12:03+00:00"}
-```
-
-- `choice` is an option id, `"other"` (then `other` holds the user's own answer), or `null` when nothing is chosen or the user pressed Clear;
-- `note` is the free note; the Artifact backend adds `by`, the user's id.
-
-The local server writes `answers.json`; the static page's download has the same shape:
-
-```json
-{
-  "app": "decision-brief",
-  "format": 2,
-  "rev": 14,
-  "title": "Decisions waiting for you",
-  "answers": {"storage": {"choice": "server", "other": "", "note": "", "at": "..."}},
-  "comments": [
-    {"id": "c1", "target": "q-storage", "quote": "clearing the browser's data deletes every list", "by": "user", "text": "Does this happen on phones too?", "at": "..."},
-    {"id": "c2", "target": "q-storage", "parent": "c1", "by": "agent", "name": "Claude", "text": "Yes: ...", "at": "..."}
-  ],
-  "done": {"at": "...", "note": ""}
-}
-```
-
-- `rev` goes up with every change; open pages wait on it, so updates show within a second.
-- A comment without `parent` starts a thread; a reply names the thread's first comment. `by` is `user` or `agent`; `name` is the agent's name on the page. `quote` is the text the user selected, if any. A comment the user sent with Ask now has `ask`: `pending`, then `answered` or `failed`.
-- `target` is where the thread sits: `q-` plus a question id, `p-` plus a report id, `g-` plus a glossary anchor, or `page`.
-- `done` is set when the user presses I'm done.
-
-An Artifact keeps answers in its `answers` collection and comments in the platform's own threads. `brief.py read --answers` takes what an agent saved from it: the folder ArtifactData `list` writes with `out_dir` (one `<question id>.json` per answer), or the listing's text in a file (one `{"id": ..., "data": {...}}` object per line).
+`brief.py read` reads every answer and comment thread for you. Their stored format is in `references/answers-format.md`, for debugging.

@@ -14,6 +14,7 @@ Usage:
     python scripts/brief.py reply QUESTIONS TARGET [TEXT | - | --file FILE] [--name AGENT]
     python scripts/brief.py read  QUESTIONS [--answers FILE] [--json]
     python scripts/brief.py mark  QUESTIONS [--answers FILE] [--ids ID,ID] [--reports ID,ID] [--round TEXT] [--reopen]
+    python scripts/brief.py history QUESTIONS [--id ID] [--round TEXT] [--threads]
     python scripts/brief.py stop  QUESTIONS
     python scripts/brief.py links QUESTIONS
     python scripts/brief.py example DIR
@@ -25,6 +26,7 @@ QUESTIONS is the task's questions.json (format: references/questions-format.md).
     agent.json     whether the agent's session is listening, and what it has already seen (wait, reply, read)
     server.json    the running local server's address and process id (serve writes it, stop removes it)
     server.log     the local server's log
+    archive/       earlier rounds: index.json (one line per decision) and one <round>.json each (mark writes them)
 
 new      creates .decision-brief/SLUG/ with shots/ (copying the images named) and the .gitignore, in one step.
 build    checks questions.json and writes the page. Errors stop the build; warnings (short names missing from
@@ -35,9 +37,12 @@ wait     blocks until the user comments, replies, or presses "I'm done", prints 
          waits, the page tells the user the agent is reading along. --answers-too also wakes on changed answers.
 reply    posts the agent's answer: TARGET is a comment id (c7) to answer in its thread, or a card anchor (q-<id>,
          p-<id>, g-<term>, page) to start a thread there.
-read     prints every answer and comment thread in one pass, and marks them seen.
+read     prints every answer and this round's comment threads in one pass, and marks them seen; threads settled
+         before the last mark, or on archived cards, are left to history --threads.
 mark     moves the cards you acted on to the Decided tab (state "answered", the answer you read kept so a later
          change shows) and, with --reports, archives finished progress reports there; --round names the heading.
+         A new --round moves the older rounds out of questions.json into archive/.
+history  prints the archived rounds, one line per decision, or one card in full with --id.
 links    lists every link in questions.json with where it appears, to check each one before publishing.
 example  copies the worked example (assets/example/) into a new folder.
 """
@@ -301,11 +306,17 @@ def check(data, base: Path) -> tuple[list, list]:
         if not sources:
             unlinked.append(str(g["term"]))
         for s in sources:
-            if not isinstance(s, dict) or not re.match(r"^https?://", str(s.get("url", ""))):
-                errors.append(f'glossary "{g["term"]}": every source needs an http(s) "url"')
+            ok_url = isinstance(s, dict) and re.match(r"^https?://", str(s.get("url", "")))
+            ok_path = isinstance(s, dict) and not s.get("url") and s.get("path") and not re.match(r"^[a-z]+:", str(s["path"]), re.I)
+            if not (ok_url or ok_path):
+                errors.append(f'glossary "{g["term"]}": every source needs an http(s) "url", or a "path" to a file in '
+                              "the project when there is no web page for it")
+    origins = term_origins(data, base) if unlinked else {}
+    unlinked = [t for t in unlinked if t not in origins]  # the page names the project file each of these appears in
     if unlinked:
-        warnings.append("glossary terms without an origin link: " + ", ".join(unlinked) + ". Add one where a term "
-                        "comes from a page a reader can open (a spec, a doc in the repository, a standard).")
+        warnings.append("glossary terms without an origin, and not found in the project's files: " + ", ".join(unlinked) + ". Add a source where a term "
+                        'comes from somewhere a reader can look: a "url" for a web page, or a "path" for a file in '
+                        "the project (a handoff note, a spec, the code).")
 
     seen_q, seen_p = set(), set()
     unsourced: list = []
@@ -398,6 +409,7 @@ def check(data, base: Path) -> tuple[list, list]:
     missing: dict = {}
     for where, text in texts(data):
         plain_text = LINK_RE.sub(lambda m: m.group(1), flat(text))
+        plain_text = re.sub(r"`[^`\n]*`", " ", plain_text)  # file names and identifiers in code stay as they are
         for tok in ABBR_RE.findall(plain_text):
             if tok not in covered and tok.split("-")[0] not in covered and tok.split("/")[0] not in covered:
                 missing.setdefault(tok, where)
@@ -441,14 +453,75 @@ def figure_list(data: dict) -> list:
     return out
 
 
-def prepare(data: dict, base: Path, inline_images: bool) -> tuple[dict, int]:
-    """The data the page embeds: glossary anchors, a page id, the build time, image sources. Returns (data, image bytes)."""
+TEXT_FILES = {".md", ".txt", ".rst", ".adoc"}
+CODE_FILES = {".py", ".js", ".mjs", ".ts", ".tsx", ".jsx", ".go", ".rs", ".java", ".kt", ".rb", ".cs", ".php", ".swift",
+              ".c", ".h", ".cpp", ".css", ".html", ".toml", ".yaml", ".yml", ".json", ".sql", ".sh", ".ps1"}
+SKIP_DIRS = {".git", ".decision-brief", "node_modules", ".venv", "venv", "__pycache__", "dist", "build", "target", ".next"}
+
+
+def term_pattern(name: str):
+    """A regex for a glossary name as the page matches it: "PANTRY-nn" and "OD-1 ... OD-16" match any number."""
+    part = re.split(r"\s*(?:\.\.\.|…)\s*", name.strip())[0]
+    if len(part) < 2:
+        return None
+    src = re.escape(re.sub(r"(?:n{1,4}|\d+)$", "", part)) + r"\d+" if re.match(r"^(.+-)(?:n{1,4}|\d+)$", part) else re.escape(part)
+    flags = 0 if re.search(r"[A-Z]", part[1:]) or not part.isascii() else re.I  # "Herringbone" finds "herringbone"
+    return re.compile(r"(?<![\w-])" + src + r"(?![\w-])" if part.isascii() else src, flags)
+
+
+def term_origins(data: dict, base: Path) -> dict:
+    """For glossary entries without a source: the project file a term first appears in (documents before code,
+    shallow before deep), so the page can say where to look. Only for a task folder inside .decision-brief/."""
+    root = project_root(base / "questions.json")
+    wanted = {str(g.get("term")): [p for n in [g.get("term"), *(g.get("aka") or [])]
+                                   for s in re.split(r"\s*(?:/|,|、|，)\s*", str(n or "")) if (p := term_pattern(s))]
+              for g in data.get("glossary") or [] if isinstance(g, dict) and g.get("term") and not g.get("sources")}
+    if root == base or not wanted:
+        return {}
+    files = []
+    for dirpath, dirnames, filenames in os.walk(root):
+        dirnames[:] = sorted(d for d in dirnames if d not in SKIP_DIRS and not d.startswith("."))
+        for f in filenames:
+            p = Path(dirpath) / f
+            if p.suffix.lower() in TEXT_FILES | CODE_FILES:
+                files.append(p)
+        if len(files) > 3000:
+            break
+    files.sort(key=lambda p: (p.suffix.lower() not in TEXT_FILES, len(p.relative_to(root).parts), str(p).lower()))
+    found = {}
+    for p in files:
+        if len(found) == len(wanted):
+            break
+        try:
+            if p.stat().st_size > 512_000:
+                continue
+            text = p.read_text(encoding="utf-8", errors="ignore")
+        except OSError:
+            continue
+        for term, pats in wanted.items():
+            if term not in found and any(pat.search(text) for pat in pats):
+                found[term] = p.relative_to(root).as_posix()
+    return found
+
+
+def prepare(data: dict, base: Path, inline_images: bool, embed_archive: bool = False) -> tuple[dict, int]:
+    """The data the page embeds: glossary anchors, a page id, the build time, image sources, and the archive's index
+    (its rounds load when opened; a static file, which cannot fetch them, gets them embedded). Returns (data, image
+    bytes)."""
     out = copy.deepcopy(data)
-    ids = [q.get("id", "") for q in all_questions(out)]
-    out["page_id"] = hashlib.sha1((out.get("title", "") + "|" + ",".join(ids)).encode("utf-8")).hexdigest()[:12]
+    rounds = read_archive(base)["rounds"]
+    if rounds:
+        out["archive"] = [{k: r.get(k) for k in ("round", "file", "questions", "reports")} for r in rounds]
+        if embed_archive:
+            out["archive_rounds"] = {r["file"]: read_json(base / r["file"]) for r in rounds if (base / r["file"]).is_file()}
+    # one id per task folder, the same from round to round: a static page keeps the reader's answers under it
+    out["page_id"] = hashlib.sha1(str(base.resolve()).encode("utf-8")).hexdigest()[:12]
     out["generated"] = now()
+    origins = term_origins(out, base)
     for g, anchor in glossary_anchors(out):
         g["anchor"] = anchor
+        if str(g.get("term")) in origins:
+            g["found_in"] = origins[str(g.get("term"))]
     size = 0
     for f in figure_list(out):
         src = str(f.get("src", ""))
@@ -535,7 +608,7 @@ def page_words(data: dict, ask_name: str | None = None) -> str:
 def cmd_build(a) -> int:
     questions = Path(a.questions).resolve()
     data, warnings = load_checked(questions)
-    page, size = prepare(data, questions.parent, a.inline_images)
+    page, size = prepare(data, questions.parent, a.inline_images, embed_archive=a.mode == "static")
     out = Path(a.out).resolve() if a.out else task_files(questions)["page"]
     if not a.inline_images and out.parent != questions.parent and size:
         print("warning: the page is written outside the task folder, so its relative image paths will not resolve; "
@@ -549,6 +622,13 @@ def cmd_build(a) -> int:
                                               ", linked by relative path; keep them next to the page"))
         if a.mode == "artifact" and not a.inline_images:
             print("publish them with the page as files: " + ", ".join(f'"{s}": "{s}"' for s in figs))
+    rounds = page.get("archive") or []
+    if a.mode == "artifact" and rounds:
+        print("earlier rounds load from these files; publish any that are new or changed with the page (files left out "
+              "stay published): " + ", ".join(f'"{r["file"]}": "{r["file"]}"' for r in rounds))
+    if a.mode == "artifact" and data.get("marked_at"):
+        print(f"read back only answers given since the last mark: ArtifactData query on \"answers\" where at >= "
+              f"\"{data['marked_at']}\"")
     for w in warnings:
         print(f"warning: {w}")
     return 0
@@ -728,7 +808,7 @@ def is_recommended(q: dict, choice) -> bool:
     return any(o.get("id") == choice and o.get("recommended") for o in q.get("options") or [])
 
 
-def summarize(data: dict, answers: dict, comments: list, done=None) -> dict:
+def summarize(data: dict, answers: dict, comments: list, done=None, archived: set = frozenset()) -> dict:
     result = {"title": data.get("title"), "answered": [], "open": [], "changed": [], "threads": [], "unknown": [],
               "done": done}
     known = set()
@@ -754,15 +834,20 @@ def summarize(data: dict, answers: dict, comments: list, done=None) -> dict:
                 result["open"].append(entry)
         elif q.get("state", "open") == "open":
             result["answered"].append(entry)
-    result["unknown"] = sorted(k for k in answers if k not in known)
+    result["unknown"] = sorted(k for k in answers if k not in known and k not in archived)  # archived rounds: history
     result["own_words"] = [e["id"] for e in result["answered"] + result["changed"] if e["choice"] == "other"]
     names = comment_targets(data)
+    gone = {"q-" + i for i in archived}
+    since = data.get("marked_at") or ""
+    result["earlier_threads"] = []
     for root, msgs in threads(comments):
-        result["threads"].append({"id": root["id"], "target": root.get("target"),
-                                  "on": names.get(root.get("target"), root.get("target")), "quote": root.get("quote"),
-                                  "messages": [{"id": m.get("id"), "by": who(m), "text": m.get("text", ""),
-                                                "at": m.get("at")} for m in msgs],
-                                  "waiting": msgs[-1].get("by") == "user"})
+        t = {"id": root["id"], "target": root.get("target"),
+             "on": names.get(root.get("target"), root.get("target")), "quote": root.get("quote"),
+             "messages": [{"id": m.get("id"), "by": who(m), "text": m.get("text", ""), "at": m.get("at")} for m in msgs],
+             "waiting": msgs[-1].get("by") == "user"}
+        # a thread settled before this round, or on an archived card, is history: read leaves it to `history --threads`
+        settled = not t["waiting"] and (root.get("target") in gone or (since and str(msgs[-1].get("at") or "") < since))
+        result["earlier_threads" if settled else "threads"].append(t)
     return result
 
 
@@ -799,6 +884,10 @@ def print_summary(s: dict) -> None:
         print("\nComment threads")
         for t in s["threads"]:
             print_thread(t)
+    if s.get("earlier_threads"):
+        n = len(s["earlier_threads"])
+        print(f"\n{n} earlier comment thread{'' if n == 1 else 's'}, settled before this round, left out: "
+              "brief.py history --threads prints them.")
     if s.get("done"):
         note = (s["done"] or {}).get("note")
         print(f"\nThe user pressed I'm done at {s['done'].get('at')}" + (f": {note}" if note else "."))
@@ -806,7 +895,8 @@ def print_summary(s: dict) -> None:
         print("\nAnswers for ids no longer in questions.json: " + ", ".join(s["unknown"]))
     if s.get("own_words"):
         print("\nAnswered in the user's own words: " + ", ".join(s["own_words"]) + ". Before acting on these, tell "
-              "the user in one line each how you read them, and ask where you are unsure.")
+              "the user in one line each how you read them; where one can be read more than one way, ask one direct "
+              "question that names the readings instead of picking one.")
 
 
 def print_thread(t: dict, new_ids: set | None = None) -> None:
@@ -828,7 +918,7 @@ def cmd_read(a) -> int:
         store = load_store(path)
     except ValueError as e:
         sys.exit(f"error: {path} is not valid JSON: {e}")
-    s = summarize(data, store["answers"], store["comments"], store.get("done"))
+    s = summarize(data, store["answers"], store["comments"], store.get("done"), archived_ids(questions.parent))
     s["answers_file"] = str(path) if path.exists() else None
     if a.json:
         print(json.dumps(s, ensure_ascii=False, indent=2))
@@ -838,6 +928,119 @@ def cmd_read(a) -> int:
         print_summary(s)
     if path.is_file() and not a.answers:
         mark_seen(files, store)
+    return 0
+
+
+# ---------------------------------------------------------------- the archive of earlier rounds
+# Once a newer round is marked, older decided rounds leave questions.json for archive/<round>.json, listed in
+# archive/index.json (round, file, and each decision in one line). The file the agent edits then holds only the open
+# cards and the newest round; `history` prints the archive a line or a card at a time, and the page loads a round
+# only when the user opens it.
+
+def read_archive(base: Path) -> dict:
+    try:
+        index = read_json(base / "archive" / "index.json")
+        return index if isinstance(index.get("rounds"), list) else {"rounds": []}
+    except (OSError, ValueError):
+        return {"rounds": []}
+
+
+def archived_ids(base: Path) -> set:
+    return {q.get("id") for r in read_archive(base)["rounds"] for q in r.get("questions") or []}
+
+
+def answer_text(q: dict) -> str:
+    read = q.get("read") or {}
+    if read.get("choice") == "other":
+        return "Other: " + str(read.get("other") or "").strip()
+    return option_label(q, read.get("choice")) if read.get("choice") is not None else "(no answer recorded)"
+
+
+def archive_rounds(questions: Path, data: dict, keep: str | None) -> list:
+    """Move every decided round except `keep` out of questions.json into the archive. Returns the rounds moved."""
+    base = questions.parent
+    decided = [q for q in all_questions(data) if q.get("state") == "answered"]
+    reports = [p for p in data.get("progress") or [] if p.get("archived")
+               and not any(f.get("state", "open") == "open" for f in p.get("questions") or [])]  # open follow-ups stay
+    names = []
+    for item in decided + reports:
+        name = item.get("round") or ""
+        if name != (keep or "") and name not in names:
+            names.append(name)
+    if not names:
+        return []
+    index = read_archive(base)
+    index["about"] = ("Earlier rounds of this decision page. Read this file, or run brief.py history, before opening a "
+                      "round's file; the newest round and the open cards are in questions.json.")
+    taken = {Path(r.get("file", "")).stem for r in index["rounds"]}
+    (base / "archive").mkdir(exist_ok=True)
+    for name in names:
+        qs = [q for q in decided if (q.get("round") or "") == name]
+        ps = [p for p in reports if (p.get("round") or "") == name]
+        entry = next((r for r in index["rounds"] if r.get("round") == name), None)
+        if entry is None:
+            entry = {"round": name, "file": f"archive/{slug(name or 'decided-earlier', taken)}.json", "questions": [], "reports": []}
+            index["rounds"].append(entry)
+        path = base / entry["file"]
+        stored = read_json(path) if path.is_file() else {"round": name, "questions": [], "progress": []}
+        stored["questions"] += qs
+        stored["progress"] += ps
+        write_json(path, stored)
+        entry["archived_at"] = now()
+        entry["questions"] += [{"id": q["id"], "title": q.get("title"), "answer": answer_text(q),
+                                **({"note": q["read"]["note"]} if (q.get("read") or {}).get("note") else {})} for q in qs]
+        entry["reports"] += [{"id": p["id"], "title": p.get("title")} for p in ps]
+        gone = {id(x) for x in qs + ps}
+        data["questions"] = [q for q in data.get("questions") or [] if id(q) not in gone]
+        data["progress"] = [p for p in data.get("progress") or [] if id(p) not in gone]
+        for p in data["progress"]:
+            if p.get("questions"):
+                p["questions"] = [q for q in p["questions"] if id(q) not in gone]
+    write_json(base / "archive" / "index.json", index)
+    return [n or "(decided earlier)" for n in names]
+
+
+def cmd_history(a) -> int:
+    questions = Path(a.questions).resolve()
+    base = questions.parent
+    if a.threads:
+        data, _ = load_checked(questions)
+        store = load_store(task_files(questions)["answers"])
+        earlier = summarize(data, store["answers"], store["comments"], archived=archived_ids(base))["earlier_threads"]
+        for t in earlier:
+            print_thread(t)
+        if not earlier:
+            print("no earlier comment threads: brief.py read shows every thread")
+        return 0
+    rounds = read_archive(base)["rounds"]
+    if not rounds:
+        print("no earlier rounds: everything decided is still in questions.json (brief.py read covers it)")
+        return 0
+    if a.id:
+        entry = next((r for r in rounds if any(q.get("id") == a.id for q in r.get("questions") or [])), None)
+        if not entry:
+            sys.exit(f"error: no archived question {a.id}")
+        stored = read_json(base / entry["file"])
+        q = next(q for q in stored.get("questions") or [] if q.get("id") == a.id)
+        print(f"{entry['round']}: {q.get('title')}\n\nIn plain words: {flat(q.get('plain'))}")
+        if q.get("more"):
+            print(f"\nMore: {flat(q.get('more'))}")
+        print("\nOptions:")
+        for o in q.get("options") or []:
+            print(f"- {o.get('label')}: {o.get('effect', '')}")
+        print(f"\nThe user's answer: {answer_text(q)}" + (f"; note: {q['read']['note']}" if (q.get("read") or {}).get("note") else ""))
+        if q.get("outcome"):
+            print(f"What was done: {flat(q.get('outcome'))}")
+        return 0
+    for r in rounds:
+        if a.round and a.round.lower() not in str(r.get("round", "")).lower():
+            continue
+        print(f"{r.get('round') or '(decided earlier)'}  [{r.get('file')}]")
+        for q in r.get("questions") or []:
+            print(f"  {q['id']}: {q.get('title')}\n      -> {q.get('answer')}" + (f"\n      note: {q['note']}" if q.get("note") else ""))
+        for p in r.get("reports") or []:
+            print(f"  report {p['id']}: {p.get('title')}")
+    print("\nThe newest round and the open cards are in questions.json (brief.py read). One card in full: --id ID.")
     return 0
 
 
@@ -889,7 +1092,12 @@ def cmd_mark(a) -> int:
     if not changed and not archived:
         print("nothing to mark")
         return 0
+    if not a.reopen:
+        data["marked_at"] = now()  # an Artifact's answers given after this belong to the next round
+    moved = archive_rounds(questions, data, a.round) if a.round and not a.reopen else []
     write_json(questions, data)
+    if moved:
+        print("earlier rounds moved to archive/ (brief.py history lists them): " + "; ".join(moved))
     if changed:
         print(("reopened: " if a.reopen else "marked answered, now on the Decided tab: ") + ", ".join(changed))
     if archived:
@@ -905,7 +1113,8 @@ def cmd_links(a) -> int:
     rows = []
     for g in data.get("glossary") or []:
         for s in g.get("sources") or []:
-            rows.append((s.get("url", ""), f'glossary "{g.get("term")}"'))
+            if s.get("url"):  # a "path" source is a project file, not a link to check
+                rows.append((s["url"], f'glossary "{g.get("term")}"'))
         for _, url in LINK_RE.findall(flat(g.get("meaning"))):
             rows.append((url, f'glossary "{g.get("term")}"'))
     for where, text in texts(data):
@@ -1290,11 +1499,13 @@ class Handler(BaseHTTPRequestHandler):
                 time.sleep(0.4)
                 state = self.state()
             return self.json(200, state)
-        # images next to questions.json, and nothing else
+        # images next to questions.json, the archive's round files, and nothing else
         base = self.ctx["questions"].parent.resolve()
         target = (base / unquote(url.path).lstrip("/")).resolve()
         if base in target.parents and target.is_file() and target.suffix.lower() in IMAGE_TYPES:
             return self.send(200, target.read_bytes(), IMAGE_TYPES[target.suffix.lower()])
+        if target.parent == base / "archive" and target.suffix == ".json" and target.name != "index.json" and target.is_file():
+            return self.send(200, target.read_bytes(), "application/json; charset=utf-8")
         self.json(404, {"error": "not found"})
 
     def do_PUT(self):
@@ -1597,6 +1808,11 @@ def main() -> int:
     m.add_argument("--reports", nargs="+", help="progress report ids to archive on the Decided tab")
     m.add_argument("--round", help="the heading they go under on the Decided tab, such as \"Round 1, 27 October\"")
     m.add_argument("--reopen", action="store_true", help="move the given cards or reports back")
+    hi = sub.add_parser("history", help="earlier rounds from the archive: one line per decision, or one card in full")
+    hi.add_argument("questions")
+    hi.add_argument("--id", help="print this archived question in full")
+    hi.add_argument("--round", help="only rounds whose name contains this text")
+    hi.add_argument("--threads", action="store_true", help="the comment threads settled before this round")
     k = sub.add_parser("links", help="list every link with where it appears")
     k.add_argument("questions")
     nw = sub.add_parser("new", help="create the task folder, its shots/ (with images copied in) and the .gitignore")
@@ -1609,7 +1825,8 @@ def main() -> int:
     if a.cmd == "mark" and a.reopen and not (a.ids or a.reports):
         ap.error("--reopen needs --ids or --reports")
     return {"build": cmd_build, "serve": cmd_serve, "wait": cmd_wait, "reply": cmd_reply, "stop": cmd_stop,
-            "read": cmd_read, "mark": cmd_mark, "links": cmd_links, "example": cmd_example, "new": cmd_new}[a.cmd](a)
+            "read": cmd_read, "mark": cmd_mark, "history": cmd_history, "links": cmd_links, "example": cmd_example,
+            "new": cmd_new}[a.cmd](a)
 
 
 if __name__ == "__main__":
