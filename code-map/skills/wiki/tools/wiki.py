@@ -35,9 +35,10 @@ import urllib.parse
 from datetime import date
 from pathlib import Path
 
-TOOLS_VERSION = "0.2.0"
+TOOLS_VERSION = "0.2.2"
 HERE = Path(__file__).resolve().parent
-TOOL_FILES = ["wiki.py", "wiki_browser.py", "viewer_template.html", "vendor/marked.min.js", "vendor/marked-LICENSE.txt"]
+TOOL_FILES = ["wiki.py", "wiki_browser.py", "viewer_template.html", "vendor/marked.min.js", "vendor/marked-LICENSE.txt",
+              "vendor/katex.min.js", "vendor/katex.min.css", "vendor/katex-LICENSE.txt"]
 SPECIAL_PAGES = {"index.md": "index", "log.md": "log", "SCHEMA.md": "schema"}
 PAGE_KINDS = {"tutorial", "how-to", "reference", "explanation"}
 SKIP_DIRS = {".git", "node_modules", ".venv", "venv", "__pycache__", "diagrams", "vendor"}
@@ -990,9 +991,13 @@ def lint(repo: Path, wiki: Path, run: bool = False, in_place: bool = False, time
             if not svg.exists():
                 bad(page, block["line"], f"diagrams/{block['id']}.svg not rendered (run wiki_browser.py render)")
                 continue
-            stamp = SVG_STAMP.search(read(svg)[:400])
+            head = read(svg)[:1200]
+            stamp = SVG_STAMP.search(head)
             if not stamp or stamp.group(2) != block["hash"]:
                 bad(page, block["line"], f"diagrams/{block['id']}.svg is older than its source (run wiki_browser.py render)")
+            elif re.search(r'<svg\b[^>]*\swidth="100%"', head):
+                warn(page, block["line"], f"diagrams/{block['id']}.svg has no natural size, so a Markdown preview stretches "
+                                          "or squeezes it (run wiki_browser.py render again)")
             if f"diagrams/{block['id']}.svg" not in page.text:
                 warn(page, block["line"], f"the page does not show diagrams/{block['id']}.svg")
         # boxes that name code, and the calls a call map draws
@@ -1007,6 +1012,10 @@ def lint(repo: Path, wiki: Path, run: bool = False, in_place: bool = False, time
         for i, line in enumerate(prose_lines(page.text), 1):
             for ph in re.findall(r"\{\{[^}]+\}\}", line):
                 warn(page, i, f"template placeholder left: {ph}")
+            if line.lstrip().startswith("$$"):
+                warn(page, i, "a $$ formula: write it as a ```math block, which GitHub, GitLab, VS Code and the viewer "
+                              "typeset and every other viewer shows as its TeX source; $$ text is mangled where math "
+                              "is not supported")
         # command blocks: every block a reader would paste into a terminal is either run or skipped with a reason
         blocks, errs, cov = run_blocks(page)
         for line, msg in errs:
@@ -2288,10 +2297,16 @@ def viewer(repo: Path, wiki: Path, out: Path, editor: str, title: str | None, ar
     }
     shell = read(HERE / "viewer_template.html")
     marked = read(HERE / "vendor" / "marked.min.js").replace("</script", "<\\/script")
+    # KaTeX (about 640 kB with its fonts) only when a page has a ```math block to typeset
+    has_math = any(info.split()[:1] == ["math"] for p in pages for _, _, info in fences(p.body.split("\n")))
+    katex_js = read(HERE / "vendor" / "katex.min.js").replace("</script", "<\\/script") if has_math else ""
+    katex_css = read(HERE / "vendor" / "katex.min.css").replace("</style", "<\\/style") if has_math else ""
     blob = json.dumps(data, ensure_ascii=False).replace("</", "<\\/")
     name = title or (index.title if index and index.meta.get("title") else f"{repo.name} wiki")
     page = (shell.replace("__WIKI_TITLE__", html.escape(name))
                  .replace("/*MARKED*/", marked)
+                 .replace("/*KATEX_CSS*/", katex_css)
+                 .replace("/*KATEX*/", katex_js)
                  .replace("/*WIKI_DATA*/null", blob))
     if artifact:
         page = re.sub(r"(?is)\A\s*<!doctype html>\s*<html[^>]*>\s*<head>\s*", "", page)

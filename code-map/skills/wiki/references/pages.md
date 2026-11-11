@@ -87,7 +87,7 @@ Long runs of text are where readers give up; a picture beside the words is often
 | steps in order, with branches or loops | a flowchart (§Diagrams) |
 | a choice: which rule applies, which path is taken, why a run fails | a decision flowchart, or a table `If \| Then \| Decided in` |
 | several things compared on the same properties: commands, features, settings, screens, endpoints | a table, one row per thing. A list of paragraphs that all say the same kinds of things is a table waiting to be drawn |
-| a number built from parts: a stress from its factors, a request's time from its stages, a total from its terms | a table of the parts with the example's values, and one sentence naming the part that decides the result |
+| a number built from parts: a stress from its factors, a request's time from its stages, a total from its terms | its formula (§Formulas), a table of the parts with the example's values, and one sentence naming the part that decides the result |
 | a quantity across a range: a factor against speed, a life curve, latency against load | a short table of values the code computed, or a chart when it passes the chart test below |
 | the states something goes through | a state diagram |
 | a screen or a window | a table of its areas, `Area \| What it shows \| What you do there`, or a screenshot of the running program |
@@ -101,7 +101,7 @@ The test: in each section, a reader who looks only at the pictures and tables, a
 ## Diagrams
 
 - Write each diagram as a fenced `mermaid` block whose first line is `%% id: <name>`, using lowercase letters, digits and hyphens. Ids are unique across the wiki.
-- The page shows the rendered SVG and keeps the source in a collapsed block below it. GitHub renders Mermaid, but VS Code's built-in Markdown preview and many other viewers show only the code. The markup, with a blank line after the summary line so GitHub renders the block's content:
+- The page shows the rendered SVG and keeps the source in a collapsed block below it. An image shows in every Markdown viewer; a Mermaid block renders on GitHub and GitLab, but VS Code's built-in preview and many other viewers show only its code. The source stays on the page because agents read it and the lint checks it. `render` writes each SVG at its natural size on a white ground, so a preview neither stretches it nor puts its dark labels on a dark theme. The markup, with a blank line after the summary line so GitHub renders the block's content:
 
 ````text
 ![Call chain from the CLI to the report](../diagrams/call-chain.svg)
@@ -122,8 +122,35 @@ flowchart TB
 - **Boxes that name code end with `file: function`** on their last line, as in `"Dynamic factor<br/>ISO 6336 Method B<br/>part1_factors.py: kv_method_b"`. The path may be shortened to any tail that names one file, and `a.py: f and g` names two functions. `wiki.py lint` fails when the file or function no longer exists, and warns when the page's `sources:` leaves that code out, so a change to it would not flag the page.
 - **Call maps.** A diagram whose second line is `%% calls` is a call map: each solid arrow between two code boxes says the first function calls the second, and `wiki.py lint` warns when the callee's name no longer appears in the caller's code (for Python, also through an import alias). An indirect call (a registry lookup, a callback, a call into another process, a method reached through an object whose type the reader must know) is drawn dotted, `-.->`, with how it is reached on the arrow; dotted arrows are not checked. `wiki.py callgraph <path>#<function>` prints a call map read from Python code, with the calls it could not follow listed under it.
 - **Each function-level map is drawn once**: a flow's pipeline map and call map on its how-it-works page. Run-and-debug and other pages link there rather than draw them again.
+- **Fit a Markdown column.** GitHub and VS Code show a diagram no wider than their text column, about 860 px, and shrink a wider one with its labels; `render` names each diagram that ends up with labels too small to read. A chain of parts reads top to bottom (`flowchart TB`): left to right, nine boxes made the overview 2,559 px wide, and top to bottom 870 px. Break a long label over lines with `<br/>`. A decision whose label names code is a box with yes and no arrows, not a diamond: a diamond grows both ways with its label. Split a diagram that is still too wide. Call maps are the exception: their `file: function` boxes several calls deep are wider than a column either way, so draw each in the direction that is narrower (a fan-out reads left to right, a long chain top to bottom); the viewer zooms it, and GitHub opens it full size on a click.
 - Validate by rendering, not by eye: `wiki_browser.py render` fails on a diagram that does not parse. The SVG records a hash of its source, so lint also fails when the source changed and the SVG was not re-rendered.
 - A diagram is part of the page: it changes in the same change as the code it shows.
+
+## Formulas
+
+A formula the reader has to follow gets its own lines, typeset. A table cell or a sentence keeps only a short relation that reads at a glance (F_t = 2000·T₁/d₁); anything with a root, a fraction of products or a chain of factors moves out under the table, and the cell names it and links to it. Squeezed into a cell as plain text, a chain of factors is the hardest thing on the page to read.
+
+- **One `math` block per idea**, in the order the code computes it. Write it as a fenced block with the info string `math` and TeX inside, `\begin{aligned} … \end{aligned}` with `&=` for a chain of lines. GitHub, GitLab, VS Code's built-in preview and the viewer typeset it; any other viewer shows it as a code block of its TeX source, which still reads. Do not use `$$`: where math is not supported, Markdown eats its underscores and backslashes, and the lint warns.
+- **Before it, one sentence on what it computes**, and the function it lives in, linked. Name its clause the way the step table does.
+- **After it, a table of its symbols**, `Symbol | What it is | In the example`: each symbol in words with its unit, and its value from the captured run, so the reader can redo the arithmetic. Symbols in prose and tables are plain text (`σ_H`, `K_Hβ`), which reads in every viewer. Group symbols that need no explanation on one row. A symbol defined earlier on the page is not defined again.
+- **Then the result**, one line with the values the formula gave, and which of them decides the verdict.
+- **Only what the code does.** Copy each formula from the function, not from the standard or the design document, and check it against the captured values: a formula that does not reproduce the run's number is wrong on the page or reads the code wrongly. Constants, floors and branches the code applies are stated under it in one line ("F_m/b at least 100 N/mm"). Formulas the reader does not need to follow the result stay in the design document, linked.
+- Use the TeX that KaTeX and MathJax both support: `\frac`, `\sqrt`, `\cdot`, subscripts and superscripts, Greek letters, `\min`, `\text{…}`, `\qquad`, `aligned`. `wiki_browser.py check-viewer` fails on a formula that does not typeset.
+
+````text
+**Flank (pitting) stress**, in [`flank_chain`](../../src/rating/part2_flank.py):
+
+```math
+\begin{aligned}
+\sigma_H &= Z_B\, \sigma_{H0} \sqrt{K_A\, K_v\, K_{H\beta}\, K_{H\alpha}} \\
+S_H &= \sigma_{HG} \,/\, \sigma_H
+\end{aligned}
+```
+
+| Symbol | What it is | In the example |
+|---|---|---|
+| K_A, K_v, K_Hβ, K_Hα | application, dynamic, face and transverse load factors | 1.25, 1.047, **1.949**, 1.057 |
+````
 
 ## Command blocks
 
