@@ -78,7 +78,7 @@ Replace every `{{…}}` placeholder; lint warns about any that are left.
 
 Run each check from the repository root and fix what it finds before the next one:
 
-1. `python <skill folder>/tools/wiki_browser.py render`. A diagram that does not parse is fixed in the page (`pages.md` §Diagrams), never dropped. Exit code 3 means there is no browser or no Mermaid file: keep the Mermaid source in the page, and say so in the report.
+1. `python <skill folder>/tools/wiki_browser.py render`. A diagram that does not parse is fixed in the page (`pages.md` §Diagrams), never dropped. A diagram it names as too wide is redrawn narrower (`pages.md` §Diagrams, "Fit a Markdown column"). Exit code 3 means there is no browser or no Mermaid file: keep the Mermaid source in the page, and say so in the report.
 2. `python <skill folder>/tools/wiki.py lint`. Fix every problem, and read every warning: fix it, or say in the report why it stays. A repeated table or diagram is fixed by keeping one full copy (`pages.md`, "One home per fact"); a subset that a task page really needs may stay.
 3. `python <skill folder>/tools/wiki.py lint --run --strict --clean-env --capture <a temporary folder outside the repository>`. This is the proof that a reader can follow the pages without changing anything:
    - The approved command blocks run, README first, in one temporary clean checkout, with only system environment variables. A step that relies on something the page does not state, such as a variable set on your machine, an installed tool, or a file outside git, fails here.
@@ -88,7 +88,7 @@ Run each check from the repository root and fix what it finds before the next on
    - `--strict` fails on any command block that is neither run nor marked `check:skip reason="…"`. A skip says exactly what the step needs that a check cannot have, for example an API key, a phone, production credentials or a paid service. Wherever a skipped step has a safe stand-in (offline tests with a mocked client, a local server, a dry-run flag), document the stand-in as a run block next to it.
    - A failing block means the documentation is wrong or the step needs something it does not state. Fix the text, for example a missing prerequisite, an environment variable to set, or a per-OS form; never weaken, skip or unmark a block to make it pass.
    - A block whose tool is not installed on this machine (for example no Go toolchain) is reported as not verified here. Make sure the page names that prerequisite, and report the block as unverified.
-4. `python <skill folder>/tools/wiki.py viewer`, then `python <skill folder>/tools/wiki_browser.py check-viewer <viewer file>`. The check needs Python Playwright; without it, say that the viewer was not opened.
+4. `python <skill folder>/tools/wiki.py viewer`, then `python <skill folder>/tools/wiki_browser.py check-viewer <viewer file>`. The check needs Python Playwright; without it, say that the viewer was not opened. A formula it reports as not typesetting is fixed in the page (`pages.md` §Formulas).
 5. **Read it as a newcomer.** Open the overview, then each page from the sidebar, and check:
    - Do the headings alone say what the page tells you?
    - Does each diagram show something its page's text and tables do not?
