@@ -35,9 +35,10 @@ import urllib.parse
 from datetime import date
 from pathlib import Path
 
-TOOLS_VERSION = "0.2.0"
+TOOLS_VERSION = "0.3.0"
 HERE = Path(__file__).resolve().parent
-TOOL_FILES = ["wiki.py", "wiki_browser.py", "viewer_template.html", "vendor/marked.min.js", "vendor/marked-LICENSE.txt"]
+TOOL_FILES = ["wiki.py", "wiki_browser.py", "viewer_template.html", "vendor/marked.min.js", "vendor/marked-LICENSE.txt",
+              "vendor/katex.min.js", "vendor/katex.min.css", "vendor/katex-LICENSE.txt"]
 SPECIAL_PAGES = {"index.md": "index", "log.md": "log", "SCHEMA.md": "schema"}
 PAGE_KINDS = {"tutorial", "how-to", "reference", "explanation"}
 SKIP_DIRS = {".git", "node_modules", ".venv", "venv", "__pycache__", "diagrams", "vendor"}
@@ -886,7 +887,7 @@ def lint(repo: Path, wiki: Path, run: bool = False, in_place: bool = False, time
     syms = Symbols(repo)
     report = {"repo": repo.name, "wiki": posix(wiki, repo) if wiki.exists() else str(wiki), "pages": len(pages),
               "problems": problems, "warnings": warnings, "sources": {}, "diagrams": 0, "commands": [],
-              "coverage": {"run": 0, "skip": 0, "unmarked": 0}, "words": {}}
+              "coverage": {"run": 0, "skip": 0, "unmarked": 0}, "words": {}, "map": {}, "accepted": []}
     files = None
     vocab = None  # the sources page's short names, read on first use
 
@@ -921,7 +922,8 @@ def lint(repo: Path, wiki: Path, run: bool = False, in_place: bool = False, time
                 bad(page, 1, f"kind is '{page.kind or '(none)'}'; use one of {', '.join(sorted(PAGE_KINDS))}")
             if not page.meta.get("title"):
                 warn(page, 1, "no title in front matter")
-            if not page.sources and page.kind in ("reference", "explanation", "how-to"):
+            if not page.sources and page.kind in ("reference", "explanation", "how-to") and not any(
+                    "open first" in header for _, header, _ in table_rows(page)):  # the map's rows are checked one by one
                 warn(page, 1, "no sources: the page cannot be checked against the code")
             if page.path.resolve() not in indexed:
                 bad(page, 1, "not listed in index.md")
@@ -977,6 +979,26 @@ def lint(repo: Path, wiki: Path, run: bool = False, in_place: bool = False, time
                 warn(page, line, f"field '{field}' does not appear in {ref}: the code that sets it moved, or the field was renamed")
             if ref not in page.sources:
                 warn(page, line, f"Set in {ref} is not in sources:, so a change to it does not flag this page")
+        # tables that send the reader to code (`Open first`, `Code`): each linked name is defined in the file it links
+        for line, col, name, target in code_cells(page):
+            dest = (page.path.parent / urllib.parse.unquote(target.partition("#")[0])).resolve()
+            if is_external(target) or not dest.is_file() or dest.suffix.lower() not in CODE_EXT:
+                continue  # a missing file is the link check's to report
+            if name == dest.name or not re.fullmatch(rf"{N}(?:\.{N})*", name):
+                continue  # the link names the file, or is not a symbol
+            try:
+                path = posix(dest, repo)
+            except ValueError:
+                continue
+            parts = name.split(".")  # `app.Engine.run` may carry its module: try `Engine.run` and `run` as well
+            found = [syms.find(f"{path}#{'.'.join(parts[k:])}") for k in range(len(parts))]
+            if not any(r["ok"] for r in found):
+                bad(page, line, f"{col.capitalize()} {found[0]['ref']}: {found[0]['note']}")
+        # step tables: the pipeline diagram's arrows carry what passes between steps
+        for start, header, _ in table_rows(page):
+            if header and header[0] == "#" and "step" in header and ("takes" in header or "gives" in header):
+                warn(page, start, "this step table has Takes and Gives columns, which repeat the arrows of the pipeline diagram "
+                                  "above it: drop the columns, and put a type the arrows lack on its arrow")
         # diagrams
         for block in mermaid_blocks(page):
             report["diagrams"] += 1
@@ -990,9 +1012,13 @@ def lint(repo: Path, wiki: Path, run: bool = False, in_place: bool = False, time
             if not svg.exists():
                 bad(page, block["line"], f"diagrams/{block['id']}.svg not rendered (run wiki_browser.py render)")
                 continue
-            stamp = SVG_STAMP.search(read(svg)[:400])
+            head = read(svg)[:1200]
+            stamp = SVG_STAMP.search(head)
             if not stamp or stamp.group(2) != block["hash"]:
                 bad(page, block["line"], f"diagrams/{block['id']}.svg is older than its source (run wiki_browser.py render)")
+            elif re.search(r'<svg\b[^>]*\swidth="100%"', head):
+                warn(page, block["line"], f"diagrams/{block['id']}.svg has no natural size, so a Markdown preview stretches "
+                                          "or squeezes it (run wiki_browser.py render again)")
             if f"diagrams/{block['id']}.svg" not in page.text:
                 warn(page, block["line"], f"the page does not show diagrams/{block['id']}.svg")
         # boxes that name code, and the calls a call map draws
@@ -1007,6 +1033,10 @@ def lint(repo: Path, wiki: Path, run: bool = False, in_place: bool = False, time
         for i, line in enumerate(prose_lines(page.text), 1):
             for ph in re.findall(r"\{\{[^}]+\}\}", line):
                 warn(page, i, f"template placeholder left: {ph}")
+            if line.lstrip().startswith("$$"):
+                warn(page, i, "a $$ formula: write it as a ```math block, which GitHub, GitLab, VS Code and the viewer "
+                              "typeset and every other viewer shows as its TeX source; $$ text is mangled where math "
+                              "is not supported")
         # command blocks: every block a reader would paste into a terminal is either run or skipped with a reason
         blocks, errs, cov = run_blocks(page)
         for line, msg in errs:
@@ -1029,7 +1059,7 @@ def lint(repo: Path, wiki: Path, run: bool = False, in_place: bool = False, time
         step_citation_checks(repo, page, syms, vocab, warn)
         bare = [line for line, t in links(page.text) if not is_external(t) and re.search(r"(^|/)sources\.md$", t)
                 and not (page.wiki_rel and Path(page.wiki_rel).name == "sources.md")]
-        if bare:
+        if bare and page.kind != "index":  # the index lists the page itself
             warn(page, bare[0], f"{len(bare)} link(s) to the sources page name no entry: end each with the source's anchor "
                                 "(sources.md#dnv-cn-41-2), so the reader lands on that source's row, with its clauses and "
                                 "public link, instead of the top of the table")
@@ -1055,6 +1085,7 @@ def lint(repo: Path, wiki: Path, run: bool = False, in_place: bool = False, time
     tour_checks(repo, warnings)
     repeat_checks(pages, warnings)
     first_read_checks(pages, warnings)
+    report["map"] = coverage_checks(repo, wiki, pages, warnings)
 
     report["commands"] = [dict(b, status="not run") for b in all_blocks]
     if run and all_blocks:
@@ -1075,6 +1106,7 @@ def lint(repo: Path, wiki: Path, run: bool = False, in_place: bool = False, time
                 problems.append({"page": r["page"], "line": r["line"], "msg": f"command block failed: {r['detail']}"})
             elif r["status"] == "unavailable":
                 warnings.append({"page": r["page"], "line": r["line"], "msg": f"command block not verified here: {r['detail']}"})
+    report["accepted"] = apply_accepts(pages, problems, warnings)
     return report
 
 
@@ -1573,8 +1605,139 @@ def first_read_checks(pages: list[Page], warnings: list[dict]) -> None:
                             warnings.append({"page": page.label, "line": start, "msg": f"step {cells[0]} of {flow.label} ({step}) "
                                              f"has none of its functions in this table ({', '.join(sorted(names.values()))}): readers "
                                              "who start here skip that step. Put its deciding function in place of a row that "
-                                             "decides less, or leave the step out with a reason; a longer table pushes its last "
-                                             "rows out of what readers take"})
+                                             f"decides less, or keep the gap with its reason (lint:accept \"step {cells[0]} of "
+                                             f"{flow.label}\" reason=\"…\"); a longer table pushes its last rows out of what "
+                                             "readers take"})
+
+
+CHECKED_COLUMNS = ("open first", "code")
+
+
+def code_cells(page: Page) -> list[tuple[int, str, str, str]]:
+    """(1-based line, column, name, link target) for each code link in a table column named `Open first` or `Code`:
+    the map's rows, the overview's code to know first, a step table's code."""
+    out = []
+    for _, header, rows in table_rows(page):
+        cols = [i for i, h in enumerate(header) if h in CHECKED_COLUMNS]
+        for line, cells in rows:
+            for c in cols:
+                for text, target in CODE_LINK.findall(cells[c]) if c < len(cells) else []:
+                    out.append((line, header[c], re.sub(r"\(\)$", "", text.strip()), target))
+    return out
+
+
+CONFIG_EXT = {".json", ".jsonc", ".yml", ".yaml", ".toml", ".ini", ".cfg", ".conf", ".mk", ".just"}
+
+
+def tracked_code(repo: Path, wiki: Path) -> list[str]:
+    """The code files a reader may be sent to: tracked by git, so installs and build output are out; without git,
+    every code file found. Configuration formats, the wiki and its tools are left out."""
+    names = [f for f in git(repo, "ls-files", check=False).split("\n") if f] if is_git(repo) else []
+    names = names or code_files(repo)
+    skip = [posix(wiki, repo) + "/"]
+    try:
+        skip.append(posix(HERE, repo) + "/")
+    except ValueError:
+        pass
+    return [f for f in names if Path(f).suffix.lower() in CODE_EXT - CONFIG_EXT and not f.endswith(".d.ts")
+            and not any(part in SKIP_DIRS for part in Path(f).parts) and not any(f.startswith(s) for s in skip)]
+
+
+def coverage_checks(repo: Path, wiki: Path, pages: list[Page], warnings: list[dict]) -> dict:
+    """How much of the code the wiki leads to. A code file counts when a page links it or names it in `sources:`, or
+    when a row of the map (a table with an `Open first` column) names it, or a folder above it, in its first cell.
+    The files left over are where a reader with a user's report finds no way in, so they are reported, by folder."""
+    code = tracked_code(repo, wiki)
+    if not code:
+        return {}
+    root = repo.resolve()
+
+    def rel(base: Path, target: str) -> str | None:
+        try:
+            return (base / urllib.parse.unquote(target)).resolve().relative_to(root).as_posix()
+        except (ValueError, OSError):
+            return None
+
+    linked, rows, map_page, unlinked = set(), {}, None, {}
+    for page in pages:
+        for ref in page.sources:
+            linked.add(ref.partition("#")[0])
+        for _, target in links(page.text):
+            if not is_external(target) and not target.startswith("#"):
+                linked.add(rel(page.path.parent, target.partition("#")[0]))
+        for _, header, trows in table_rows(page):
+            if "open first" not in header:
+                continue
+            map_page = map_page or page
+            col = header.index("open first")
+            for line, cells in trows:
+                linked_row = col < len(cells) and bool(CODE_LINK.search(cells[col]))
+                names = [rel(page.path.parent, t.partition("#")[0]) for _, t in CODE_LINK.findall(cells[0]) if not is_external(t)]
+                names += [rel(repo, t.split("*")[0]) for t in re.findall(r"`([^`]+)`", re.sub(r"\[[^\]]*\]\([^)]*\)", "", cells[0]))]
+                for name in names:
+                    if name and (repo / name).exists():
+                        rows.setdefault(name.rstrip("/"), 0)
+                        if not linked_row:
+                            unlinked.setdefault(name.rstrip("/"), (page, line))
+    on_pages = [f for f in code if f in linked]
+    under, none = [], []
+    for f in code:
+        if f in linked:
+            continue
+        row = next((r for r in sorted(rows, key=len, reverse=True) if f == r or f.startswith(r + "/")), None)
+        if row is None:
+            none.append(f)
+        else:
+            under.append(f)
+            rows[row] += 1
+    for name, (page, line) in unlinked.items():
+        if rows[name] > 1:  # a row for one file, a package marker or a config file needs no function
+            warnings.append({"page": page.label, "line": line, "msg": f"this map row stands for {rows[name]} code files under "
+                             f"{name}/ and links none of them in Open first: link the one where the behaviour starts, and give "
+                             "each file with logic of its own a row"})
+    out = {"code_files": len(code), "on_pages": len(on_pages), "under_map_rows": len(under), "on_none": none,
+           "largest_rows": sorted(((r, n) for r, n in rows.items() if n > 1), key=lambda kv: -kv[1])[:3]}
+    if none:
+        folders: dict[str, int] = {}
+        for f in none:
+            folders[f.rpartition("/")[0] or "."] = folders.get(f.rpartition("/")[0] or ".", 0) + 1
+        top = ", ".join(f"{d}/ ({n})" for d, n in sorted(folders.items(), key=lambda kv: (-kv[1], kv[0]))[:8])
+        more = "" if len(folders) <= 8 else f", and {len(folders) - 8} more folders"
+        if map_page:
+            warnings.append({"page": map_page.label, "line": 0, "msg": f"{len(none)} of {len(code)} code files are on no page and "
+                             f"under no row of this map: {top}{more}. Add a row for each part, with the function to open first"})
+        else:
+            warnings.append({"page": "index.md", "line": 0, "msg": f"{len(none)} of {len(code)} code files are on no page: {top}"
+                             f"{more}. A reader with a report about that code finds no way in: add the map of the code "
+                             "(reference/map.md: one row per module, with what it does and the function to open first)"})
+    return out
+
+
+ACCEPT = re.compile(r"<!--\s*lint:accept\s+\"([^\"]+)\"(?:\s+reason=\"([^\"]*)\")?\s*-->")
+
+
+def apply_accepts(pages: list[Page], problems: list[dict], warnings: list[dict]) -> list[dict]:
+    """A warning that stays for a reason is kept on its page, in a line the next maintainer reads:
+    <!-- lint:accept "part of the warning's message" reason="why it stays" -->. Such warnings leave the warning list
+    and are reported with their reasons. Problems cannot be kept this way, and a line that matches no warning is
+    itself reported, so the lines do not outlive what they excuse."""
+    accepted = []
+    for page in pages:
+        lines = page.text.split("\n")
+        in_code = {k for start, end, _ in fences(lines) for k in range(start, end + 1)}
+        for i, line in enumerate(lines):
+            for text, reason in ACCEPT.findall(line) if i not in in_code else []:
+                if not reason.strip():
+                    problems.append({"page": page.label, "line": i + 1, "msg": f'lint:accept "{text}" gives no reason="…"'})
+                    continue
+                hits = [w for w in warnings if w["page"] == page.label and text.lower() in w["msg"].lower()]
+                if not hits:
+                    warnings.append({"page": page.label, "line": i + 1,
+                                     "msg": f'lint:accept "{text}" matches no warning on this page now: remove the line'})
+                for w in hits:
+                    warnings.remove(w)
+                    accepted.append(dict(w, reason=reason.strip()))
+    return accepted
 
 
 VOLATILE = [  # values that differ on every run; `wiki.py fill` writes … in their place, which check:output matches
@@ -1889,6 +2052,10 @@ def print_lint(report: dict) -> None:
         print(f"FAIL {p['page']}{':' + str(p['line']) if p['line'] else ''}: {p['msg']}")
     for w in report["warnings"]:
         print(f"warn {w['page']}{':' + str(w['line']) if w['line'] else ''}: {w['msg']}")
+    for w in report.get("accepted", []):
+        print(f"kept {w['page']}{':' + str(w['line']) if w['line'] else ''}: {w['msg'][:110]}… Reason: {w['reason']}")
+    if report["warnings"]:
+        print('A warning that stays for a reason: put <!-- lint:accept "part of its message" reason="why it stays" --> on its page.')
     label = {"ok": "run ", "skipped": "skip", "unavailable": "n/a ", "failed": "FAIL"}
     for c in report["commands"]:
         if c["status"] != "not run":
@@ -1914,7 +2081,13 @@ def summary(report: dict) -> str:
     if words:
         longest = sorted(words.items(), key=lambda kv: -kv[1])[:3]
         parts.append(f"{sum(words.values())} words to read (longest: " + ", ".join(f"{k} {v}" for k, v in longest) + ")")
-    return ", ".join(parts) + f": {len(report['problems'])} problems, {len(report['warnings'])} warnings"
+    cmap = report.get("map") or {}
+    if cmap:
+        parts.append(f"{cmap['code_files']} code files: {cmap['on_pages']} on pages, {cmap['under_map_rows']} under map rows, "
+                     f"{len(cmap['on_none'])} on none" + "".join(f" (widest map row: {r}/, {n} files)" for r, n in cmap["largest_rows"][:1]))
+    kept = len(report.get("accepted") or [])
+    return (", ".join(parts) + f": {len(report['problems'])} problems, {len(report['warnings'])} warnings"
+            + (f", {kept} kept with a reason" if kept else ""))
 
 
 # ---------------------------------------------------------------- affected
@@ -2288,10 +2461,16 @@ def viewer(repo: Path, wiki: Path, out: Path, editor: str, title: str | None, ar
     }
     shell = read(HERE / "viewer_template.html")
     marked = read(HERE / "vendor" / "marked.min.js").replace("</script", "<\\/script")
+    # KaTeX (about 640 kB with its fonts) only when a page has a ```math block to typeset
+    has_math = any(info.split()[:1] == ["math"] for p in pages for _, _, info in fences(p.body.split("\n")))
+    katex_js = read(HERE / "vendor" / "katex.min.js").replace("</script", "<\\/script") if has_math else ""
+    katex_css = read(HERE / "vendor" / "katex.min.css").replace("</style", "<\\/style") if has_math else ""
     blob = json.dumps(data, ensure_ascii=False).replace("</", "<\\/")
     name = title or (index.title if index and index.meta.get("title") else f"{repo.name} wiki")
     page = (shell.replace("__WIKI_TITLE__", html.escape(name))
                  .replace("/*MARKED*/", marked)
+                 .replace("/*KATEX_CSS*/", katex_css)
+                 .replace("/*KATEX*/", katex_js)
                  .replace("/*WIKI_DATA*/null", blob))
     if artifact:
         page = re.sub(r"(?is)\A\s*<!doctype html>\s*<html[^>]*>\s*<head>\s*", "", page)

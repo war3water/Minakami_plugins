@@ -1,11 +1,9 @@
 <!-- code-map:wiki begin -->
 ## Code wiki
 
-This repository keeps a code wiki: the root README and `{{wiki_dir}}/`. Start at `{{wiki_dir}}/index.md`: its first table names the page for each task, so read that page first rather than every page. `{{wiki_dir}}/SCHEMA.md` holds the rules for editing the wiki; read it when you edit pages.
+The root README and `{{wiki_dir}}/` are a code wiki for people, checked against the code by a lint.
 
-- Before exploring the code to answer a question, read the index: the answer may already be written. When you answer a question about this repository that the wiki did not answer, and it is likely to be asked again, add it to `{{wiki_dir}}/questions.md` (the question, a short answer, a link to the section that explains it) and improve that section if the answer belongs there.
-- A change that alters behaviour, setup, commands or layout updates, in the same change, every wiki page whose `sources:` names a changed file or symbol, and the README when setup or commands change. `python {{tools_dir}}/wiki.py affected` lists them.
-- Append one entry at the end of `{{wiki_dir}}/log.md`: `## [YYYY-MM-DD] change | <title>`, then what changed, the pages updated, and the pages checked and still true, by path.
-- After editing a diagram, run `python {{tools_dir}}/wiki_browser.py render`. When your change edits a wiki page, or code that a page's `sources:` names, run `python {{tools_dir}}/wiki.py lint --strict` before you finish, and `--run --clean-env` as well when setup or commands changed, then fix what it reports. `lint` and `affected` only read; they never change a file.
-- Wiki pages describe the code; they never change it.
+- **To fix or change code, search the code first.** Do not read wiki pages to get oriented. Open one section where it saves a search: the README for the set-up, run and test commands; "When it goes wrong" in `{{wiki_dir}}/howto/run-and-debug.md` for an error or a symptom; `{{wiki_dir}}/reference/map.md` for the file behind a behaviour you could not find (one row per module, then the known traps); `{{wiki_dir}}/index.md` to find a written explanation. `grep -rn "<words of the report>" {{wiki_dir}}` costs less than reading a page.
+- **A change that alters behaviour, setup, commands or layout updates the wiki in the same change.** Fix the pages `python {{tools_dir}}/wiki.py affected` lists. Append `## [YYYY-MM-DD] change | <title>` and a line `Updated: <pages>. Checked: <pages still true>.` at the end of `{{wiki_dir}}/log.md`. Run `python {{tools_dir}}/wiki.py lint --strict` (after a diagram edit, `python {{tools_dir}}/wiki_browser.py render` first; add `--run --clean-env` when setup or commands changed).
+- A new page or diagram follows `{{wiki_dir}}/SCHEMA.md`; a routine update does not need that file. Wiki pages never change code.
 <!-- code-map:wiki end -->

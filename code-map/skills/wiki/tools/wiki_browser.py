@@ -5,8 +5,10 @@
   python wiki_browser.py check-viewer FILE
 
 Why render at all: GitHub renders Mermaid, but VS Code's built-in Markdown preview and many viewers show the raw code.
-Pages therefore show the rendered SVG and keep the Mermaid source beside it in a <details> block. Rendering is also
-the only real syntax check: a diagram that does not parse fails here, not in a reader's browser.
+Pages therefore show the rendered SVG and keep the Mermaid source beside it in a <details> block. Each SVG is written at
+its natural size on a white ground, so a Markdown preview neither stretches it to its column nor shows dark text on a
+dark theme. Rendering is also the only real syntax check: a diagram that does not parse fails here, not in a reader's
+browser.
 
 Which browser, in order: Python Playwright with its own Chromium; Playwright driving an installed Edge or Chrome;
 without Playwright, an installed Chrome, Edge or Chromium run headless from the command line. Nothing is installed.
@@ -18,7 +20,9 @@ from __future__ import annotations
 import argparse
 import html
 import json
+import math
 import os
+import re
 import shutil
 import subprocess
 import sys
@@ -35,9 +39,34 @@ MERMAID_SHA256 = "a43bc1afd446f9c4cc66ac5dd45d02e8d65e26fc5344ec0ef787f88d6ddb6f
 NO_BROWSER = 3
 # The neutral theme draws chart bars, lines and pie slices in pale greys; charts get a palette that reads on white.
 CHART_COLORS = ["#2f6db3", "#d9822b", "#3a9a5b", "#c0504d", "#7b5ea7", "#6b7a89"]
+# Spacing a little tighter than Mermaid's (50 and 50) keeps more diagrams within a Markdown column (COLUMN_PX).
 MERMAID_INIT = ('mermaid.initialize({startOnLoad: false, theme: "neutral", securityLevel: "strict", htmlLabels: false, '
-                'flowchart: {htmlLabels: false}, themeVariables: {xyChart: {plotColorPalette: "' + ", ".join(CHART_COLORS) + '"}, '
+                'flowchart: {htmlLabels: false, nodeSpacing: 30, rankSpacing: 40}, themeVariables: {xyChart: {plotColorPalette: "' + ", ".join(CHART_COLORS) + '"}, '
                 + ", ".join(f'pie{i + 1}: "{c}"' for i, c in enumerate(CHART_COLORS)) + '}});')
+# About the width of the Markdown column on GitHub and in VS Code's preview: a wider diagram is shrunk to fit, and its
+# labels with it. Mermaid sets them at 16 px; below three quarters of that they are hard to read.
+COLUMN_PX = 860
+LEGIBLE_PX = round(COLUMN_PX / 0.75)
+SVG_HEAD = re.compile(r"<svg\b[^>]*>")
+VIEWBOX = re.compile(r'viewBox="([-\d.]+)[ ,]+([-\d.]+)[ ,]+([\d.]+)[ ,]+([\d.]+)"')
+
+
+def fit_svg(svg: str) -> tuple[str, float]:
+    """(the SVG at its natural size on a white ground, its natural width). Mermaid writes width="100%" and no height,
+    so a Markdown preview, which shows the file as an image, stretches or squeezes it to its column; and its ground is
+    transparent, so a dark theme puts its dark text on a dark page. The viewer corrects both itself; other readers
+    only get what the file says."""
+    head = SVG_HEAD.search(svg)
+    box = VIEWBOX.search(head.group(0)) if head else None
+    if not box:
+        return svg, 0.0
+    x, y, w, h = (float(v) for v in box.groups())
+    tag = re.sub(r'\s(?:width|height)="[^"]*"', "", head.group(0)[:-1]).rstrip("/ ")
+    tag += f' width="{math.ceil(w)}" height="{math.ceil(h)}">'
+    ground = f'<rect x="{x:g}" y="{y:g}" width="{w:g}" height="{h:g}" fill="#ffffff"/>'
+    return svg[:head.start()] + tag + ground + svg[head.end():], w
+
+
 RENDER_ONE = """async ([id, src]) => {
   try { const r = await mermaid.render("wiki-" + id, src); return {ok: true, svg: r.svg}; }
   catch (e) { document.querySelectorAll('[id^="dwiki-"], [id^="wiki-"]').forEach(n => n.remove());
@@ -197,15 +226,29 @@ def render(repo: Path, wiki_dir: Path, mermaid_arg: str | None, renderer: str) -
         return NO_BROWSER
     out_dir = wiki_dir / "diagrams"
     out_dir.mkdir(parents=True, exist_ok=True)
+    wide = []
     for (page, block), res in zip(jobs, results):
         if res.get("ok"):
             stamp = f'<!-- code-map-wiki diagram="{block["id"]}" source-sha256="{block["hash"]}" -->\n'
-            (out_dir / f"{block['id']}.svg").write_text(stamp + res["svg"], encoding="utf-8")
+            svg, width = fit_svg(res["svg"])
+            (out_dir / f"{block['id']}.svg").write_text(stamp + svg, encoding="utf-8")
             print(f"ok   {page.label}:{block['line']} -> {wiki.posix(out_dir, repo)}/{block['id']}.svg")
+            # a call map's boxes are long file: function names, so a path several calls deep is wider than a column
+            # whichever way it runs; pages.md lets it be, drawn in its narrower direction
+            call_map = [s.strip() for s in block["source"].split("\n")[1:2]] == ["%% calls"]
+            if width > LEGIBLE_PX and not call_map:
+                wide.append(f"wide {page.label}:{block['line']} [{block['id']}]: {width:.0f} px")
         else:
             failed += 1
             print(f"FAIL {page.label}:{block['line']} [{block['id']}]: {res.get('error', '')[:400]}")
-    print(f"{len(jobs) - sum(1 for r in results if not r.get('ok'))} rendered, {failed} failed ({label}, Mermaid {MERMAID_VERSION})")
+    for line in wide:
+        print(line)
+    if wide:
+        print(f"GitHub and VS Code shrink a diagram to their Markdown column, about {COLUMN_PX} px; one wider than about "
+              f"{LEGIBLE_PX} px ends up with labels too small to read. Draw it top to bottom, break long labels, or split "
+              "it (pages.md §Diagrams).")
+    print(f"{len(jobs) - sum(1 for r in results if not r.get('ok'))} rendered, {failed} failed, {len(wide)} too wide "
+          f"({label}, Mermaid {MERMAID_VERSION})")
     return 1 if failed else 0
 
 
@@ -281,6 +324,13 @@ def check_viewer(path: Path) -> int:
             break
         if not zoomed:
             notes.append("no rendered diagram to zoom")
+        # every page has been opened above, so the formulas of all of them are in the document now
+        for bad in page.evaluate("""[...document.querySelectorAll('.wikipage')].flatMap(s =>
+            [...s.querySelectorAll('.math-error')].map(e => s.dataset.page + ': ' + e.dataset.error))"""):
+            problems.append(f"a formula does not typeset: {bad}")
+        typeset = page.evaluate("document.querySelectorAll('.math-display').length")
+        if typeset:
+            notes.append(f"{typeset} formulas typeset")
         page.goto(path.resolve().as_uri() + "#" + ids[-1].replace("/", "~"))
         page.wait_for_selector("#nav button")
         if page.evaluate("current") != ids[-1]:

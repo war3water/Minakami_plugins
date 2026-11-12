@@ -11,17 +11,17 @@
    check does not run, and a notice on pages that may be out of date. No network access. */
 :root {
   --bg: #f4f6f8; --panel: #ffffff; --ink: #18212b; --muted: #5b6672; --line: #d9dee4; --accent: #1f5fa8; --accent-soft: #e4ecf6;
-  --code: #eef1f4; --warn: #9a5b00; --warn-soft: #fbf0dc; --bad: #a3261b; --bad-soft: #fbe5e2;
+  --code: #eef1f4; --pre-bg: #1b2430; --pre-ink: #e3e9f0; --pre-line: #1b2430; --warn: #9a5b00; --warn-soft: #fbf0dc; --bad: #a3261b; --bad-soft: #fbe5e2;
   --body: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
   --mono: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
   color-scheme: light;
 }
 @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
   --bg: #10151b; --panel: #171e27; --ink: #e4e9ef; --muted: #98a4b0; --line: #2a3441; --accent: #84b3ea; --accent-soft: #1c2a3a;
-  --code: #1d2530; --warn: #f0b860; --warn-soft: #33270f; --bad: #f08a80; --bad-soft: #3a1c19; color-scheme: dark } }
+  --code: #1d2530; --pre-bg: #0a0e13; --pre-ink: #e4e9ef; --pre-line: #2a3441; --warn: #f0b860; --warn-soft: #33270f; --bad: #f08a80; --bad-soft: #3a1c19; color-scheme: dark } }
 :root[data-theme="dark"] {
   --bg: #10151b; --panel: #171e27; --ink: #e4e9ef; --muted: #98a4b0; --line: #2a3441; --accent: #84b3ea; --accent-soft: #1c2a3a;
-  --code: #1d2530; --warn: #f0b860; --warn-soft: #33270f; --bad: #f08a80; --bad-soft: #3a1c19; color-scheme: dark }
+  --code: #1d2530; --pre-bg: #0a0e13; --pre-ink: #e4e9ef; --pre-line: #2a3441; --warn: #f0b860; --warn-soft: #33270f; --bad: #f08a80; --bad-soft: #3a1c19; color-scheme: dark }
 * { box-sizing: border-box; }
 body { margin: 0; background: var(--bg); color: var(--ink); font: 16px/1.6 var(--body); }
 [hidden] { display: none !important; }  /* an id rule with display would otherwise beat the hidden attribute */
@@ -66,8 +66,8 @@ article table { border-collapse: collapse; display: block; overflow-x: auto; mar
 article th, article td { border: 1px solid var(--line); padding: 6px 10px; vertical-align: top; text-align: left; }
 article th { background: var(--code); }
 article code { font: 13.5px var(--mono); background: var(--code); padding: 1px 4px; border-radius: 3px; }
-article pre { background: var(--code); border: 1px solid var(--line); border-radius: 6px; padding: 12px 14px; overflow-x: auto; }
-article pre code { background: none; padding: 0; }
+article pre { background: var(--pre-bg); color: var(--pre-ink); border: 1px solid var(--pre-line); border-radius: 6px; padding: 12px 14px; overflow-x: auto; line-height: 1.5; }
+article pre code { background: none; padding: 0; color: inherit; }
 article img { display: block; background: #ffffff; border: 1px solid var(--line); border-radius: 6px; padding: 10px; max-width: 100%; }
 article img.zoomable { cursor: zoom-in; }
 article img.zoomable:hover, article img.zoomable:focus-visible { border-color: var(--accent); outline: none; }
@@ -75,6 +75,13 @@ article details { margin: 8px 0 18px; } article summary { cursor: pointer; color
 article a { color: var(--accent); }
 article a.code-link { color: var(--ink); text-decoration: none; border-bottom: 1px dashed var(--muted); }
 article blockquote { margin: 0; padding: 8px 14px; border-left: 3px solid var(--accent); background: var(--accent-soft); }
+/* a formula: typeset on the page's own ground, so it reads as part of the text, not as code */
+.math-display { overflow-x: auto; overflow-y: hidden; margin: 12px 0; padding: 4px 0; max-width: 76ch; }
+.math-display .katex-display { margin: 0; text-align: left; }
+.math-display .katex-display > .katex { text-align: left; padding-left: 2ch; }
+.math-display .katex { font-size: 1.12em; }
+.math-error { border: 1px dashed var(--warn); background: var(--warn-soft); color: var(--warn); border-radius: 6px; padding: 8px 12px; }
+.math-error pre { background: none; color: inherit; border: 0; padding: 6px 0 0; margin: 0; }
 .zoom-hint { font-size: 13px; color: var(--muted); margin: -2px 0 12px; }
 .missing-diagram { padding: 10px 12px; border: 1px dashed var(--warn); background: var(--warn-soft); color: var(--warn); border-radius: 6px; font-size: 14px; }
 @media (max-width: 860px) { .shell { grid-template-columns: 1fr; } aside { position: static; max-height: none; } main { padding: 20px 16px; } }
@@ -119,6 +126,8 @@ article blockquote { margin: 0; padding: 8px 14px; border-left: 3px solid var(--
 </div>
 
 <script>/*MARKED*/</script>
+<style>/*KATEX_CSS*/</style>
+<script>/*KATEX*/</script>
 <script>
 const W = /*WIKI_DATA*/null;
 // The sidebar in the words docs sites use; the page kinds behind them are the schema's (Diátaxis). The wiki's own
@@ -181,7 +190,25 @@ function renderMarkdown(src, id) {
   const doc = new DOMParser().parseFromString("<body>" + marked.parse(src, {headerIds: false, mangle: false}) + "</body>", "text/html");
   clean(doc.body);
   fixMedia(doc.body, id);
+  setMath(doc.body);
   return doc.body.innerHTML;
+}
+// A ```math block is a formula in TeX, the form GitHub, GitLab and VS Code typeset too. KaTeX is bundled only when the
+// wiki has formulas; without it the block stays a code block of its TeX source. A formula that does not parse shows
+// its source and the reason, and check-viewer reports it.
+function setMath(root) {
+  if (!window.katex) return;
+  root.querySelectorAll("pre > code.language-math").forEach(code => {
+    const tex = code.textContent.trim(), box = document.createElement("div");
+    try {
+      box.className = "math-display";
+      box.innerHTML = katex.renderToString(tex, {displayMode: true, throwOnError: true, output: "htmlAndMathml"});
+    } catch (e) {
+      box.className = "math-error"; box.dataset.error = String(e && e.message || e).slice(0, 200);
+      box.innerHTML = `This formula does not typeset: ${esc(box.dataset.error)}<pre>${esc(tex)}</pre>`;
+    }
+    code.parentElement.replaceWith(box);
+  });
 }
 // Images are rewritten before the page is shown: their paths are relative to the page in the repository, not to
 // wherever this file was opened from, so they come embedded (or as file links) in the data.
