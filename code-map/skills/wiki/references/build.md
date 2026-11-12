@@ -35,7 +35,7 @@ In a temporary copy of the repository, run the commands you will document that n
 - `concepts/overview.md`, following `pages.md` §The overview page: every part of the system, not only the primary path;
 - a how-it-works page for each core flow, starting with the primary path, following `pages.md` §How-it-works pages: the picture, the pipeline, the call map and the rules that decide the result;
 - `howto/run-and-debug.md`, following `pages.md` §Run and debug, pointing into the call maps instead of drawing them again;
-- `reference/map.md`, following `pages.md` §The map of the code: one row for every module, so the code the pages above do not explain still has a way in. A project small enough that those pages already link every code file needs no map;
+- `reference/map.md`, following `pages.md` §The map of the code: one row for every module, so the code the pages above do not explain still has a way in. Every wiki has one; on a small project it is a short page;
 - `reference/sources.md` when the code follows any external source, following `pages.md` §Sources page, with every mention on the other pages and in the README linked to it or to the repository's own chapter;
 - reference pages for what readers will look up while working: each subsystem the primary path passes through, the public API, the command-line flags, the configuration, the data formats, as far as the code has them;
 - how-to pages for the changes the code invites: an extension point, a registry or a plugin interface suggests "Add a …";
