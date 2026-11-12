@@ -34,7 +34,7 @@ Longer setup, debugging and contribution detail belongs in the wiki or in `CONTR
 The sections follow what a new user does, in this order where the project has them: about (what it is, who it is for, and a screenshot for anything with a screen), getting started (prerequisites, install, run, check that it works), usage, configuration, development (tests and debugging), deployment, troubleshooting, documentation, then status and license. A README longer than a couple of screens opens with a table of contents. [SR, MAR, GH-R]
 
 - **Setup before long feature lists.** A newcomer reaches the install step without scrolling past a feature narrative. When the README buries it, propose moving the long part to a wiki page (the overview, or a reference page) and leaving a short summary with a link. The user decides.
-- **Only what a newcomer needs, then a link.** Configuration lists the settings someone must set to get started; the full table lives on the wiki's configuration page (`pages.md`, "One home per fact"). The same goes for every flag, every script and every symptom.
+- **Only what a newcomer needs, then a link.** Configuration lists the settings someone must set to get started; the full table lives on the wiki's configuration page (`pages.md`, "One home per fact, said once"). The same goes for every flag, every script and every symptom.
 
 The test: a newcomer who reads from the top reaches a running program before anything they could skip.
 

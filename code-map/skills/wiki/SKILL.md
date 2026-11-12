@@ -1,6 +1,6 @@
 ---
 name: wiki
-description: Build a code wiki for the current repository and keep it current with the code. The README becomes the front page; an overview maps every part of the system and the code to read first; each core flow gets a page with an everyday picture, a pipeline map (each step's method linked to the clause it follows, its function and data) and a call map read from the code; pages link to the source symbols they explain, and a lint proves those symbols and the drawn calls still exist; a run-and-debug page gives breakpoints, trace switch and symptoms; Mermaid diagrams are rendered to SVG; marked command blocks are executed so setup steps cannot go stale; a one-file viewer makes it browsable; questions asked in sessions are collected and answered into the wiki. Modes build, update, lint, view, questions. USER-INVOKED ONLY — run solely when the user names this skill ($wiki in Codex, /code-map:wiki in Claude Code).
+description: Build a code wiki for the current repository and keep it current with the code. The README becomes the front page; an overview maps every part of the system and the code to read first; a map of the code gives every module one row with the function to open first, and lists where the code is not what it seems; each core flow gets a page with an everyday picture, a pipeline (its steps, each step's method linked to the clause it follows, and its function) and a call map read from the code; pages link to the source symbols they explain, and a lint proves those symbols and the drawn calls still exist; a run-and-debug page gives breakpoints, trace switch and symptoms; Mermaid diagrams are rendered to SVG; marked command blocks are executed so setup steps cannot go stale; a one-file viewer makes it browsable; questions asked in sessions are collected and answered into the wiki. Modes build, update, lint, view, questions. USER-INVOKED ONLY — run solely when the user names this skill ($wiki in Codex, /code-map:wiki in Claude Code).
 disable-model-invocation: true
 argument-hint: "[build|update|lint|view|questions] [--wiki <dir>] [--tools <dir>] [--since <ref>] [--run] [--editor <name>] [--lang <language>] [free-text wishes]"
 allowed-tools:
@@ -30,7 +30,8 @@ The pattern is Karpathy's "LLM Wiki" (three layers: the sources nobody edits thr
 |---|---|
 | build | `references/build.md`, `references/pages.md`, `references/readme.md`, every file in `templates/`, `../../references/extraction.md` |
 | update, questions | `references/update.md`, `references/pages.md`, and for questions `templates/questions.md.tmpl` |
-| lint, view | `references/update.md` |
+| lint | `references/update.md`, and `references/pages.md` §What the lint checks |
+| view | `references/update.md` |
 
 **Tools.** `tools/wiki.py` (standard library only: lint, affected pages, viewer, copying the tools) and `tools/wiki_browser.py` (diagram rendering and a viewer check, which need a browser). The runbooks write `<skill folder>` for this folder, so their commands are:
 
@@ -76,7 +77,7 @@ The repository root is the nearest ancestor of the working directory with a VCS 
 ## Done when
 
 - build: the approved pages exist; render, lint and the clean-checkout command run pass, or each remaining item is named with its reason; the viewer opens.
-- update: every page `affected` listed is either updated or confirmed unchanged; the log has one new entry; lint passes.
+- update: every page `affected` listed is either updated or confirmed unchanged; a wiki built by an older version is brought up to the current page rules; the log has one new entry; lint passes.
 - lint: the findings are reported, and the approved fixes are applied.
 - view: the viewer file is written and checked.
 - questions: the kept questions are answered in the pages they belong to and listed in `questions.md`, or the proposal is delivered; what was left out is named by kind.
