@@ -11,13 +11,13 @@ updated: {{date}}
 
 ## Think of it as {{an everyday picture}}
 
-{{Two to four sentences of the picture, chosen so each of its parts matches one step of the pipeline below.}}
+{{Two to four sentences of the picture. Leave this section out when no picture fits well.}}
 
 | In the picture | In the code | Where the picture stops fitting |
 |---|---|---|
 | {{a part of the picture}} | [{{the step}}](#{{pipeline heading slug}}) | {{the difference a reader must not carry over, or nothing}} |
 
-## {{The pipeline heading: the steps, the method of each, and its code}}
+## {{The pipeline heading: the steps from the input to the output}}
 
 ![{{what the diagram shows}}](../diagrams/{{pipeline id}}.svg)
 
@@ -26,19 +26,19 @@ updated: {{date}}
 ```mermaid
 %% id: {{pipeline id}}
 flowchart TB
-    IN["{{the input, in words}}<br/>{{its format or type}}"] -->|"{{what passes}}"| S1["{{step, in words}}<br/>{{method, algorithm or standard}}<br/>{{file}}: {{function}}"]
-    S1 -->|"{{what passes}}"| S2["{{step}}<br/>{{method}}<br/>{{file}}: {{function}}"]
-    S2 -->|"{{what passes}}"| OUT["{{the output, in words}}<br/>{{its format or type}}"]
+    IN["{{the input, in words}}"] -->|"{{what passes, with its type or shape}}"| S1["{{1. what the step does, in a few words}}"]
+    S1 -->|"{{what passes}}"| S2["{{2. the next step}}"]
+    S2 -->|"{{what passes}}"| OUT["{{the output, in words}}"]
 ```
 </details>
 
-| # | Step | Method | Code | Takes | Gives | In the example |
-|---|---|---|---|---|---|---|
-| 1 | {{step}} | {{the named method, standard, formula or rule, as the code names it, with its clause linked: the repository's chapter on it, or its row on ../reference/sources.md#<anchor>; or "the code names no clause". A formula longer than a short relation is set under the table and linked from here}} | [`{{function}}`]({{relative path to the file}}) | {{input}} | {{output}} | {{a value from a captured run, or leave the column out}} |
+| # | Step | Method | Code | In the example |
+|---|---|---|---|---|
+| 1 | {{step}} | {{what it applies, as the code names it, linked to its clause or source; or "the code names no clause"}} | [`{{function}}`]({{relative path to the file}}) | {{values from the captured run}} |
 
 ## Who calls whom
 
-{{One line: where the map starts, and that solid arrows are direct calls and dotted ones indirect, with how on the arrow. Run and debug lists where to break in it.}}
+{{One line: where the map starts; solid arrows are direct calls, dotted ones indirect.}}
 
 ![{{what the diagram shows}}](../diagrams/{{call map id}}.svg)
 
@@ -48,13 +48,11 @@ flowchart TB
 %% id: {{call map id}}
 %% calls
 flowchart TB
-    {{start from: python <tools folder>/wiki.py callgraph <path>#<core function>, then keep the boxes a reader needs}}
+    {{boxes "file: function", started from wiki.py callgraph}}
 ```
 </details>
 
 <details><summary>Every call on this path</summary>
-
-{{the complete list from: python <tools folder>/wiki.py callgraph <path>#<core function> --table}}
 
 | Caller | Calls |
 |---|---|
@@ -63,8 +61,8 @@ flowchart TB
 
 ## {{The rules that decide the result, as a heading that states them}}
 
-{{The formulas, thresholds and decision rules, each with the function it lives in. Each formula the reader must follow: one sentence on what it computes, a ```math block, a table of its symbols with the example's values, and the result (pages.md §Formulas). Thresholds and rules: a table for many, a list for a few. Link the design document that derives them instead of copying it. When one part of the example's result decides the verdict, show the build-up as a table of the captured values and name in one sentence the part that decides it.}}
+{{Formulas, thresholds and decision rules, each with its function. When one part of the example's result decides the verdict, the build-up as a table of the captured values.}}
 
 ## {{Why it is built this way, as a heading that states the decision}}
 
-{{Only decisions a reader would otherwise question or undo, each with its consequence. Leave this section out when there are none.}}
+{{Only decisions a reader would otherwise question or undo. Leave this section out when there are none.}}

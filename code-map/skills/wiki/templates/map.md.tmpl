@@ -1,0 +1,27 @@
+---
+title: Map of the code
+kind: reference
+updated: {{date}}
+---
+
+# Map of the code
+
+Every part of {{project}}'s code, one row per module: what it does, in the words of a report about it, and the function to open first. The core flows are told step by step on their own pages, linked from their rows.
+
+## {{A part, as the overview names it}}
+
+| Where | What it does | Open first |
+|---|---|---|
+| `{{path of the file or folder, from the repository root}}` | {{the screen, command, endpoint, file or message it is responsible for; or a few words and a link to the page that explains it}} | [`{{function}}`]({{relative path to the file}}) |
+
+## {{The next part}}
+
+{{As above. The tests are rows too, one per suite.}}
+
+## Where the code is not what it seems
+
+{{Places where code differs from its name, its comment, the contract it declares, or the project's documents, each checked in the code. Leave this section out when you found none.}}
+
+| Code | You would expect | What it does |
+|---|---|---|
+| [`{{function}}`]({{relative path to the file}}) | {{what its name, comment, contract or the documents say}} | {{what the code does, as a fact}} |

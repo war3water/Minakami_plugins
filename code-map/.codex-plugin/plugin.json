@@ -1,6 +1,6 @@
 {
   "name": "code-map",
-  "version": "0.2.2",
+  "version": "0.3.0",
   "description": "Understand a repository and keep its documentation true. code-map builds an interactive, layered code map as a local HTML file: architecture overview, module dependency map, algorithm pipeline with typed data flow, and the functions inside each stage, every node deep-linked to your editor and every edge citing its source line. wiki builds a code wiki an agent keeps current with the code: the README as front page, pages that name the source symbols they explain (checked by a lint), a run-and-debug page, rendered diagrams, executable setup commands, and a one-file viewer.",
   "author": {
     "name": "war3water",
