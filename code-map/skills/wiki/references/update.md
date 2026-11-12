@@ -5,7 +5,7 @@
 The goal: every page tells the truth about the code as it is now, and the change that alters the code also carries the page updates. Edit only the wiki: pages, the README, diagrams, the index and the log.
 
 1. **Tools.** Run `python <skill folder>/tools/wiki.py copy-tools <tools folder> --check`. If the repository's copy is older than the plugin's, refresh it with the same command without `--check`. A file someone edited in the repository is kept and reported; say so in your report.
-   - **A wiki built by an older version.** New tools come with new page rules, and `wiki.py lint` then warns about what the wiki lacks under them, such as code files on no page (the map, `pages.md` §The map of the code) or a step table that repeats its diagram. Bring the wiki up to them in this update: read the templates the fixes need, write what is missing, and replace the rules block in `AGENTS.md` and the rules of `SCHEMA.md` with the current templates' text, keeping this repository's own values. Name each such change in the report.
+   - **A wiki built by an older version.** New tools come with new page rules, and `wiki.py lint` then warns about what the wiki lacks under them, such as code files on no page (the map, `pages.md` §The map of the code) or a step table that repeats its diagram. The lint cannot see every rule, so also read the pages newer rules change most against their sections of `pages.md`: the index's task table, run-and-debug, and the map. A map row cannot show what it leaves out, and opening every module again costs about what writing the map did. Do that when the user asked for the wiki to be brought up to date; in an update for a code change, fix the rows that change touches and say in the report that the rest of the map predates the rule. Bring the wiki up to them in this update: read the templates the fixes need, write what is missing, and replace the rules block in `AGENTS.md` and the rules of `SCHEMA.md` with the current templates' text, keeping this repository's own values. Name each such change in the report.
 2. **Find what the change touches.** Run `python <skill folder>/tools/wiki.py affected`, adding `--since <ref>` when the user named a starting point. Each page is compared with its own last commit:
    - "Pages to update": a source file or symbol the page names changed after the page's last commit, a file it links to changed, or, for the README, setup, run or debug files changed;
    - "Pages already edited in this change": confirm their edits cover the listed reasons;
@@ -52,9 +52,9 @@ The goal: questions people actually ask about this repository get answered once,
 
 1. `python <skill folder>/tools/wiki.py viewer [--editor <name>] [--out <file>]` writes one HTML file:
    - README first, then the sidebar in the index's order, under the labels Start here, How it works, Guides, Reference and Tutorials; `SCHEMA.md` and the log are linked from the footer;
-   - search, and links between pages;
+   - an outline of the page on show, search that lists the pages mentioning the words and where, previous and next page, and links between pages;
    - the code each page explains, behind one button, with links that open the editor at the symbol;
-   - diagrams that open in a zoom and pan view;
+   - code blocks with a copy button, and diagrams that open in a zoom and pan view;
    - above each command the check does not run, its reason;
    - on a page whose code is gone or changed since it was last checked, or whose links lead nowhere, a notice saying so. The rest of the lint report stays in the terminal.
 

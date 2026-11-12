@@ -24,7 +24,7 @@ Apply the items the project has something for; skip the rest rather than adding 
 | Sources | where the README names a standard, handbook or paper the code follows, the name links to the wiki's `reference/sources.md` or to the repository's own chapter on it (proposed as an edit, like any README change) | — |
 | Behaviour a newcomer trips over | defaults, limits, error cases and what is not supported, as the code shows them | CLIG |
 | Layout | a short map of the main folders and entry points, when the root listing does not make it obvious | — |
-| Documentation | links to the wiki's `index.md` and run-and-debug page, and one line saying the README is part of the wiki and changes with the code | — |
+| Documentation | links to the wiki's `index.md` and run-and-debug page, and one line saying the README is part of the wiki and changes with the code. Under the opening paragraph, one line for a developer who arrives with a report: the overview, run and debug, and the map of the code, so nobody scrolls the README for them | — |
 | Help, contributing, license | where to get help, how to contribute (or a link to `CONTRIBUTING.md`), and a license that matches the `LICENSE` file or the manifest | GH-R, SR, MAR, GH-C |
 
 Longer setup, debugging and contribution detail belongs in the wiki or in `CONTRIBUTING.md`, linked from the README. [GH-R, OSG, MOZ, WTD, GH-C]

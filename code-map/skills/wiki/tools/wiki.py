@@ -35,10 +35,11 @@ import urllib.parse
 from datetime import date
 from pathlib import Path
 
-TOOLS_VERSION = "0.3.0"
+TOOLS_VERSION = "0.4.0"
 HERE = Path(__file__).resolve().parent
 TOOL_FILES = ["wiki.py", "wiki_browser.py", "viewer_template.html", "vendor/marked.min.js", "vendor/marked-LICENSE.txt",
-              "vendor/katex.min.js", "vendor/katex.min.css", "vendor/katex-LICENSE.txt"]
+              "vendor/katex.min.js", "vendor/katex.min.css", "vendor/katex-LICENSE.txt",
+              "vendor/jetbrains-mono-latin.woff2", "vendor/jetbrains-mono-LICENSE.txt"]
 SPECIAL_PAGES = {"index.md": "index", "log.md": "log", "SCHEMA.md": "schema"}
 PAGE_KINDS = {"tutorial", "how-to", "reference", "explanation"}
 SKIP_DIRS = {".git", "node_modules", ".venv", "venv", "__pycache__", "diagrams", "vendor"}
@@ -994,6 +995,11 @@ def lint(repo: Path, wiki: Path, run: bool = False, in_place: bool = False, time
             found = [syms.find(f"{path}#{'.'.join(parts[k:])}") for k in range(len(parts))]
             if not any(r["ok"] for r in found):
                 bad(page, line, f"{col.capitalize()} {found[0]['ref']}: {found[0]['note']}")
+        # run and debug: a way to start every part under a debugger, not only the main flow
+        if page.wiki_rel == "howto/run-and-debug.md" and not any(
+                header and header[0] == "part" and any(h.startswith("start it") for h in header) for _, header, _ in table_rows(page)):
+            warn(page, 1, "no `Part | Start it under a debugger | Then break in` table: a report about a part outside the main flow "
+                          "has no way in (pages.md, Run and debug, Debug any part)")
         # step tables: the pipeline diagram's arrows carry what passes between steps
         for start, header, _ in table_rows(page):
             if header and header[0] == "#" and "step" in header and ("takes" in header or "gives" in header):
@@ -1189,6 +1195,8 @@ def tables(page: Page) -> list[tuple[int, set[str]]]:
     for start, rows in found:
         if len(rows) < 3 or not re.fullmatch(r"[\s|:-]+", rows[1]):
             continue
+        if re.match(r"\s*part\s*\|\s*start it", rows[0], re.I):
+            continue  # run-and-debug's way in for each part: it names the overview's parts on purpose
         keys = set()
         for row in rows[2:]:
             key = re.sub(r"[`*]", "", re.sub(r"\[([^\]]*)\]\([^)]*\)", r"\1", row.split("|")[0])).strip().lower()
@@ -1614,11 +1622,12 @@ CHECKED_COLUMNS = ("open first", "code")
 
 
 def code_cells(page: Page) -> list[tuple[int, str, str, str]]:
-    """(1-based line, column, name, link target) for each code link in a table column named `Open first` or `Code`:
-    the map's rows, the overview's code to know first, a step table's code."""
+    """(1-based line, column, name, link target) for each code link in a table column named `Open first` or `Code`,
+    and in `What it does` on the map: the map's rows, the overview's code to know first, a step table's code."""
     out = []
     for _, header, rows in table_rows(page):
-        cols = [i for i, h in enumerate(header) if h in CHECKED_COLUMNS]
+        # on the map (a table with `Open first`), `What it does` links the function behind each thing it names
+        cols = [i for i, h in enumerate(header) if h in CHECKED_COLUMNS or (h == "what it does" and "open first" in header)]
         for line, cells in rows:
             for c in cols:
                 for text, target in CODE_LINK.findall(cells[c]) if c < len(cells) else []:
@@ -1726,7 +1735,8 @@ def apply_accepts(pages: list[Page], problems: list[dict], warnings: list[dict])
         lines = page.text.split("\n")
         in_code = {k for start, end, _ in fences(lines) for k in range(start, end + 1)}
         for i, line in enumerate(lines):
-            for text, reason in ACCEPT.findall(line) if i not in in_code else []:
+            # a marker quoted in code marks is an example of one, as in SCHEMA.md's own rule
+            for text, reason in ACCEPT.findall(re.sub(r"`[^`]*`", "", line)) if i not in in_code else []:
                 if not reason.strip():
                     problems.append({"page": page.label, "line": i + 1, "msg": f'lint:accept "{text}" gives no reason="…"'})
                     continue
@@ -2467,7 +2477,12 @@ def viewer(repo: Path, wiki: Path, out: Path, editor: str, title: str | None, ar
     katex_css = read(HERE / "vendor" / "katex.min.css").replace("</style", "<\\/style") if has_math else ""
     blob = json.dumps(data, ensure_ascii=False).replace("</", "<\\/")
     name = title or (index.title if index and index.meta.get("title") else f"{repo.name} wiki")
+    # the viewer's own face for headings, labels and code (40 kB); without the file the system's monospace stands in
+    import base64
+    font = HERE / "vendor" / "jetbrains-mono-latin.woff2"
+    mono =base64.b64encode(font.read_bytes()).decode("ascii") if font.is_file() else ""
     page = (shell.replace("__WIKI_TITLE__", html.escape(name))
+                 .replace("/*FONT_MONO*/", mono)
                  .replace("/*MARKED*/", marked)
                  .replace("/*KATEX_CSS*/", katex_css)
                  .replace("/*KATEX*/", katex_js)
