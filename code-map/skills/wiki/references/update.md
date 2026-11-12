@@ -52,7 +52,7 @@ The goal: questions people actually ask about this repository get answered once,
 
 1. `python <skill folder>/tools/wiki.py viewer [--editor <name>] [--out <file>]` writes one HTML file:
    - README first, then the sidebar in the index's order, under the labels Start here, How it works, Guides, Reference and Tutorials; `SCHEMA.md` and the log are linked from the footer;
-   - an outline of the page on show, search that lists the pages mentioning the words and where, previous and next page, and links between pages;
+   - an outline of the page on show, search that lists the pages mentioning the words and where, previous and next page, and links between pages; either side bar folds away;
    - the code each page explains, behind one button, with links that open the editor at the symbol;
    - code blocks with a copy button, and diagrams that open in a zoom and pan view;
    - above each command the check does not run, its reason;

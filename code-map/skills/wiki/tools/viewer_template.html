@@ -9,7 +9,8 @@
 /* One-file wiki viewer built by wiki.py viewer: README first, a sidebar in the index's reading order, an outline of the
    page on show, search that says where the words occur, previous and next page, source chips that open the editor,
    code blocks with a copy button, diagrams that open in a zoom and pan view, a note on each command the check does not
-   run, and a notice on pages that may be out of date. On a narrow screen the sidebar is a drawer. No network access:
+   run, and a notice on pages that may be out of date. Either side bar folds away; on a narrow screen the sidebar is
+   a drawer. No network access:
    the script, the styles and the font are in the file. Nothing here is read by a model; wiki.py copies it. */
 @font-face { font-family: "JetBrains Mono"; font-weight: 100 800; font-style: normal; font-display: swap;
   src: url(data:font/woff2;base64,/*FONT_MONO*/) format("woff2"); }
@@ -71,6 +72,27 @@ button { font: inherit; color: inherit; }
   padding-block: var(--top) 96px; padding-left: 48px; padding-right: max(36px, env(safe-area-inset-right, 0px)); }
 #page { min-width: 0; }
 .topbar, .scrim { display: none; }
+/* either side bar folds away for a wider page; a small button at the window's edge brings it back */
+.rail-btn { flex: none; display: grid; place-items: center; width: 28px; height: 28px; padding: 0; border: 1px solid var(--line-2); border-radius: var(--radius);
+  background: var(--panel); color: var(--muted); cursor: pointer; }
+.rail-btn:hover { color: var(--accent); border-color: var(--accent); }
+.rail-btn.float { display: none; position: fixed; top: 14px; z-index: 15; }
+.rail-btn.float.left { left: max(12px, env(safe-area-inset-left, 0px)); }
+.rail-btn.float.right { right: max(14px, env(safe-area-inset-right, 0px)); }
+.side-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 8px; }
+.side-head .brand { min-width: 0; padding-right: 0; }
+.toc-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin: 0 0 10px; }
+.toc .toc-head h4 { margin: 0; }
+@media (min-width: 861px) {
+  .side-off .shell { grid-template-columns: minmax(0, 1fr); }
+  .side-off .side { display: none; }
+  .side-off #side-show { display: grid; }
+}
+@media (min-width: 1181px) {
+  .toc-off .stage { grid-template-columns: minmax(0, 1fr); max-width: calc(var(--content) + 48px + 56px); padding-right: max(56px, env(safe-area-inset-right, 0px)); }
+  .toc-off .toc { display: none; }
+  .toc-off #toc:not([hidden]) + #toc-show { display: grid; }
+}
 
 /* ---- page list ---- */
 .brand { font: var(--brand-w) var(--brand-fs)/1.2 var(--head); letter-spacing: var(--brand-ls); overflow-wrap: anywhere; padding: 0 8px; }
@@ -245,13 +267,13 @@ article details > .codeblock, article details > .table-wrap { margin-block: 12px
   .nav-open .side { translate: 0 0; box-shadow: 0 0 40px rgba(0,0,0,.3); }
   .nav-open .scrim { display: block; position: fixed; inset: 0; z-index: 30; background: rgba(10, 12, 16, .45); }
   .stage { padding-block: 26px 72px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
-  .search kbd { display: none; }
+  .search kbd, #side-hide { display: none; }
   article h1 { font-size: calc(var(--h1) * .8); } article h2 { font-size: calc(var(--h2) * .9); }
   article :is(h1, h2, h3, h4) { scroll-margin-top: 66px; }
   .pager { grid-template-columns: 1fr; } .pager .next { grid-column: 1; }
 }
 @media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
-@media print { .side, .toc, .topbar, .pager, .codeblock .tools { display: none !important; } .shell { display: block; } }
+@media print { .side, .toc, .topbar, .pager, .codeblock .tools, .rail-btn { display: none !important; } .shell { display: block; } }
 
 /* ---- diagram viewer ---- */
 #zoom { position: fixed; inset: 0; z-index: 50; display: grid; grid-template-rows: auto minmax(0, 1fr); background: rgba(12, 16, 22, .92); }
@@ -296,9 +318,13 @@ article details { background: var(--panel); }
   <span class="tb-title">__WIKI_TITLE__</span>
 </header>
 <div class="scrim" id="scrim"></div>
+<button class="rail-btn float left" id="side-show" type="button" aria-label="Show the page list" title="Show the page list  ( [ )" aria-controls="side" aria-expanded="false"><svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round" aria-hidden="true"><rect x="1.8" y="2.6" width="12.4" height="10.8" rx="1.6"/><path d="M6 2.6v10.8"/></svg></button>
 <div class="shell">
   <aside class="side" id="side">
-    <div class="brand" id="brand">__WIKI_TITLE__<small id="sub"></small></div>
+    <div class="side-head">
+      <div class="brand" id="brand">__WIKI_TITLE__<small id="sub"></small></div>
+      <button class="rail-btn" id="side-hide" type="button" aria-label="Hide the page list" title="Hide the page list  ( [ )" aria-controls="side" aria-expanded="true"><svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round" aria-hidden="true"><rect x="1.8" y="2.6" width="12.4" height="10.8" rx="1.6"/><path d="M6 2.6v10.8"/></svg></button>
+    </div>
     <div class="search">
       <svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" aria-hidden="true"><circle cx="7" cy="7" r="4.6"/><path d="M10.6 10.6 14 14"/></svg>
       <input id="q" type="search" placeholder="Search the wiki" aria-label="Search the wiki" autocomplete="off" spellcheck="false">
@@ -324,6 +350,7 @@ article details { background: var(--panel); }
   <div class="stage">
     <main id="page"></main>
     <nav class="toc" id="toc" aria-label="On this page" hidden></nav>
+    <button class="rail-btn float right" id="toc-show" type="button" aria-label="Show the outline of this page" title="Show the outline of this page  ( ] )" aria-controls="toc" aria-expanded="false"><svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round" aria-hidden="true"><rect x="1.8" y="2.6" width="12.4" height="10.8" rx="1.6"/><path d="M10 2.6v10.8"/></svg></button>
   </div>
 </div>
 
@@ -682,7 +709,8 @@ function toSection(id, sec) {
 function outline() {
   const toc = $("toc"), heads = [...sections.get(current).querySelectorAll("article h2, article h3")];
   toc.hidden = heads.length < 2;
-  toc.innerHTML = toc.hidden ? "" : "<h4>On this page</h4>" + heads.map(h =>
+  toc.innerHTML = toc.hidden ? "" : `<div class="toc-head"><h4>On this page</h4><button class="rail-btn" id="toc-hide" type="button" ` +
+    `aria-label="Hide the outline of this page" title="Hide the outline of this page  ( ] )" aria-controls="toc" aria-expanded="true">${$("toc-show").innerHTML}</button></div>` + heads.map(h =>
     `<a class="l${h.tagName[1]}" href="${esc(toHash(current, h.dataset.slug))}" data-slug="${esc(h.dataset.slug)}">${esc(h.textContent)}</a>`).join("");
   spy();
 }
@@ -697,7 +725,23 @@ function spy() {
   toc.querySelectorAll("a").forEach(a => a.setAttribute("aria-current", String(!!now && a.dataset.slug === now.dataset.slug)));
 }
 window.addEventListener("scroll", () => { if (!spyQueued) { spyQueued = true; requestAnimationFrame(spy); } }, { passive: true });
-$("toc").addEventListener("click", e => { const a = e.target.closest("a[data-slug]"); if (a) { e.preventDefault(); toSection(current, a.dataset.slug); } });
+$("toc").addEventListener("click", e => {
+  if (e.target.closest("#toc-hide")) { fold("toc", true); $("toc-show").focus(); return; }
+  const a = e.target.closest("a[data-slug]"); if (a) { e.preventDefault(); toSection(current, a.dataset.slug); }
+});
+
+// Either side bar folds away for a wider page: the page list on the left, the outline on the right. The choice is
+// remembered in this browser when storage is available. On a narrow screen the page list is a drawer instead.
+const folded = { side: false, toc: false };
+function fold(which, off, keep) {
+  folded[which] = off; document.body.classList.toggle(which + "-off", off);
+  if (keep !== false) { try { localStorage.setItem("code-map-wiki-" + which, off ? "off" : "on"); } catch (e) {} }
+  if (!off && which === "toc") spy();
+}
+for (const which of ["side", "toc"]) { try { if (localStorage.getItem("code-map-wiki-" + which) === "off") fold(which, true, false); } catch (e) {} }
+$("side-hide").addEventListener("click", () => { fold("side", true); $("side-show").focus(); });
+$("side-show").addEventListener("click", () => { fold("side", false); $("side-hide").focus(); });
+$("toc-show").addEventListener("click", () => { fold("toc", false); const b = $("toc-hide"); if (b) b.focus(); });
 
 // Search marks every place the words occur on the page on show, without touching the page's DOM.
 function mark(nth) {
@@ -759,14 +803,16 @@ $("zfit").onclick = zFit; $("zclose").onclick = closeZoom;
 $("z100").onclick = () => { const r = stage.getBoundingClientRect(); Z.s = 1; Z.x = (r.width - Z.w) / 2; Z.y = (r.height - Z.h) / 2; zApply(); };
 window.addEventListener("resize", () => { if (!zoom.hidden) zFit(); });
 
-// Keys: in the diagram viewer, zoom and close; on the page, "/" goes to search and Esc leaves it or closes the drawer.
+// Keys: in the diagram viewer, zoom and close; on the page, "/" goes to search, "[" and "]" fold the side bars, and
+// Esc leaves search or closes the drawer.
 document.addEventListener("keydown", e => {
   if (!zoom.hidden) {
     if (e.key === "Escape") closeZoom(); else if (e.key === "+" || e.key === "=") zCenter(1.4); else if (e.key === "-") zCenter(1 / 1.4); else if (e.key === "0") zFit();
     return;
   }
   const typing = e.target.closest && e.target.closest("input, textarea, select, [contenteditable]");
-  if (e.key === "/" && !typing && !e.ctrlKey && !e.metaKey && !e.altKey) { e.preventDefault(); document.body.classList.add("nav-open"); $("q").focus(); $("q").select(); }
+  if (e.key === "/" && !typing && !e.ctrlKey && !e.metaKey && !e.altKey) { e.preventDefault(); fold("side", false); document.body.classList.add("nav-open"); $("q").focus(); $("q").select(); }
+  else if ((e.key === "[" || e.key === "]") && !typing && !e.ctrlKey && !e.metaKey && !e.altKey) { const which = e.key === "[" ? "side" : "toc"; fold(which, !folded[which]); }
   else if (e.key === "Escape") {
     if (e.target === $("q") && $("q").value) { $("q").value = ""; nav(); mark(); } else if (e.target === $("q")) $("q").blur();
     closeDrawer();
