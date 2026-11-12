@@ -69,7 +69,7 @@ Open the output file from disk in any browser. Notes you type are saved in that 
 
 ## wiki: a code wiki that stays current
 
-The wiki follows Andrej Karpathy's ["LLM Wiki" pattern](https://gist.github.com/karpathy/442a6bf555914893e9891c11519de94f), applied to code. It has three layers: the sources (code, tests, captured outputs), which the wiki never edits; the wiki, which the agent writes; and a schema, the agent's rules. An index is read first, and an append-only log records each change. The point is that the wiki is maintained in the same change as the code, so it compounds instead of going stale. Two practices from code wikis such as Google's Code Wiki and DeepWiki are added: every page names the source symbols it explains, and diagrams are regenerated from source. Pages are sorted into the four [Diátaxis](https://diataxis.fr/) kinds (tutorial, how-to, reference, explanation), and the root README is the front page.
+The wiki follows Andrej Karpathy's ["LLM Wiki" pattern](https://gist.github.com/karpathy/442a6bf555914893e9891c11519de94f), applied to code. It has three layers: the sources (code, tests, captured outputs), which the wiki never edits; the wiki, which the agent writes; and a schema, the agent's rules. An index routes readers by task, and an append-only log records each change. The point is that the wiki is maintained in the same change as the code, so it compounds instead of going stale. Two practices from code wikis such as Google's Code Wiki and DeepWiki are added: every page names the source symbols it explains, and diagrams are regenerated from source. Pages are sorted into the four [Diátaxis](https://diataxis.fr/) kinds (tutorial, how-to, reference, explanation), and the root README is the front page.
 
 ### What you get
 
