@@ -235,6 +235,16 @@ article details[open] > summary::before { rotate: 45deg; }
 article details[open] > summary { border-bottom: 1px solid var(--line); }
 article details > :not(summary) { margin-inline: 12px; }
 article details > .codeblock, article details > .table-wrap { margin-block: 12px; }
+/* the Mermaid text under a picture: a quiet line close under the caption, named for what it holds */
+.zoom-hint.has-src { margin-bottom: 6px; }
+article details.diagram-src { margin-top: 0; border-color: transparent; background: none; }
+article details.diagram-src > summary { padding: 3px 0; font-size: 12.5px; color: var(--muted); flex-wrap: wrap; }
+article details.diagram-src > summary:hover { color: var(--accent); }
+article details.diagram-src[open] > summary { border-bottom: 0; }
+article details.diagram-src > :not(summary) { margin-inline: 0; }
+article details.diagram-src > .codeblock { margin-block: 6px 0; }
+.sum-note { font-weight: 400; color: var(--muted); }
+.sum-note::before { content: "\00b7"; margin-right: 9px; color: var(--line-2); }
 
 /* formulas: typeset on the page's own ground, so they read as part of the text */
 .math-display { overflow-x: auto; overflow-y: hidden; margin: 14px 0; padding: 4px 0; max-width: var(--measure); }
@@ -660,6 +670,16 @@ function build(p) {
       `<button type="button" class="copy" data-label="Copy" aria-label="Copy this block"></button>`;
     tools.querySelector(".copy").addEventListener("click", e => copyBlock(e.currentTarget));
     box.append(tools);
+  });
+  // The folded block under a picture holds the Mermaid text the picture is drawn from. Say so beside its name, and
+  // set it close under the caption, so that a reader who opens it is not left expecting a second picture.
+  el.querySelectorAll("details").forEach(d => {
+    const hint = d.previousElementSibling, sum = d.querySelector(":scope > summary");
+    if (!sum || !hint || !hint.classList.contains("zoom-hint") || !d.querySelector(":scope > .codeblock code.language-mermaid")) return;
+    d.classList.add("diagram-src"); hint.classList.add("has-src");
+    const note = document.createElement("span"); note.className = "sum-note"; note.dataset.ui = "";
+    note.textContent = "the text the picture above is drawn from";
+    sum.append(note);
   });
   el.querySelectorAll("h2, h3").forEach(h => {  // a link to the section, shown beside its heading on hover
     const a = document.createElement("a"); a.className = "hanchor"; a.dataset.ui = ""; a.href = toHash(id, h.dataset.slug);
