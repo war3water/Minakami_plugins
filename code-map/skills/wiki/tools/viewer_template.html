@@ -237,10 +237,10 @@ article details > :not(summary) { margin-inline: 12px; }
 article details > .codeblock, article details > .table-wrap { margin-block: 12px; }
 /* where the page sits on the reading route, beside the group's name */
 .eyebrow .route { margin-left: 10px; color: var(--muted); text-transform: none; letter-spacing: 0; }
-.eyebrow .route > span { margin-left: 10px; white-space: nowrap; }
+.eyebrow .route > span { margin-left: 10px; }
 .eyebrow .route > span::before { content: "\00b7"; margin-right: 10px; color: var(--line-2); }
 .eyebrow .route .route-at { margin-left: 0; color: var(--ink-2); }
-.eyebrow .route button { font: inherit; color: var(--accent); background: none; border: 0; padding: 0; cursor: pointer; text-decoration: underline; text-decoration-color: var(--link-line); text-underline-offset: 3px; }
+.eyebrow .route button { display: inline; font: inherit; color: var(--accent); background: none; border: 0; padding: 0; cursor: pointer; white-space: normal; text-align: left; overflow-wrap: anywhere; text-decoration: underline; text-decoration-color: var(--link-line); text-underline-offset: 3px; }
 .eyebrow .route button:hover { text-decoration-color: currentColor; }
 /* capability cards: every capability in the same shape, side by side */
 .cap-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 330px), 1fr)); gap: 12px; margin: 1.2em 0 1.8em; }
@@ -250,6 +250,7 @@ article details > .codeblock, article details > .table-wrap { margin-block: 12px
 article .cap-card > :is(h2, h3, h4, h5, h6) { margin: 0; padding: 10px 14px; border-bottom: 1px solid var(--line); font-size: 15px; line-height: 1.35; max-width: none; }
 article ul.cap-rows { list-style: none; margin: 0; padding: 2px 14px 12px; }
 article ul.cap-rows > li { max-width: none; margin: 10px 0 0; font-size: 14px; line-height: 1.5; overflow-wrap: anywhere; }
+.cap-text { display: block; min-width: 0; }
 .cap-label { display: block; margin-bottom: 2px; font: 500 10.5px/1.4 var(--mono); letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
 /* the steps of a flow as a track: phases as tinted bands, a station for each step, the chosen step's row under it */
 .steptrack { --ph-1: #2f6fb3; --ph-2: #7a5ab0; --ph-3: #b0761a; --ph-4: #0a8a5a; --ph-5: #b0406a; --ph-6: #1f7a86; margin: 1.2em 0 1.4em; }
@@ -266,7 +267,7 @@ article ul.cap-rows > li { max-width: none; margin: 10px 0 0; font-size: 14px; l
 .st[aria-pressed="true"] { border-color: var(--ink); box-shadow: 0 0 0 1px var(--ink); }
 .st-n { flex: none; display: grid; place-items: center; min-width: 22px; height: 22px; padding: 0 5px; border-radius: 11px; background: var(--ink); color: var(--bg); font: 700 11px/1 var(--mono); }
 .st-t { min-width: 0; display: grid; gap: 2px; }
-.st-name { font: 500 13px/1.3 var(--ui); color: var(--ink); }
+.st-name { font: 500 13px/1.3 var(--ui); color: var(--ink); display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 3; line-clamp: 3; overflow: hidden; }
 .st-fn { font: 500 11px/1.35 var(--mono); overflow-wrap: anywhere; }
 .st-fn a { color: var(--accent); text-decoration: none; border: 0; background: none; padding: 0; }
 .st-fn a:hover { text-decoration: underline; text-underline-offset: 2px; }
@@ -894,6 +895,9 @@ function build(p) {
       const s = li.firstElementChild; s.className = "cap-label"; s.textContent = s.textContent.trim().replace(/:$/, "");
       const next = s.nextSibling;
       if (next && next.nodeType === 3) next.textContent = next.textContent.replace(/^\s*:?\s*/, "");
+      const text = document.createElement("span"); text.className = "cap-text";
+      while (s.nextSibling) text.append(s.nextSibling);
+      li.append(text);
     });
     const before = card.previousElementSibling;
     if (before && before.classList.contains("cap-grid")) before.append(card);

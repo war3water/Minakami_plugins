@@ -48,11 +48,11 @@ A capability is one thing a user can ask of the project: a command, a group of e
 
 - **Try it:** `app export examples/sales.json --format csv` writes `sales.csv`, one row per order.
 - **How:** rows are grouped by customer, then written by the writer `--format` chooses. A group's total is the sum of quantity × price.
-- **Open first:** [`run_export`](../../src/app/export.py)
+- **Open first:** [`run_export`](../../src/app/export.py) → [`write_csv`](../../src/app/writers.py)
 - **Go deeper:** [How an export is built](how-export-works.md), worked step by step.
 ````
 
-The heading names the capability as the user calls it and what it answers. **Try it** is the shortest real use on an input the repository ships, and what comes back. **How** says how the result comes about, in a sentence or two: the method as the code or its documents name it, then the relation or rule that decides the result, written out and not only named (`total = Σ quantity × price`; "the first rule that matches wins"; "a file over 5 MB is refused"). "Then the totals are computed" tells the reader nothing. What the capability also offers goes in the option table under the card, not here. **Open first** links the function where it starts, as on the map. **Go deeper** says where its steps are explained: its how-it-works page, else the project's own document on it, else "nothing more is written"; this line tells the reader how deep the wiki goes on each capability.
+The heading names the capability as the user calls it and what it answers. **Try it** is the shortest real use on an input the repository ships, and what comes back. **How** says how the result comes about, in a sentence or two: the method as the code or its documents name it, then the relation or rule that decides the result, written out and not only named (`total = Σ quantity × price`; "the first rule that matches wins"; "a file over 5 MB is refused"). "Then the totals are computed" tells the reader nothing. What the capability also offers goes in the option table under the card, not here. **Open first** links the function that works the result out, where a breakpoint shows the numbers; when a thin entry point sits in front of it, both, in call order (`run_export` → `write_csv`). **Go deeper** says where its steps are explained: its how-it-works page, else the project's own document on it, else "nothing more is written"; this line tells the reader how deep the wiki goes on each capability.
 
 What only switches on inside another capability (an option, a block of the input, a plug-in) is a row in a table under that card, `Option | Turned on by | What it adds`. The cards do not repeat the map: the map is every module, the cards are every thing a user can ask for.
 
