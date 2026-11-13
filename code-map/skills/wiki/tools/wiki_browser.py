@@ -181,6 +181,25 @@ const one = {RENDER_ONE};
         return json.loads(html.unescape(blob)), f"{Path(exe).name} headless"
 
 
+# A flowchart's phases (its subgraphs) each get a tint, and the box named on a `%% key: <node id>` line the colour of
+# the step that decides the example. The page's source stays plain: the colours are added here, so every wiki's
+# pictures look alike and no page spells a colour. A source that styles itself is left alone.
+PHASE_TINTS = [("#e2edf8", "#2f6fb3"), ("#ece6f6", "#7a5ab0"), ("#f7ecd6", "#b0761a"), ("#dff0e6", "#0a8a5a"),
+               ("#f8e6ee", "#b0406a"), ("#e1f1f3", "#1f7a86")]
+KEY_STYLE = "fill:#fbe5e2,stroke:#b3261e,stroke-width:3px,color:#5c120d"
+
+
+def phase_colours(source: str) -> str:
+    if not re.search(r"^\s*(flowchart|graph)\b", source, re.M) or re.search(r"^\s*(style|classDef)\b", source, re.M):
+        return source
+    extra = [f"    style {sid} fill:{PHASE_TINTS[i % len(PHASE_TINTS)][0]},stroke:{PHASE_TINTS[i % len(PHASE_TINTS)][1]},color:#1c2420"
+             for i, sid in enumerate(re.findall(r"^\s*subgraph\s+([A-Za-z_][\w-]*)", source, re.M))]
+    key = re.search(r"^\s*%%\s*key:\s*([A-Za-z_][\w-]*)\s*$", source, re.M)
+    if key:
+        extra += [f"    classDef wikikey {KEY_STYLE}", f"    class {key.group(1)} wikikey"]
+    return source.rstrip("\n") + "\n" + "\n".join(extra) + "\n" if extra else source
+
+
 def render(repo: Path, wiki_dir: Path, mermaid_arg: str | None, renderer: str) -> int:
     pages = wiki.collect_pages(repo, wiki_dir)
     jobs, failed, seen = [], 0, {}
@@ -204,7 +223,7 @@ def render(repo: Path, wiki_dir: Path, mermaid_arg: str | None, renderer: str) -
     except Unavailable as e:
         print(f"diagrams not rendered: {e}\n{keep}")
         return NO_BROWSER
-    pairs = [(b["id"], b["source"]) for _, b in jobs]
+    pairs = [(b["id"], phase_colours(b["source"])) for _, b in jobs]
     results, label, tried = None, "", []
     if renderer in ("auto", "playwright"):
         try:
@@ -302,6 +321,8 @@ def check_viewer(path: Path) -> int:
             img = page.locator("#page .wikipage:not([hidden]) img.zoomable").first
             if not img.count():
                 continue
+            # a diagram may sit in a fold (the flowchart under a track of steps): a reader opens the fold first
+            img.evaluate("im => { for (let d = im.closest('details'); d; d = d.parentElement.closest('details')) d.open = true; }")
             img.scroll_into_view_if_needed()
             y0 = page.evaluate("window.scrollY")
             img.click()

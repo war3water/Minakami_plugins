@@ -915,6 +915,7 @@ def lint(repo: Path, wiki: Path, run: bool = False, in_place: bool = False, time
 
     anchor_cache: dict[Path, set[str]] = {}
     seen_ids: dict[str, str] = {}
+    seen_cards = 0
     all_blocks: list[dict] = []
     for page in pages:
         # front matter
@@ -1000,6 +1001,24 @@ def lint(repo: Path, wiki: Path, run: bool = False, in_place: bool = False, time
                 header and header[0] == "part" and any(h.startswith("start it") for h in header) for _, header, _ in table_rows(page)):
             warn(page, 1, "no `Part | Start it under a debugger | Then break in` table: a report about a part outside the main flow "
                           "has no way in (pages.md, Run and debug, Debug any part)")
+        # capability cards: every card answers the same questions, so every capability is met at the same depth
+        for line, heading, labels in cards(page):
+            seen_cards += 1
+            missing = [lab for lab in CARD_LABELS if lab.lower() not in labels]
+            if missing:
+                warn(page, line, f"the card '{heading}' has no {' or '.join(missing)} line: every capability card carries "
+                                 "Try it, How, Open first and Go deeper (pages.md, What it can do)")
+        # an API page starts with a request the reader can send
+        if page.wiki_rel and (Path(page.wiki_rel).stem == "api" or Path(page.wiki_rel).parent.name == "api") \
+                and not re.search(r"^#{2,4}\s+Try it\b", page.text, re.M | re.I):
+            warn(page, 1, "no `Try it` section: an API page starts with the shortest real use, a request for a service or "
+                          "a first call for a library, and its answer (pages.md, An API page)")
+        # a long pipeline is grouped into phases, so the reader sees its shape before its steps
+        for start, header, rows in table_rows(page):
+            if header and header[0] == "#" and "step" in header and len(rows) > 6 and not any(
+                    re.search(r"^\s*subgraph\b", b["source"], re.M) for b in mermaid_blocks(page) if "%% calls" not in b["source"]):
+                warn(page, start, f"{len(rows)} steps and no phases: group the boxes of the pipeline diagram into a few named "
+                                  "phases (pages.md, Diagrams, Phases)")
         # step tables: the pipeline diagram's arrows carry what passes between steps
         for start, header, _ in table_rows(page):
             if header and header[0] == "#" and "step" in header and ("takes" in header or "gives" in header):
@@ -1067,7 +1086,7 @@ def lint(repo: Path, wiki: Path, run: bool = False, in_place: bool = False, time
                 and not (page.wiki_rel and Path(page.wiki_rel).name == "sources.md")]
         if bare and page.kind != "index":  # the index lists the page itself
             warn(page, bare[0], f"{len(bare)} link(s) to the sources page name no entry: end each with the source's anchor "
-                                "(sources.md#dnv-cn-41-2), so the reader lands on that source's row, with its clauses and "
+                                "(sources.md#rfc-9457), so the reader lands on that source's row, with its clauses and "
                                 "public link, instead of the top of the table")
         # complete call lists (`Caller | Calls` tables): each row is a call in the caller's code
         if "| caller" in page.text.lower():
@@ -1086,6 +1105,10 @@ def lint(repo: Path, wiki: Path, run: bool = False, in_place: bool = False, time
                                     for _, t in links(readme.text)):
         warnings.append({"page": "README.md", "line": 0, "msg": "the README does not link to the wiki's index.md"})
 
+    overview = next((p for p in pages if p.wiki_rel == "concepts/overview.md"), None)
+    if overview and not seen_cards:
+        warnings.append({"page": overview.label, "line": 1, "msg": "no capability cards: what the project can do is not shown in one "
+                         "shape, one card for each capability (pages.md, What it can do)"})
     log_checks(repo, wiki, warnings)
     stale_checks(repo, wiki, pages, warnings)
     tour_checks(repo, warnings)
@@ -1621,6 +1644,31 @@ def first_read_checks(pages: list[Page], warnings: list[dict]) -> None:
 CHECKED_COLUMNS = ("open first", "code")
 
 
+CARD_LABELS = ("Try it", "How", "Open first", "Go deeper")
+CARD_LINE = re.compile(r"^\s*[-*]\s+\*\*(" + "|".join(CARD_LABELS) + r")\s*:?\*\*\s*:?\s*(.*)$", re.I)
+
+
+def cards(page: Page) -> list[tuple[int, str, dict[str, tuple[int, str]]]]:
+    """(1-based line, heading, {label in lower case: (line, text)}) for each capability card: the bullets that start
+    `**Try it:**`, `**How:**`, `**Open first:**` or `**Go deeper:**` under one heading."""
+    out, current, heading = [], None, ""
+    raw = page.text.split("\n")
+    for i, line in enumerate(prose_lines(page.text)):
+        h = re.match(r"^#{1,6}\s+(.*)$", line)
+        if h:
+            heading, current = re.sub(r"\s+", " ", raw[i].lstrip("#").strip()), None
+            continue
+        m = CARD_LINE.match(line)
+        if not m:
+            continue
+        label = m.group(1).lower()
+        if current is None or label in current[2]:
+            current = (i + 1, heading, {})
+            out.append(current)
+        current[2][label] = (i + 1, CARD_LINE.match(raw[i]).group(2) if CARD_LINE.match(raw[i]) else "")
+    return out
+
+
 def code_cells(page: Page) -> list[tuple[int, str, str, str]]:
     """(1-based line, column, name, link target) for each code link in a table column named `Open first` or `Code`,
     and in `What it does` on the map: the map's rows, the overview's code to know first, a step table's code."""
@@ -1632,6 +1680,11 @@ def code_cells(page: Page) -> list[tuple[int, str, str, str]]:
             for c in cols:
                 for text, target in CODE_LINK.findall(cells[c]) if c < len(cells) else []:
                     out.append((line, header[c], re.sub(r"\(\)$", "", text.strip()), target))
+    for _, _, labels in cards(page):  # a card's Open first names the function where the capability starts
+        if "open first" in labels:
+            line, text = labels["open first"]
+            for name, target in CODE_LINK.findall(text):
+                out.append((line, "open first", re.sub(r"\(\)$", "", name.strip()), target))
     return out
 
 

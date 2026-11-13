@@ -32,7 +32,7 @@ In a temporary copy of the repository, run the commands you will document that n
 **What to write now.** Write what a newcomer needs first:
 
 - the README as the front page, following `readme.md`;
-- `concepts/overview.md`, following `pages.md` §The overview page: every part of the system, not only the primary path;
+- `concepts/overview.md`, following `pages.md` §The overview page: every part of the system, not only the primary path, and a card for every capability (§Capability cards), not only the one the wiki works through;
 - a how-it-works page for each core flow, starting with the primary path, following `pages.md` §How-it-works pages: the picture, the pipeline, the call map and the rules that decide the result;
 - `howto/run-and-debug.md`, following `pages.md` §Run and debug, pointing into the call maps instead of drawing them again;
 - `reference/map.md`, following `pages.md` §The map of the code: one row for every module, so the code the pages above do not explain still has a way in. Every wiki has one; on a small project it is a short page;
@@ -91,7 +91,7 @@ Run each check from the repository root and fix what it finds before the next on
    - A failing block means the documentation is wrong or the step needs something it does not state. Fix the text, for example a missing prerequisite, an environment variable to set, or a per-OS form; never weaken, skip or unmark a block to make it pass.
    - A block whose tool is not installed on this machine (for example no Go toolchain) is reported as not verified here. Make sure the page names that prerequisite, and report the block as unverified.
 4. `python <skill folder>/tools/wiki.py viewer`, then `python <skill folder>/tools/wiki_browser.py check-viewer <viewer file>`. The check needs Python Playwright; without it, say that the viewer was not opened. A formula it reports as not typesetting is fixed in the page (`pages.md` §Formulas).
-5. **Read it as a newcomer.** Open the overview, then each page from the sidebar, and hold each page to its test in `pages.md`: the overview, the how-it-works pages, the map, "One home per fact, said once", and §Pictures, tables and charts. Then check what only a read-through finds:
+5. **Read it as a newcomer.** Open the overview, then each page from the sidebar, and hold each page to the five tests at the top of `pages.md`, then to its own test there: the overview, the capability cards, the how-it-works pages, the map, "One home per fact, said once", and §Pictures, tables and charts. Then check what only a read-through finds:
    - Can you go from every standard, handbook or paper a page names, and from every step's method, to its source in one click, landing on its row or clause?
    - Pick three things a user could report from code no page explains: a screen, a command's message, a file the program writes. Does the map lead from each to the right file, in the user's words?
    - Someone who starts the entry point the obvious way (the default interpreter, nothing else running) gets some message. Is that message in the symptom table, with its fix?

@@ -235,6 +235,55 @@ article details[open] > summary::before { rotate: 45deg; }
 article details[open] > summary { border-bottom: 1px solid var(--line); }
 article details > :not(summary) { margin-inline: 12px; }
 article details > .codeblock, article details > .table-wrap { margin-block: 12px; }
+/* where the page sits on the reading route, beside the group's name */
+.eyebrow .route { margin-left: 10px; color: var(--muted); text-transform: none; letter-spacing: 0; }
+.eyebrow .route > span { margin-left: 10px; white-space: nowrap; }
+.eyebrow .route > span::before { content: "\00b7"; margin-right: 10px; color: var(--line-2); }
+.eyebrow .route .route-at { margin-left: 0; color: var(--ink-2); }
+.eyebrow .route button { font: inherit; color: var(--accent); background: none; border: 0; padding: 0; cursor: pointer; text-decoration: underline; text-decoration-color: var(--link-line); text-underline-offset: 3px; }
+.eyebrow .route button:hover { text-decoration-color: currentColor; }
+/* capability cards: every capability in the same shape, side by side */
+.cap-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 330px), 1fr)); gap: 12px; margin: 1.2em 0 1.8em; }
+.cap-card { min-width: 0; border: 1px solid var(--line); border-radius: var(--radius); background: var(--panel); container-type: inline-size; }
+.cap-grid:has(> .cap-card:only-child) { grid-template-columns: minmax(0, 1fr); }
+@container (min-width: 600px) { article ul.cap-rows > li { display: grid; grid-template-columns: 96px minmax(0, 1fr); gap: 14px; } .cap-label { margin: 3px 0 0; } }
+article .cap-card > :is(h2, h3, h4, h5, h6) { margin: 0; padding: 10px 14px; border-bottom: 1px solid var(--line); font-size: 15px; line-height: 1.35; max-width: none; }
+article ul.cap-rows { list-style: none; margin: 0; padding: 2px 14px 12px; }
+article ul.cap-rows > li { max-width: none; margin: 10px 0 0; font-size: 14px; line-height: 1.5; overflow-wrap: anywhere; }
+.cap-label { display: block; margin-bottom: 2px; font: 500 10.5px/1.4 var(--mono); letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
+/* the steps of a flow as a track: phases as tinted bands, a station for each step, the chosen step's row under it */
+.steptrack { --ph-1: #2f6fb3; --ph-2: #7a5ab0; --ph-3: #b0761a; --ph-4: #0a8a5a; --ph-5: #b0406a; --ph-6: #1f7a86; margin: 1.2em 0 1.4em; }
+.st-bands { display: grid; gap: 6px; }
+.st-band { --ph: var(--ph-1); min-width: 0; display: grid; grid-template-columns: 132px minmax(0, 1fr); gap: 4px 10px; align-items: start; padding: 8px; border-radius: var(--radius); background: color-mix(in srgb, var(--ph) 13%, var(--bg)); }
+.st-band:nth-child(6n+2) { --ph: var(--ph-2); } .st-band:nth-child(6n+3) { --ph: var(--ph-3); } .st-band:nth-child(6n+4) { --ph: var(--ph-4); }
+.st-band:nth-child(6n+5) { --ph: var(--ph-5); } .st-band:nth-child(6n+6) { --ph: var(--ph-6); }
+.st-band.plain { display: block; padding: 0; background: none; }
+.st-phase { margin: 6px 3px 0; font: 700 11px/1.2 var(--mono); letter-spacing: .06em; text-transform: uppercase; color: color-mix(in srgb, var(--ph) 62%, var(--ink)); }
+.st-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 200px), 1fr)); gap: 6px; }
+.st { display: flex; gap: 8px; align-items: flex-start; min-width: 0; padding: 7px 9px; border: 1px solid var(--line); border-radius: var(--radius); background: var(--panel); cursor: pointer; }
+.st:hover { border-color: var(--ink-2); }
+.st:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+.st[aria-pressed="true"] { border-color: var(--ink); box-shadow: 0 0 0 1px var(--ink); }
+.st-n { flex: none; display: grid; place-items: center; min-width: 22px; height: 22px; padding: 0 5px; border-radius: 11px; background: var(--ink); color: var(--bg); font: 700 11px/1 var(--mono); }
+.st-t { min-width: 0; display: grid; gap: 2px; }
+.st-name { font: 500 13px/1.3 var(--ui); color: var(--ink); }
+.st-fn { font: 500 11px/1.35 var(--mono); overflow-wrap: anywhere; }
+.st-fn a { color: var(--accent); text-decoration: none; border: 0; background: none; padding: 0; }
+.st-fn a:hover { text-decoration: underline; text-underline-offset: 2px; }
+.st-fn a code { font: inherit; background: none; padding: 0; color: inherit; }
+.st-fn i { font-style: normal; font-weight: 400; color: var(--muted); }
+.st-val { font: 400 11px/1.35 var(--mono); color: var(--muted); overflow-wrap: anywhere; }
+.st.key { border-color: var(--bad); }
+.st.key .st-n { background: var(--bad); color: var(--bg); }
+.st-key { font: 500 11px/1.35 var(--mono); color: var(--bad); }
+.st-panel { margin-top: 10px; padding: 12px 14px; border: 1px solid var(--line-2); border-radius: var(--radius); background: var(--panel); font-size: 14px; line-height: 1.55; }
+.st-ph { display: block; margin-bottom: 6px; font: 700 13.5px/1.35 var(--mono); }
+.st-panel dl { display: grid; grid-template-columns: 74px minmax(0, 1fr); gap: 5px 12px; margin: 0; }
+.st-panel dt { font: 500 10.5px/2 var(--mono); letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
+.st-panel dd { margin: 0; min-width: 0; overflow-wrap: anywhere; }
+.st-hint { max-width: none; margin: 8px 2px 0; font: 400 12px/1.4 var(--ui); color: var(--muted); }
+article details.flowfold { margin-top: 0; }
+@media (max-width: 620px) { .st-panel dl { grid-template-columns: 1fr; gap: 0; } .st-panel dd { margin-bottom: 6px; } .st-band { grid-template-columns: 1fr; } .st-phase { margin: 2px 3px 4px; } }
 /* a complete call list, drawn as a tree: each function once, the functions it calls hanging under it */
 article ul.calltree, article ul.calltree ul { list-style: none; margin: 0; padding: 0; }
 article ul.calltree { margin: 12px 0 14px; overflow-x: auto; font-size: var(--table-fs); line-height: 1.5; scrollbar-width: thin; }
@@ -648,6 +697,102 @@ function build(p) {
     img.addEventListener("click", open);
     img.addEventListener("keydown", e => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); open(); } });
   });
+  // The steps of a flow, as a track. A step table (`# | Step | Method | Code | In the example`) is the page's
+  // reference; a reader meeting the flow wants one place to start and one thing to notice. Each step is a station
+  // with its number, its name, the function that does it (a link into the code) and its value from the example.
+  // The flowchart above the table gives the phases (its subgraphs) and the step that decides the example
+  // (`%% key: <node>`); the flowchart itself folds away under the track. Choosing a station shows its row.
+  el.querySelectorAll("table").forEach(t => {
+    const heads = [...t.querySelectorAll("thead th")].map(th => th.textContent.trim().toLowerCase());
+    if (heads[0] !== "#" || !heads.includes("step")) return;
+    const cStep = heads.indexOf("step"), cMethod = heads.indexOf("method"), cCode = heads.indexOf("code"),
+          cEx = heads.findIndex(h => h.startsWith("in the example"));
+    const rows = [...t.querySelectorAll("tbody tr")].map(tr => [...tr.children])
+      .filter(c => c.length === heads.length && /^\d+$/.test(c[0].textContent.trim()));
+    if (rows.length < 3) return;
+    let src = "", fig = null;
+    for (let n = t.previousElementSibling; n && !/^H[12]$/.test(n.tagName); n = n.previousElementSibling) {
+      const code = n.matches("details") && n.querySelector("code.language-mermaid");
+      if (code && !/^\s*%%\s*calls\b/m.test(code.textContent)) { src = code.textContent; fig = n; break; }
+    }
+    const phases = [], phaseOf = {}, keyNode = (src.match(/^\s*%%\s*key:\s*([\w-]+)/m) || [])[1];
+    let cur = null, keyStep = null;
+    const boxFns = new Set();  // the function each box of the flowchart names: the one to show for its step
+    for (const m of src.matchAll(/:\s*([A-Za-z_][\w.]*)(?:\s+and\s+([A-Za-z_][\w.]*))?\s*"/g)) { boxFns.add(m[1]); if (m[2]) boxFns.add(m[2]); }
+    const stepFns = {};  // a box that starts with its step number names that step's function
+    for (const m of src.matchAll(/"(\d+)[\s.:)][^"]*?:\s*([A-Za-z_][\w.]*)(?:\s+and\s+([A-Za-z_][\w.]*))?\s*"/g)) stepFns[m[1]] = [m[2], m[3]];
+    src.split("\n").forEach(line => {
+      const sg = line.match(/^\s*subgraph\s+[\w-]+\s*\[\s*"([^"]+)"\s*\]/) || line.match(/^\s*subgraph\s+"?([^"\[]+?)"?\s*$/);
+      if (sg) { cur = { name: sg[1].trim(), steps: [] }; phases.push(cur); return; }
+      if (/^\s*end\s*$/.test(line)) { cur = null; return; }
+      for (const m of line.matchAll(/([A-Za-z_][\w-]*)\s*[\[({>]+\s*"(\d+)[\s.:)]/g)) {
+        if (cur && !phaseOf[m[2]]) phaseOf[m[2]] = cur;
+        if (m[1] === keyNode) keyStep = m[2];
+      }
+    });
+    const track = document.createElement("div"); track.className = "steptrack"; track.dataset.ui = "";
+    const bands = document.createElement("div"); bands.className = "st-bands";
+    const panels = document.createElement("div"); panels.className = "st-panels";
+    const plain = { name: "", steps: [] }, used = [];
+    const pick = num => {
+      track.querySelectorAll(".st").forEach(s => s.setAttribute("aria-pressed", String(s.dataset.step === num)));
+      panels.querySelectorAll(".st-panel").forEach(p => { p.hidden = p.dataset.step !== num; });
+    };
+    rows.forEach(cells => {
+      const num = cells[0].textContent.trim(), name = cells[cStep].textContent.trim(), isKey = num === keyStep;
+      const st = document.createElement("div"); st.className = "st" + (isKey ? " key" : ""); st.tabIndex = 0;
+      st.setAttribute("role", "button"); st.setAttribute("aria-pressed", "false"); st.dataset.step = num;
+      st.innerHTML = `<span class="st-n">${esc(num)}</span><span class="st-t"><span class="st-name">${esc(name)}</span></span>`;
+      const body = st.querySelector(".st-t");
+      const codeLinks = cCode >= 0 ? [...cells[cCode].querySelectorAll("a[href]")] : [];
+      const named = l => l.textContent.trim().replace(/\(\)$/, "");
+      const a = (stepFns[num] && codeLinks.find(l => stepFns[num].includes(named(l)))) || codeLinks.find(l => boxFns.has(named(l))) || codeLinks[0];
+      if (a) {  // the first function of the step, with its file: the way from the picture into the code
+        const fn = document.createElement("span"); fn.className = "st-fn";
+        const link = a.cloneNode(true), file = document.createElement("i");
+        file.textContent = decodeURIComponent(a.getAttribute("href").split("#")[0].split("/").pop()) + ": ";
+        link.prepend(file); fn.append(link); body.append(fn);
+      }
+      const ex = cEx >= 0 ? cells[cEx] : null;
+      if (ex && ex.textContent.trim()) {
+        const strong = ex.querySelector("strong");
+        let val = (strong ? strong.textContent : ex.textContent.split(". ")[0]).trim();
+        if (val.length > 44) val = val.slice(0, 42).replace(/[\s,;]+\S*$/, "") + "…";
+        const v = document.createElement("span"); v.className = "st-val"; v.textContent = val; body.append(v);
+      }
+      if (isKey) { const k = document.createElement("span"); k.className = "st-key"; k.textContent = "decides this example"; body.append(k); }
+      st.addEventListener("click", () => pick(num));
+      st.addEventListener("keydown", e => { if ((e.key === "Enter" || e.key === " ") && e.target === st) { e.preventDefault(); pick(num); } });
+      const band = phaseOf[num] || plain;
+      if (!used.includes(band)) used.push(band);
+      band.steps.push(st);
+      const panel = document.createElement("div"); panel.className = "st-panel"; panel.hidden = true; panel.dataset.step = num;
+      panel.innerHTML = `<b class="st-ph">${esc(num)} · ${esc(name)}${isKey ? " · the step that decides this example" : ""}</b><dl></dl>`;
+      [["Method", cMethod], ["Code", cCode], ["Example", cEx]].forEach(([label, c]) => {
+        if (c < 0 || !cells[c].textContent.trim()) return;
+        const dt = document.createElement("dt"), dd = document.createElement("dd");
+        dt.textContent = label; dd.append(...[...cells[c].childNodes].map(n => n.cloneNode(true)));
+        panel.querySelector("dl").append(dt, dd);
+      });
+      panels.append(panel);
+    });
+    used.forEach(b => {
+      const band = document.createElement("div"); band.className = "st-band" + (b.name ? "" : " plain");
+      if (b.name) { const h = document.createElement("div"); h.className = "st-phase"; h.textContent = b.name; band.append(h); }
+      const list = document.createElement("div"); list.className = "st-list"; list.append(...b.steps); band.append(list);
+      bands.append(band);
+    });
+    const hint = document.createElement("p"); hint.className = "st-hint";
+    hint.textContent = "Choose a step for its method, code and values. The function under a step opens its code.";
+    track.append(bands, panels, hint);
+    const cap = fig && fig.previousElementSibling, para = cap && cap.classList.contains("zoom-hint") && cap.previousElementSibling;
+    if (para && para.classList.contains("fig")) {
+      const fold = document.createElement("details"); fold.className = "flowfold";
+      const sum = document.createElement("summary"); sum.textContent = "The same steps as a flowchart, with what passes between them";
+      para.before(fold); fold.append(sum, para, cap, fig); fold.before(track);
+    } else t.before(track);
+    pick(keyStep || rows[0][0].textContent.trim());
+  });
   el.querySelectorAll("a[href]").forEach(a => {
     const href = a.getAttribute("href");
     if (/^[a-z][a-z0-9+.-]+:/i.test(href) || href.startsWith("//")) { a.target = "_blank"; a.rel = "noopener"; return; }
@@ -734,6 +879,26 @@ function build(p) {
     tools.querySelector(".copy").addEventListener("click", e => copyBlock(e.currentTarget));
     box.append(tools);
   });
+  // A capability card: a heading, and under it a list whose items start "Try it:", "How:", "Open first:" and
+  // "Go deeper:". Each shows as a card with its labels set apart; cards that follow one another share a grid, so
+  // the reader sees every capability at the same depth and in the same shape.
+  el.querySelectorAll("ul").forEach(ul => {
+    const items = [...ul.children];
+    const labelled = items.filter(li => li.firstElementChild && li.firstElementChild.matches("strong") &&
+      /^(try it|how|open first|go deeper):?$/i.test(li.firstElementChild.textContent.trim()));
+    const head = ul.previousElementSibling;
+    if (labelled.length < 3 || labelled.length !== items.length || !head || !/^H[2-6]$/.test(head.tagName)) return;
+    const card = document.createElement("div"); card.className = "cap-card"; head.before(card); card.append(head, ul);
+    ul.classList.add("cap-rows");
+    items.forEach(li => {
+      const s = li.firstElementChild; s.className = "cap-label"; s.textContent = s.textContent.trim().replace(/:$/, "");
+      const next = s.nextSibling;
+      if (next && next.nodeType === 3) next.textContent = next.textContent.replace(/^\s*:?\s*/, "");
+    });
+    const before = card.previousElementSibling;
+    if (before && before.classList.contains("cap-grid")) before.append(card);
+    else { const grid = document.createElement("div"); grid.className = "cap-grid"; card.before(grid); grid.append(card); }
+  });
   // The folded block under a picture holds the Mermaid text the picture is drawn from. Say so beside its name, and
   // set it close under the caption, so that a reader who opens it is not left expecting a second picture.
   el.querySelectorAll("details").forEach(d => {
@@ -773,6 +938,14 @@ function build(p) {
     more.onclick = () => { srcs.hidden = !srcs.hidden; more.setAttribute("aria-expanded", String(!srcs.hidden)); };
   }
   const at = ORDER.indexOf(p), prev = at > 0 ? ORDER[at - 1] : null, next = at >= 0 && at < ORDER.length - 1 ? ORDER[at + 1] : null;
+  // Where this page sits on the reading route, at its top: the pages are read in the index's order.
+  if (at >= 0 && ORDER.length > 2 && p.group) {
+    const route = document.createElement("span"); route.className = "route"; route.dataset.ui = "";
+    route.innerHTML = `<span class="route-at">${at + 1} of ${ORDER.length}</span>` +
+      (prev ? `<span>after <button type="button" data-go="${esc(prev.id)}">${esc(navTitle(prev))}</button></span>` : "") +
+      (next ? `<span>next <button type="button" data-go="${esc(next.id)}">${esc(navTitle(next))}</button></span>` : "");
+    sect.querySelector(".eyebrow").append(route);
+  }
   if (prev || next) {
     const pager = document.createElement("nav"); pager.className = "pager"; pager.setAttribute("aria-label", "Previous and next page");
     pager.innerHTML = (prev ? `<button type="button" class="prev" data-go="${esc(prev.id)}"><small>Previous</small><span>${esc(navTitle(prev))}</span></button>` : "") +

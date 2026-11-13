@@ -1,5 +1,15 @@
 # Writing pages
 
+## Five tests every page passes
+
+The rules below come from five tests. Where no rule covers what you are writing, apply the test.
+
+1. **Like things at like depth.** Whatever the project has several of (commands, endpoints, screens, calculations, jobs) is covered in one shape, every one of them. Where the wiki goes deep on one, it says that this is the worked example, and where the depth for the others is.
+2. **Nothing to decode.** Before a formula, a code block, a table, a picture or a folded block, a sentence says what it is and why it is here, and names anything in it the page has not explained.
+3. **A place to start and one thing to notice.** A picture or table of many like parts is grouped, shows where to begin, and marks the part that decides the example's result.
+4. **A route, not a pile.** The index gives the order to read the pages in; each page builds on the ones before it.
+5. **Try before reading.** Where a part can be run, called or sent a request, the shortest real use comes first, with its real answer.
+
 ## Page kinds
 
 Each page serves one purpose, so a reader knows whether they are learning, doing, looking something up, or trying to understand ([Diátaxis](https://diataxis.fr/)). The root README is the front page. Readers never see the kind names: the index and the viewer use the labels documentation sites use.
@@ -12,13 +22,15 @@ Each page serves one purpose, so a reader knows whether they are learning, doing
 | how-to | Guides | `howto/` | how do I … |
 | reference | Reference | `reference/`, or a folder named for the thing, such as `api/` or `cli/` | what exactly does X do; where is X |
 
+The index opens with the route: the order to read the pages in, one line for each stop saying what the reader can do after it. The viewer shows each page's place on it.
+
 `SCHEMA.md` and `log.md` are for the wiki's maintainers. The viewer keeps them out of the reading pages and links them from its footer.
 
 ## The overview page
 
 `concepts/overview.md`, titled "How {project} fits together", comes first under "How it works": the whole system on one page. Its sections:
 
-1. **What it does.** What a user gets from the project, as a short list in their words, grouped the way the project groups it (its commands, screens, endpoints or features). Each item links the page that covers it, where one exists.
+1. **What it can do.** One capability card (§Capability cards) for each thing a user can ask of the project, grouped the way the project groups them. When the cards run past a screen or two, they move to their own page, `reference/capabilities.md`, titled "What {project} can do", and this section keeps the groups, one line each, linking it.
 2. **The parts.** A table `Part | What it does | Built on | Where it lives | How you reach it`. A part is what a newcomer would name: the command line, the API server, the web app, the database, the worker. "Built on" names the framework, library or method that does the part's work (FastAPI, PostgreSQL full-text search, an ISO standard), so a reader knows what to look up.
 3. **How they fit.** One diagram of the parts and what passes between them, such as an HTTP request, SQL, a file or a queue message.
 4. **One request, end to end.** A typical use followed across the parts in a few numbered steps, each linking the how-it-works page that owns its detail.
@@ -27,17 +39,36 @@ Each page serves one purpose, so a reader knows whether they are learning, doing
 
 The test: a newcomer who reads only this page can say what each part does, which part to open for a task, and which few functions to read first.
 
+## Capability cards
+
+A capability is one thing a user can ask of the project: a command, a group of endpoints, a screen, a job, a public function of a library. Each gets a card, and every card has the same lines, so no capability is explained while its neighbour is only named:
+
+````text
+### `export`: write a report as CSV or a spreadsheet
+
+- **Try it:** `app export examples/sales.json --format csv` writes `sales.csv`, one row per order.
+- **How:** rows are grouped by customer, then written by the writer `--format` chooses. A group's total is the sum of quantity × price.
+- **Open first:** [`run_export`](../../src/app/export.py)
+- **Go deeper:** [How an export is built](how-export-works.md), worked step by step.
+````
+
+The heading names the capability as the user calls it and what it answers. **Try it** is the shortest real use on an input the repository ships, and what comes back. **How** says how the result comes about, in a sentence or two: the method as the code or its documents name it, then the relation or rule that decides the result, written out and not only named (`total = Σ quantity × price`; "the first rule that matches wins"; "a file over 5 MB is refused"). "Then the totals are computed" tells the reader nothing. What the capability also offers goes in the option table under the card, not here. **Open first** links the function where it starts, as on the map. **Go deeper** says where its steps are explained: its how-it-works page, else the project's own document on it, else "nothing more is written"; this line tells the reader how deep the wiki goes on each capability.
+
+What only switches on inside another capability (an option, a block of the input, a plug-in) is a row in a table under that card, `Option | Turned on by | What it adds`. The cards do not repeat the map: the map is every module, the cards are every thing a user can ask for.
+
+The test: a reader who cares about any one capability, not only the one the wiki works through, can run it, say how its result comes about, and open its code.
+
 ## How-it-works pages
 
 Each core flow gets one page, `concepts/how-<flow>-works.md`, started from `templates/how-it-works.md.tmpl`. A core flow is what the project exists to do: the calculation behind its main result, the path of a request through its server, the loop that schedules its jobs. Most projects have one to three. The page is the one home of that flow's steps, methods and code. Its sections:
 
-1. **What goes in and what comes out**, and the method at the core, in one or two sentences.
+1. **What goes in and what comes out**, and the method at the core, in one or two sentences. When other capabilities run through the same skeleton (the same entry point, the same checks, the same shape of result), say so here and name the steps they share, so the reader can carry this page over to them.
 2. **Think of it as …** An everyday picture of the flow that a newcomer already understands, such as a library catalogue for a search index, in two to four sentences. A table `In the picture | In the code | Where the picture stops fitting` ties each part of the picture to a step. A picture that fits only loosely misleads; leave the section out rather than force one.
 3. **The pipeline.** One diagram from the input to the output and one table under it, each fact in one of the two:
-   - The diagram carries the order, the branches and the data. Each box says what the step does, in a few words; each arrow names what passes, with its type or shape.
+   - The diagram carries the order, the branches and the data. Each box starts with its step number, says what the step does in a few words, and ends with its `file: function`; each arrow names what passes, with its type or shape. A flow with more steps than a reader holds at once is drawn in phases (§Diagrams, "Phases"), and the step that decides the example's result is marked. The viewer shows the diagram and the table as a track of steps, each with its function and its value; the diagram is what other Markdown viewers show.
    - The table carries the rest: `# | Step | Method | Code | In the example`. Method is what the step applies (a named algorithm, a standard and its clause, a formula, a rule such as "retry with back-off"), linked to its source. Code links every function that does the step's work. The example column has the values from a captured run of one real input, so the reader follows numbers through the steps.
 4. **Who calls whom.** The call map (§Diagrams, "Call maps"): the functions from the flow's entry to the code that does the work, on the main path and where real logic lives, not every helper. Start it from `python <tools folder>/wiki.py callgraph <path>#<core function>` for Python, which reads the calls from the code. Under the map, a collapsed `<details>` block titled "Every call on this path" keeps the complete list as a table `Caller | Calls`, one row per call, each cell `file: function` (`callgraph … --table` prints it), so a reader asked for every call finds the helpers the map leaves out.
-5. **The rules that decide the result.** The formulas (§Formulas), thresholds and decision rules, each with the function it lives in. Where a design document derives them, link it instead of copying the derivation. When the example's result is built from parts and one part decides the verdict (a load factor that pushes a stress past its limit, one stage that takes most of a request's time), show the build-up as a table of the captured values and name that part in one sentence.
+5. **The rules that decide the result.** The formulas (§Formulas), thresholds and decision rules, each with the function it lives in. Where a design document derives them, link it instead of copying the derivation. When the example's result is built from parts and one part decides the verdict (one fee that makes up most of a price, one stage that takes most of a request's time), show the build-up as a table of the captured values and name that part in one sentence.
 6. **Why it is built this way**, only for decisions a reader would otherwise question or undo.
 
 Name a method only as the code or its documents name it: a docstring, a comment, a reference in the code, or a design note. A method you recognise but the project never names is described in words.
@@ -64,7 +95,16 @@ The test: take anything a user can see or any message the program prints; a read
 
 ## Sources page
 
-When the code follows any external source (a standard, a handbook, a paper, a specification, a vendor's API document), write `reference/sources.md`, titled "Standards and sources", from `templates/sources.md.tmpl`. One row per source: its short name as pages cite it, the full citation with the clauses the code uses, where the repository keeps it or notes on it, a public link when one exists, and the pages and functions that use it. Each row's first cell starts with an anchor, `<a id="dnv-cn-41-2"></a>DNV CN 41.2` (the short name in lower case, with letters, digits and hyphens), so a page links straight to that row: `../reference/sources.md#dnv-cn-41-2`. Cite only what the code or its documents name; a source you cannot place in the repository or its documents is reported, not listed.
+When the code follows any external source (a standard, a handbook, a paper, a specification, a vendor's API document), write `reference/sources.md`, titled "Standards and sources", from `templates/sources.md.tmpl`. One row per source: its short name as pages cite it, the full citation with the clauses the code uses, where the repository keeps it or notes on it, a public link when one exists, and the pages and functions that use it. Each row's first cell starts with an anchor, `<a id="rfc-9457"></a>RFC 9457` (the short name in lower case, with letters, digits and hyphens), so a page links straight to that row: `../reference/sources.md#rfc-9457`. Cite only what the code or its documents name; a source you cannot place in the repository or its documents is reported, not listed.
+
+## An API page
+
+When other programs call the project (an HTTP or RPC service, a library's public functions), the reference page for that interface, `reference/api.md`, starts with `## Try it`:
+
+- **A service**, in this order: the explorer the server itself offers and its address (a Swagger or GraphiQL page, an admin console; read the code for it, and say when it is switched off); how to sign in, as one request; two or three requests a newcomer would send first, a read and a write among them, as `curl` blocks with the answers captured from a run (§Command blocks: a `background` service, then `check:run` and `check:output`, or `check:skip` with what the service needs); the contract (an OpenAPI file or URL, a GraphQL schema, `.proto` files), which tools such as Postman import.
+- **A library**: the smallest script that imports it and makes one call, with its output.
+
+The reference follows: every endpoint or public function, grouped as the code groups them, each with the function that serves it. A server that only the project's own front end calls gets this page too.
 
 ## Page template
 
@@ -91,7 +131,7 @@ One or two sentences: what this page answers.
 - **Headings say the point**, in the reader's words, not the name of a rule in the code: "If a setting is set in more than one place", not "Which value wins". Someone who reads only the headings learns what the page says.
 - **The consequence first, then the reason.** Open a section with what the reader should do or expect, with one concrete example; the mechanism follows. For example: "Setting `os.environ["LLM_MODEL"]` after the import changes nothing: pass `model=` instead. The value is read once, at import…".
 - **One home per fact, said once.** A table, list or procedure is written in full in one place: settings and flags on a reference page, a procedure on its how-to page, setup in the README, a flow's steps on its how-it-works page, where each module lives on the map. Another page gives the part its reader needs for the task at hand, and a link. This holds for the same fact in other words: the overview tells a flow at the level of parts, its how-it-works page owns the steps and the code, run-and-debug owns where to break. Within a page, cut a sentence that restates its heading, the table or diagram beside it, or the page's purpose. The test: a reader finishes a task without opening another page, and a change in the code needs the fact edited in one place.
-- **Cite the sources the code follows, with a link.** When a page names a standard, a handbook, a paper or a specification the code implements, the first mention in each section links it, and so does every step's Method cell. A short form is a citation too: "DNV p. 12" and "cl. 1.9.3.2" need the link as much as "DNV CN 41.2". Link a clause to the repository's own document on it (a handbook chapter, a spec), and otherwise to the source's row on `reference/sources.md` by its anchor. Before writing a Method cell, read the docstrings and comments of the step's functions and of the helpers they call: the clause is often there. When neither the code nor the project's documents name a source for a method, say so in the cell ("Method B; the code names no clause"), so the reader does not look for one.
+- **Cite the sources the code follows, with a link.** When a page names a standard, a handbook, a paper or a specification the code implements, the first mention in each section links it, and so does every step's Method cell. A short form is a citation too: "RFC 9457 §3" and "§3.1.2" need the link as much as "RFC 9457". Link a clause to the repository's own document on it (a handbook chapter, a spec), and otherwise to the source's row on `reference/sources.md` by its anchor. Before writing a Method cell, read the docstrings and comments of the step's functions and of the helpers they call: the clause is often there. When neither the code nor the project's documents name a source for a method, say so in the cell ("Method B; the code names no clause"), so the reader does not look for one.
 - **Links are relative.** Between pages, `../howto/run-and-debug.md`; to code, the file's relative path; to a section, `page.md#heading-slug`.
 
 ## Pictures, tables and charts
@@ -103,7 +143,7 @@ Long runs of text are where readers give up. Read each section and ask what the 
 | steps in order, with branches or loops | a flowchart |
 | a choice: which rule applies, which path is taken, why a run fails | a decision flowchart, or a table `If \| Then \| Decided in` |
 | several things compared on the same properties: commands, features, settings, screens, endpoints | a table, one row per thing. A list of paragraphs that all say the same kinds of things is a table waiting to be drawn |
-| a number built from parts: a stress from its factors, a request's time from its stages | its formula (§Formulas), a table of the parts with the example's values, and one sentence naming the part that decides the result |
+| a number built from parts: a price from its fees, a request's time from its stages | its formula (§Formulas), a table of the parts with the example's values, and one sentence naming the part that decides the result |
 | a quantity across a range: a factor against speed, latency against load | a short table of values the code computed, or a chart when it passes the test below |
 | the states something goes through | a state diagram |
 | a screen or a window | a table of its areas, `Area \| What it shows \| What you do there`, or a screenshot of the running program |
@@ -132,39 +172,40 @@ flowchart TB
 
 - **Draw what a reader needs to see, in words.** A box names a part ("API server") or a step ("wait, then retry"); an edge says what passes or when ("HTTP JSON", "on a 429"). Worth drawing: the parts and what flows between them (the overview), a flow's pipeline and its call map (its how-it-works page), the steps of a decision or a loop, the states something goes through. Each function-level map is drawn once; other pages link to it.
 - **Syntax that parses.** Every node label and edge label in double quotes, with no `;`, `<`, `>` or `#` apart from `<br/>` between the lines of a box. No node id named `end`. In a chart, the title and axis names are quoted (`title "…"`, `x-axis "…" ["a", "b"]`); a `pie` title is not, and each slice is `"label" : value`.
-- **A box that names code ends with `file: function`** on its last line, as in `"Dynamic factor<br/>part1_factors.py: kv_method_b"`. The path may be shortened to any tail that names one file, and `a.py: f and g` names two functions.
+- **A box that names code ends with `file: function`** on its last line, as in `"3 Price the order<br/>pricing.py: price_order"`. The path may be shortened to any tail that names one file, and `a.py: f and g` names two functions.
 - **Call maps.** A diagram whose second line is `%% calls` is a call map: each box is `file: function`, and each solid arrow says the first function calls the second. An indirect call (a registry lookup, a callback, a call into another process, a method reached through an object whose type the reader must know) is drawn dotted, `-.->`, with how it is reached on the arrow.
+- **Phases.** Group the steps of a longer flow into a few named phases, each a `subgraph` whose title says what the phase achieves ("Read the input", "Score the candidates"). Draw the input and the output as rounded boxes, `IN(["…"])`, so the start and the end stand out. Join phase to phase, not box to box (`P1 -->|"what passes"| P2`), and give each phase `direction LR`: Mermaid then sets the steps of a phase side by side and stacks the phases, which fits a Markdown column. When one step decides the example's result, add the line `%% key: <its node id>`. Write no colours or styles: `render` tints each phase and marks the key step.
 - **Fit a Markdown column.** GitHub and VS Code show a diagram no wider than their text column, about 860 px, and shrink a wider one with its labels; `render` names each diagram whose labels end up too small to read. A chain reads top to bottom (`flowchart TB`). Break a long label over lines with `<br/>`. A decision whose label names code is a box with yes and no arrows, not a diamond, which grows both ways with its label. Split a diagram that is still too wide. Call maps are the exception: draw each in the direction that is narrower; the viewer zooms it, and GitHub opens it full size on a click.
 - **Render after every edit**: `wiki_browser.py render` fails on a diagram that does not parse, and writes each SVG at its natural size on a white ground with a hash of its source. A diagram changes in the same change as the code it shows.
 
 ## Formulas
 
-A formula the reader has to follow gets its own lines, typeset. A table cell or a sentence keeps only a short relation that reads at a glance (F_t = 2000·T₁/d₁); anything with a root, a fraction of products or a chain of factors moves out under the table, and the cell names it and links to it.
+A formula the reader has to follow gets its own lines, typeset. A table cell or a sentence keeps only a short relation that reads at a glance (wait = base · 2ⁿ); anything with a root, a fraction of products or a chain of factors moves out under the table, and the cell names it and links to it.
 
 - **One `math` block per idea**, in the order the code computes it: a fenced block with the info string `math` and TeX inside, `\begin{aligned} … \end{aligned}` with `&=` for a chain of lines. GitHub, GitLab, VS Code's built-in preview and the viewer typeset it; any other viewer shows its TeX source, which still reads. Not `$$`, which Markdown mangles where math is not supported.
 - **Before it, what it computes and where it comes from**: one sentence on what the block works out, the function it lives in, linked, and the source the code or its documents name for it (a standard and its clause, a paper, a section of the design document), linked. Where they name none, say that the code names no source.
-- **Under a block of several lines, how they follow**: a numbered line for each line of the block, saying what it is (the stress under the nominal load; the same raised by the load factors; what the material carries; their ratio). Where the source gives the reason for a shape the reader would stop at (a root, an exponent, a cap), give it in a few words. The reader sees how one line leads to the next, not a list of equations.
-- **After it, a table of its symbols**, `Symbol | What it is | In the example`: each symbol in words with its unit, and its value from the captured run, so the reader can redo the arithmetic. Symbols in prose and tables are plain text (`σ_H`, `K_Hβ`). Group symbols that need no explanation on one row; a symbol defined earlier on the page is not defined again.
+- **Under a block of several lines, how they follow**: a numbered line for each line of the block, saying what it is (the delay before the cap; the cap; the random share of it that is waited). Where the source gives the reason for a shape the reader would stop at (a root, an exponent, a cap), give it in a few words. The reader sees how one line leads to the next, not a list of equations.
+- **After it, a table of its symbols**, `Symbol | What it is | In the example`: each symbol in words with its unit, and its value from the captured run, so the reader can redo the arithmetic. Symbols in prose and tables are plain text (`d_max`, `t_n`). Group symbols that need no explanation on one row; a symbol defined earlier on the page is not defined again.
 - **Then the result**, one line with the values the formula gave, and which of them decides the verdict.
-- **Only what the code does.** Copy each formula from the function, not from the standard or the design document, and check it against the captured values: a formula that does not reproduce the run's number is wrong. State the constants, floors and branches the code applies in one line under it ("F_m/b at least 100 N/mm"). Formulas the reader does not need to follow the result stay in the design document, linked.
+- **Only what the code does.** Copy each formula from the function, not from the standard or the design document, and check it against the captured values: a formula that does not reproduce the run's number is wrong. State the constants, floors and branches the code applies in one line under it ("the delay is never below 50 ms"). Formulas the reader does not need to follow the result stay in the design document, linked.
 - Use the TeX that KaTeX and MathJax both support: `\frac`, `\sqrt`, `\cdot`, subscripts and superscripts, Greek letters, `\min`, `\text{…}`, `\qquad`, `aligned`. `wiki_browser.py check-viewer` fails on a formula that does not typeset.
 
 ````text
-**Flank (pitting) stress**, in [`flank_chain`](../../src/rating/part2_flank.py), per [ISO 6336-2 cl. 5](sources.md#iso-6336-2):
+**Wait before a retry**, in [`backoff`](../../src/client/retry.py), the "full jitter" scheme of [Exponential Backoff and Jitter](sources.md#aws-backoff):
 
 ```math
 \begin{aligned}
-\sigma_H &= Z_B\, \sigma_{H0} \sqrt{K_A\, K_v\, K_{H\beta}\, K_{H\alpha}} \\
-S_H &= \sigma_{HG} \,/\, \sigma_H
+d_n &= \min\left(d_{\max},\ d_0 \cdot 2^{\,n}\right) \\
+t_n &= u \cdot d_n, \qquad u \sim U(0, 1)
 \end{aligned}
 ```
 
-1. The contact stress under the nominal load, raised by the load factors. They sit under the root because contact stress grows with the square root of the load.
-2. The safety factor: what the material carries, over that stress.
+1. The delay doubles with each attempt, up to a cap, so a long outage does not grow the wait without bound.
+2. The wait is a random share of that delay, so clients that failed together do not retry together.
 
 | Symbol | What it is | In the example |
 |---|---|---|
-| K_A, K_v, K_Hβ, K_Hα | application, dynamic, face and transverse load factors | 1.25, 1.047, **1.949**, 1.057 |
+| d_0, d_max, n | the first delay, the cap, the attempt counted from 0 | 0.5 s, 30 s, **3** |
 ````
 
 ## Command blocks

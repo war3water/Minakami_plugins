@@ -7,7 +7,7 @@ updated: {{date}}
 
 # How {{the flow}} works
 
-{{One or two sentences: what goes in, what comes out, and the method at the core, in plain words.}}
+{{One or two sentences: what goes in, what comes out, and the method at the core, in plain words. When other capabilities run through the same skeleton, one sentence naming them and the steps they share.}}
 
 ## Think of it as {{an everyday picture}}
 
@@ -25,10 +25,19 @@ updated: {{date}}
 
 ```mermaid
 %% id: {{pipeline id}}
+%% key: {{the node id of the step that decides the example's result; delete this line when no one step does}}
 flowchart TB
-    IN["{{the input, in words}}"] -->|"{{what passes, with its type or shape}}"| S1["{{1. what the step does, in a few words}}"]
-    S1 -->|"{{what passes}}"| S2["{{2. the next step}}"]
-    S2 -->|"{{what passes}}"| OUT["{{the output, in words}}"]
+    IN(["{{the input, in words}}"]) --> P1
+    subgraph P1["{{what the first phase achieves}}"]
+      direction LR
+      S1["{{1 what the step does<br/>file: function}}"] -->|"{{what passes}}"| S2["{{2 the next step<br/>file: function}}"]
+    end
+    subgraph P2["{{the next phase}}"]
+      direction LR
+      S3["{{3 …<br/>file: function}}"]
+    end
+    P1 -->|"{{what passes, with its type or shape}}"| P2
+    P2 --> OUT(["{{the output, in words}}"])
 ```
 </details>
 

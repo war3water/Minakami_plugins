@@ -39,7 +39,7 @@ One or two sentences: what this page answers.
 
 ## Rules
 
-1. **Update in the same change.** A change that alters behaviour, setup, commands or layout updates every page whose `sources:` name a changed file or symbol (`wiki.py affected` lists them), and the README when setup or commands change. A new module gets a row on `reference/map.md`, a new part of the system goes on `concepts/overview.md`, and a new page goes in `index.md`.
+1. **Update in the same change.** A change that alters behaviour, setup, commands or layout updates every page whose `sources:` name a changed file or symbol (`wiki.py affected` lists them), and the README when setup or commands change. A new module gets a row on `reference/map.md`, a new part of the system goes on `concepts/overview.md`, a new capability (a command, a group of endpoints, a screen) gets its card with the same four lines as the others (Try it, How, Open first, Go deeper), and a new page goes in `index.md`, at its place in the reading order.
 2. **Log every change.** Append one entry at the end of `log.md`: `## [YYYY-MM-DD] <build|change|lint|decision> | <title>`, then one to three lines naming, by path, the pages updated and the pages checked and still true (`Updated: … Checked: …`). Naming a page records the check, so the lint stops reporting it as out of date.
 3. **Point to symbols, not line numbers**, for example `{{an example path#symbol from this repository}}`.
 4. **Every claim is traceable** to a source symbol or a captured output. Captured examples are copied from a real run or a file ({{where captured evidence lives}}) and say where they came from; any other example is labelled illustrative.
