@@ -87,6 +87,7 @@ One or two sentences: what this page answers.
 - **Sources are symbols, never line numbers.** Write `src/app.py#Engine.run`, `web/server.ts#Router.route`, `README.md#setup` (a heading); a whole file is just its path. Name in `sources:` every symbol the page explains. Python is checked with its parser; other languages are matched against their definition syntax, which can miss an unusual form: then name the enclosing definition.
 - **Captured, expected, or illustrative.** Output shown as real was pasted from a run or a file, and says so: "Captured on 2026-10-23 from `app --trace sample.csv`, shortened", or "Captured: `tests/golden/report.txt`". Output worked out from the code, for a command that cannot run here, is labelled "Expected, from `<path>#<Symbol>` (not captured)". Any other example is labelled "Illustrative". Never type output by hand and present it as captured.
 - **Plain and exact.** Define a term before using it. Short sentences, active voice. A table for anything a reader looks up.
+- **Code on a page is read before it is run.** The sentence before a block that calls the project's own code (a short script, a REPL session) says what the block shows, and names each call the page has not explained: what it does, and what happens without it ("`init_db()` creates the tables; without it the first query fails").
 - **Headings say the point**, in the reader's words, not the name of a rule in the code: "If a setting is set in more than one place", not "Which value wins". Someone who reads only the headings learns what the page says.
 - **The consequence first, then the reason.** Open a section with what the reader should do or expect, with one concrete example; the mechanism follows. For example: "Setting `os.environ["LLM_MODEL"]` after the import changes nothing: pass `model=` instead. The value is read once, at import…".
 - **One home per fact, said once.** A table, list or procedure is written in full in one place: settings and flags on a reference page, a procedure on its how-to page, setup in the README, a flow's steps on its how-it-works page, where each module lives on the map. Another page gives the part its reader needs for the task at hand, and a link. This holds for the same fact in other words: the overview tells a flow at the level of parts, its how-it-works page owns the steps and the code, run-and-debug owns where to break. Within a page, cut a sentence that restates its heading, the table or diagram beside it, or the page's purpose. The test: a reader finishes a task without opening another page, and a change in the code needs the fact edited in one place.
@@ -141,14 +142,15 @@ flowchart TB
 A formula the reader has to follow gets its own lines, typeset. A table cell or a sentence keeps only a short relation that reads at a glance (F_t = 2000·T₁/d₁); anything with a root, a fraction of products or a chain of factors moves out under the table, and the cell names it and links to it.
 
 - **One `math` block per idea**, in the order the code computes it: a fenced block with the info string `math` and TeX inside, `\begin{aligned} … \end{aligned}` with `&=` for a chain of lines. GitHub, GitLab, VS Code's built-in preview and the viewer typeset it; any other viewer shows its TeX source, which still reads. Not `$$`, which Markdown mangles where math is not supported.
-- **Before it, one sentence on what it computes**, with the function it lives in, linked, and its clause.
+- **Before it, what it computes and where it comes from**: one sentence on what the block works out, the function it lives in, linked, and the source the code or its documents name for it (a standard and its clause, a paper, a section of the design document), linked. Where they name none, say that the code names no source.
+- **Under a block of several lines, how they follow**: a numbered line for each line of the block, saying what it is (the stress under the nominal load; the same raised by the load factors; what the material carries; their ratio). Where the source gives the reason for a shape the reader would stop at (a root, an exponent, a cap), give it in a few words. The reader sees how one line leads to the next, not a list of equations.
 - **After it, a table of its symbols**, `Symbol | What it is | In the example`: each symbol in words with its unit, and its value from the captured run, so the reader can redo the arithmetic. Symbols in prose and tables are plain text (`σ_H`, `K_Hβ`). Group symbols that need no explanation on one row; a symbol defined earlier on the page is not defined again.
 - **Then the result**, one line with the values the formula gave, and which of them decides the verdict.
 - **Only what the code does.** Copy each formula from the function, not from the standard or the design document, and check it against the captured values: a formula that does not reproduce the run's number is wrong. State the constants, floors and branches the code applies in one line under it ("F_m/b at least 100 N/mm"). Formulas the reader does not need to follow the result stay in the design document, linked.
 - Use the TeX that KaTeX and MathJax both support: `\frac`, `\sqrt`, `\cdot`, subscripts and superscripts, Greek letters, `\min`, `\text{…}`, `\qquad`, `aligned`. `wiki_browser.py check-viewer` fails on a formula that does not typeset.
 
 ````text
-**Flank (pitting) stress**, in [`flank_chain`](../../src/rating/part2_flank.py):
+**Flank (pitting) stress**, in [`flank_chain`](../../src/rating/part2_flank.py), per [ISO 6336-2 cl. 5](sources.md#iso-6336-2):
 
 ```math
 \begin{aligned}
@@ -156,6 +158,9 @@ A formula the reader has to follow gets its own lines, typeset. A table cell or 
 S_H &= \sigma_{HG} \,/\, \sigma_H
 \end{aligned}
 ```
+
+1. The contact stress under the nominal load, raised by the load factors. They sit under the root because contact stress grows with the square root of the load.
+2. The safety factor: what the material carries, over that stress.
 
 | Symbol | What it is | In the example |
 |---|---|---|

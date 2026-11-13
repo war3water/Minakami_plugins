@@ -235,6 +235,21 @@ article details[open] > summary::before { rotate: 45deg; }
 article details[open] > summary { border-bottom: 1px solid var(--line); }
 article details > :not(summary) { margin-inline: 12px; }
 article details > .codeblock, article details > .table-wrap { margin-block: 12px; }
+/* a complete call list, drawn as a tree: each function once, the functions it calls hanging under it */
+article ul.calltree, article ul.calltree ul { list-style: none; margin: 0; padding: 0; }
+article ul.calltree { margin: 12px 0 14px; overflow-x: auto; font-size: var(--table-fs); line-height: 1.5; scrollbar-width: thin; }
+article details > ul.calltree { margin-inline: 12px; }
+article ul.calltree li { position: relative; max-width: none; margin: 0; padding: 2px 0 2px 20px; white-space: nowrap; }
+article ul.calltree > li { padding-left: 0; margin-top: 10px; }
+article ul.calltree > li:first-child { margin-top: 0; }
+article ul.calltree ul { margin-left: 7px; }
+article ul.calltree ul > li::before { content: ""; position: absolute; left: 0; top: 0; bottom: 0; border-left: 1px solid var(--line-2); }
+article ul.calltree ul > li:last-child::before { bottom: auto; height: 1em; }
+article ul.calltree ul > li::after { content: ""; position: absolute; left: 0; top: 1em; width: 13px; border-top: 1px solid var(--line-2); }
+article ul.calltree .ct-name code { background: none; padding: 0; font-size: .9em; color: var(--code-ink); }
+article ul.calltree > li > .ct-name code { font-weight: 600; }
+article ul.calltree .ct-file { color: var(--muted); }
+article ul.calltree .ct-again { margin-left: 10px; font-size: 12px; color: var(--muted); }
 /* the Mermaid text under a picture: a quiet line close under the caption, named for what it holds */
 .zoom-hint.has-src { margin-bottom: 6px; }
 article details.diagram-src { margin-top: 0; border-color: transparent; background: none; }
@@ -649,6 +664,54 @@ function build(p) {
       const url = editorUrl(target, line);
       a.className = "code-link" + (url ? "" : " inert"); a.title = (url ? "Open in editor: " : "In the repository: ") + target + (line ? ":" + line : "");
       if (url) a.href = url; else a.addEventListener("click", e => e.preventDefault());
+    }
+  });
+  // A complete call list is written as a table `Caller | Calls`, one row per call. Read as rows it is a list of pairs;
+  // the reader wants the path. Show it as a tree: each function once with the functions it calls under it, in the
+  // order of the rows. A function reached a second time is named again and not unfolded again.
+  el.querySelectorAll("table").forEach(t => {
+    const heads = [...t.querySelectorAll("thead th")].map(th => th.textContent.trim().toLowerCase());
+    if (heads.length !== 2 || heads[0] !== "caller" || !/^(calls|callee)$/.test(heads[1])) return;
+    const rows = [...t.querySelectorAll("tbody tr")].map(tr => [...tr.children]).filter(c => c.length === 2);
+    if (!rows.length) return;
+    const key = td => td.textContent.trim(), kids = new Map(), cell = new Map(), called = new Set();
+    rows.forEach(([a, b]) => {
+      const ka = key(a), kb = key(b);
+      if (!kids.has(ka)) kids.set(ka, []);
+      kids.get(ka).push(b); called.add(kb);
+      if (!cell.has(ka)) cell.set(ka, a);
+    });
+    let roots = [...kids.keys()].filter(k => !called.has(k));
+    if (!roots.length) roots = [key(rows[0][0])];
+    const done = new Set();
+    const item = td => {
+      const li = document.createElement("li"), name = document.createElement("span"), k = key(td);
+      name.className = "ct-name"; name.append(...td.childNodes);
+      const only = name.children.length === 1 && name.firstElementChild.matches("code") && name.firstElementChild;
+      const parts = only && only.children.length === 0 && only.textContent.trim() === k && k.match(/^(.+?):\s+(.+)$/);
+      if (parts) only.innerHTML = `<span class="ct-file">${esc(parts[1])}:</span> ${esc(parts[2])}`;
+      li.append(name);
+      const under = kids.get(k);
+      if (!under) return li;
+      if (done.has(k)) {
+        const again = document.createElement("span"); again.className = "ct-again"; again.dataset.ui = "";
+        again.textContent = "its calls are listed above"; li.append(again);
+        return li;
+      }
+      done.add(k);
+      const ul = document.createElement("ul"); under.forEach(b => ul.append(item(b))); li.append(ul);
+      return li;
+    };
+    const tree = document.createElement("ul"); tree.className = "calltree";
+    roots.forEach(k => tree.append(item(cell.get(k))));
+    // a caller no root reaches (a loop of calls) still shows
+    [...kids.keys()].filter(k => !done.has(k)).forEach(k => { if (!done.has(k)) tree.append(item(cell.get(k))); });
+    t.replaceWith(tree);
+    const fold = tree.closest("details"), sum = fold && fold.querySelector(":scope > summary");
+    if (sum && !sum.querySelector(".sum-note")) {
+      const note = document.createElement("span"); note.className = "sum-note"; note.dataset.ui = "";
+      note.textContent = `${rows.length} calls as a tree, with the helpers the picture leaves out`;
+      sum.append(note);
     }
   });
   // Tables scroll inside their own box; a first cell that is one name or path stays on one line.
