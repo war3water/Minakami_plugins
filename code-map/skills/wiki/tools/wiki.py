@@ -548,6 +548,20 @@ def mermaid_blocks(page: Page) -> list[dict]:
     return out
 
 
+KIND = re.compile(r"^\s*(flowchart|graph|sequenceDiagram|stateDiagram(?:-v2)?|erDiagram|classDiagram(?:-v2)?|timeline|gantt|"
+                  r"xychart(?:-beta)?|pie|block(?:-beta)?|packet(?:-beta)?|mindmap|sankey(?:-beta)?|quadrantChart|journey|"
+                  r"gitGraph|architecture(?:-beta)?|requirementDiagram|C4\w+|kanban)\b", re.M)
+KIND_NAMES = {"graph": "flowchart", "sequenceDiagram": "sequence", "stateDiagram": "state", "stateDiagram-v2": "state",
+              "erDiagram": "entities", "classDiagram": "class", "classDiagram-v2": "class", "xychart-beta": "chart",
+              "xychart": "chart", "pie": "chart", "block-beta": "block", "packet-beta": "packet", "sankey-beta": "sankey"}
+
+
+def diagram_kind(source: str) -> str:
+    """flowchart, sequence, state, entities, class, timeline, chart, ...: the first keyword of a Mermaid source."""
+    found = KIND.search("\n".join(l for l in source.split("\n") if not l.lstrip().startswith("%%")))
+    return KIND_NAMES.get(found.group(1), found.group(1)) if found else "other"
+
+
 FLOW_SKIP = ("%%", "subgraph", "direction", "class ", "classDef", "style", "linkStyle", "click", "flowchart", "graph", "end")
 FLOW_BOX = re.compile(r'(?<![\w"])([A-Za-z_][\w-]*)\s*[\[({]')
 MANY_BOXES = 6  # from here on a picture needs one box marked as the one to notice
@@ -565,7 +579,7 @@ def flow_boxes(source: str) -> set[str]:
 def picture_checks(page: Page, block: dict, warn) -> None:
     """What a flowchart says about itself, which wiki_browser.py render then draws (pages.md, Diagrams)."""
     source = block["source"]
-    if not re.search(r"^\s*(flowchart|graph)\b", source, re.M):
+    if diagram_kind(source) != "flowchart":
         return
     where = f"[{block['id']}]"
     if re.search(r"^\s*(style|classDef|linkStyle)\b", source, re.M):
@@ -574,11 +588,14 @@ def picture_checks(page: Page, block: dict, warn) -> None:
         return
     boxes = flow_boxes(source)
     key = re.search(r"^\s*%%\s*key:\s*([A-Za-z_][\w-]*)", source, re.M)
-    if key and key.group(1) not in boxes:
+    if key and key.group(1) == "none":
+        pass  # the page says that no box matters more than the others
+    elif key and key.group(1) not in boxes:
         warn(page, block["line"], f"{where} `%% key: {key.group(1)}` names no box of the diagram")
     elif not key and len(boxes) >= MANY_BOXES:
         warn(page, block["line"], f"{where} {len(boxes)} boxes and no `%% key:` line: the picture gives a reader no one thing "
-                                  "to notice. Name the box to leave remembering (pages.md, Diagrams)")
+                                  "to notice. Name the box to leave remembering, or write `%% key: none` when no box "
+                                  "matters more than the others (pages.md, Diagrams)")
     legend = re.search(r"^\s*%%\s*legend:(.*)$", source, re.M)
     if re.search(r'==>|==\s*"[^"]*"\s*==>', source) and not (legend and re.search(r"\bthick\s*=", legend.group(1))):
         warn(page, block["line"], f"{where} thick arrows that `%% legend: thick = …` does not name: say what the heavy route is")
@@ -932,7 +949,7 @@ def lint(repo: Path, wiki: Path, run: bool = False, in_place: bool = False, time
     warnings: list[dict] = []
     syms = Symbols(repo)
     report = {"repo": repo.name, "wiki": posix(wiki, repo) if wiki.exists() else str(wiki), "pages": len(pages),
-              "problems": problems, "warnings": warnings, "sources": {}, "diagrams": 0, "commands": [],
+              "problems": problems, "warnings": warnings, "sources": {}, "diagrams": 0, "kinds": {}, "figures": 0, "commands": [],
               "coverage": {"run": 0, "skip": 0, "unmarked": 0}, "words": {}, "map": {}, "accepted": []}
     files = None
     vocab = None  # the sources page's short names, read on first use
@@ -1060,8 +1077,9 @@ def lint(repo: Path, wiki: Path, run: bool = False, in_place: bool = False, time
                           "a first call for a library, and its answer (pages.md, An API page)")
         # a long pipeline is grouped into phases, so the reader sees its shape before its steps
         for start, header, rows in table_rows(page):
+            flows = [b["source"] for b in mermaid_blocks(page) if "%% calls" not in b["source"]]
             if header and header[0] == "#" and "step" in header and len(rows) > 6 and not any(
-                    re.search(r"^\s*subgraph\b", b["source"], re.M) for b in mermaid_blocks(page) if "%% calls" not in b["source"]):
+                    diagram_kind(src) != "flowchart" or re.search(r"^\s*subgraph\b", src, re.M) for src in flows):
                 warn(page, start, f"{len(rows)} steps and no phases: group the boxes of the pipeline diagram into a few named "
                                   "phases (pages.md, Diagrams, Phases)")
         # step tables: the pipeline diagram's arrows carry what passes between steps
@@ -1072,6 +1090,8 @@ def lint(repo: Path, wiki: Path, run: bool = False, in_place: bool = False, time
         # diagrams
         for block in mermaid_blocks(page):
             report["diagrams"] += 1
+            kind = diagram_kind(block["source"])
+            report["kinds"][kind] = report["kinds"].get(kind, 0) + 1
             if not block["id"]:
                 bad(page, block["line"], "mermaid block without a first line '%% id: <name>'")
                 continue
@@ -1140,6 +1160,20 @@ def lint(repo: Path, wiki: Path, run: bool = False, in_place: bool = False, time
             if files is None:
                 files = code_files(repo)
             call_table_checks(repo, page, syms, files, bad, warn)
+
+    # figures: drawings kept as SVG files, which render gives the look of the diagrams
+    shown = "\n".join(p.text for p in pages)
+    for fig in sorted((wiki / "figures").glob("*.svg")) if (wiki / "figures").exists() else []:
+        report["figures"] += 1
+        text, label = read(fig), f"figures/{fig.name}"
+        own = re.sub(r'<style id="wiki-look">.*?</style>|<defs id="wiki-marks">.*?</defs>|<rect id="wiki-ground"[^>]*>', "", text, flags=re.S)
+        if 'id="wiki-look"' not in text:
+            problems.append({"page": label, "line": 0, "msg": "not rendered (run wiki_browser.py render)"})
+        if re.search(r"(?:fill|stroke)\s*[:=]\s*[\"']?\s*(?:#[0-9a-fA-F]{3,8}|rgb)", own):
+            warnings.append({"page": label, "line": 0, "msg": "writes colours by hand: give each shape a class (part, key, "
+                             "line, dim, axis, quiet) and let render colour it (pages.md, Figures)"})
+        if f"figures/{fig.name}" not in shown:
+            warnings.append({"page": label, "line": 0, "msg": "no page shows this figure; delete it or show it"})
 
     # diagrams nobody uses any more
     if (wiki / "diagrams").exists():
@@ -1376,6 +1410,23 @@ def label_code(label: str) -> tuple[str, list[str]] | None:
     return m.group("path"), names
 
 
+KIN_CODE = re.compile(r'(?:^|<br\s*/?>|\bas\s+|:\s*)"?\s*([\w.\-/]+\.[A-Za-z0-9]+):\s*'
+                      r'([A-Za-z_][\w.]*(?:\s*(?:,|\band\b)\s*[A-Za-z_][\w.]*)*)\s*"?\s*(?=$|<br)', re.I)
+
+
+def kin_code_refs(source: str) -> list[tuple[str, list[str]]]:
+    """[(path, [names])] for each `path: function` a picture that is no flowchart names: under a participant of a
+    sequence diagram, in a state's description, in a note."""
+    out = []
+    for line in source.split("\n"):
+        if line.lstrip().startswith("%%"):
+            continue
+        for m in KIN_CODE.finditer(line.strip()):
+            if Path(m.group(1)).suffix.lower() in CODE_EXT:
+                out.append((m.group(1), [n.strip() for n in re.split(r"\s*(?:,|\band\b)\s*", m.group(2)) if n.strip()]))
+    return out
+
+
 def map_checks(repo: Path, page: Page, syms: Symbols, files: list[str], bad, warn) -> None:
     """Boxes written `path: function` must name code that exists, on any diagram. On a call map (a diagram with a
     `%% calls` line), each solid arrow between two such boxes says the first calls the second, so the callee's name
@@ -1386,8 +1437,10 @@ def map_checks(repo: Path, page: Page, syms: Symbols, files: list[str], bad, war
         where = f"diagram '{block['id'] or '?'}'"
         found: dict[str, list[tuple[str, dict]]] = {}
         unlisted = []
-        for node, label in labels.items():
-            ref = label_code(label)
+        refs = [(node, label_code(label)) for node, label in labels.items()]
+        if diagram_kind(block["source"]) != "flowchart":
+            refs = [(f"#{n}", ref) for n, ref in enumerate(kin_code_refs(block["source"]))]
+        for node, ref in refs:
             if not ref:
                 continue
             rel, note = resolve_code_path(ref[0], files)
@@ -2176,7 +2229,11 @@ def print_lint(report: dict) -> None:
 
 def summary(report: dict) -> str:
     ran = [c for c in report["commands"] if c["status"] in ("ok", "failed", "unavailable")]
-    parts = [f"{report['pages']} pages", f"{len(report['sources'])} sources", f"{report['diagrams']} diagrams"]
+    kinds = sorted((report.get("kinds") or {}).items(), key=lambda kv: (-kv[1], kv[0]))
+    drawn = f"{report['diagrams']} diagrams" + (" (" + ", ".join(f"{n} {k}" for k, n in kinds) + ")" if kinds else "")
+    if report.get("figures"):
+        drawn += f", {report['figures']} figures"
+    parts = [f"{report['pages']} pages", f"{len(report['sources'])} sources", drawn]
     if ran:
         na = sum(c["status"] == "unavailable" for c in ran)
         checked = sum(c.get("detail") == "output checked" for c in ran)
@@ -2479,7 +2536,7 @@ def editor_template(name: str) -> str:
     return name
 
 
-IMAGE_TYPES = {".png": "image/png", ".jpg": "image/jpeg", ".jpeg": "image/jpeg", ".gif": "image/gif", ".webp": "image/webp"}
+IMAGE_TYPES = {".svg": "image/svg+xml", ".png": "image/png", ".jpg": "image/jpeg", ".jpeg": "image/jpeg", ".gif": "image/gif", ".webp": "image/webp"}
 EMBED_LIMIT = 2_000_000  # bytes: an image up to this size travels inside the one-file viewer; larger ones are linked
 
 

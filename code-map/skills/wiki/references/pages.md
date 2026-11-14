@@ -32,7 +32,7 @@ The index opens with the route: the order to read the pages in, one line for eac
 
 1. **What it can do.** One capability card (§Capability cards) for each thing a user can ask of the project, grouped the way the project groups them. When the cards run past a screen or two, they move to their own page, `reference/capabilities.md`, titled "What {project} can do", and this section keeps the groups, one line each, linking it.
 2. **The parts.** A table `Part | What it does | Built on | Where it lives | How you reach it`. A part is what a newcomer would name: the command line, the API server, the web app, the database, the worker. "Built on" names the framework, library or method that does the part's work (FastAPI, PostgreSQL full-text search, an ISO standard), so a reader knows what to look up.
-3. **How they fit.** One diagram of the parts and what passes between them, such as an HTTP request, SQL, a file or a queue message.
+3. **How they fit.** One picture of the parts and what passes between them, such as an HTTP request, SQL, a file or a queue message, in the form this system has (§Pictures, tables and charts).
 4. **One request, end to end.** A typical use followed across the parts in a few numbered steps, each linking the how-it-works page that owns its detail.
 5. **The code to know first.** A table `Code | What it decides | Open it when`, under a lead sentence that links the main flow's how-it-works page. Each `Code` cell links the function's file. Rank the rows by how much of the result each function decides: first the functions that compute or decide the project's main result, then the function that runs the flow end to end, then the entry point. Application setup, registries and error plumbing are left out. Readers, agents most of all, name exactly the functions in this table and read it from the top, so each step of the main flow that decides part of the result has one of its functions here, and the table is not grown to hold the rest. When the lint lists a step with none, put its deciding function in place of a row that decides less, or keep the gap with its reason (§What the lint checks).
 6. **Where to go next.** Links by task: set it up, debug it, find the code behind a report (the map), change it.
@@ -64,9 +64,9 @@ Each core flow gets one page, `concepts/how-<flow>-works.md`, started from `temp
 
 1. **What goes in and what comes out**, and the method at the core, in one or two sentences. When other capabilities run through the same skeleton (the same entry point, the same checks, the same shape of result), say so here and name the steps they share, so the reader can carry this page over to them.
 2. **Think of it as …** An everyday picture of the flow that a newcomer already understands, such as a library catalogue for a search index, in two to four sentences. A table `In the picture | In the code | Where the picture stops fitting` ties each part of the picture to a step. A picture that fits only loosely misleads; leave the section out rather than force one.
-3. **The pipeline.** One diagram from the input to the output and one table under it, each fact in one of the two:
-   - The diagram carries the order, the branches and the data. Each box starts with its step number, says what the step does in a few words, and ends with its `file: function`; each arrow names what passes, with its type or shape. A flow with more steps than a reader holds at once is drawn in phases (§Diagrams, "Phases"), and the step that decides the example's result is marked. The viewer shows the diagram and the table as a track of steps, each with its function and its value; the diagram is what other Markdown viewers show.
-   - The table carries the rest: `# | Step | Method | Code | In the example`. Method is what the step applies (a named algorithm, a standard and its clause, a formula, a rule such as "retry with back-off"), linked to its source. Code links every function that does the step's work. The example column has the values from a captured run of one real input, so the reader follows numbers through the steps.
+3. **The steps.** One table, always, and one picture in the form this flow has (§Pictures, tables and charts), each fact in one of the two:
+   - The table: `# | Step | Method | Code | In the example`. Method is what the step applies (a named algorithm, a standard and its clause, a formula, a rule such as "retry with back-off"), linked to its source. Code links every function that does the step's work. The example column has the values from a captured run of one real input, so the reader follows numbers through the steps. The viewer shows the table as a track of steps, each with its function and its value.
+   - The picture carries what a table cannot. Steps that branch or loop are a flowchart: each box starts with its step number, says what the step does in a few words, and ends with its `file: function`; each arrow names what passes, with its type or shape; a flow with more steps than a reader holds at once is drawn in phases (§Diagrams, "Phases"), and the step that decides the example's result is marked. A flow whose parts wait on each other (a client, a server and a store; two processes) is a sequence diagram. A flow that is the life of one thing is a state diagram. A flow that reshapes data shows the example's value at each stage. A straight line of a few steps needs no picture: the table is one.
 4. **Who calls whom.** The call map (§Diagrams, "Call maps"): the functions from the flow's entry to the code that does the work, on the main path and where real logic lives, not every helper. Start it from `python <tools folder>/wiki.py callgraph <path>#<core function>` for Python, which reads the calls from the code. Under the map, a collapsed `<details>` block titled "Every call on this path" keeps the complete list as a table `Caller | Calls`, one row per call, each cell `file: function` (`callgraph … --table` prints it), so a reader asked for every call finds the helpers the map leaves out.
 5. **The rules that decide the result.** The formulas (§Formulas), thresholds and decision rules, each with the function it lives in. Where a design document derives them, link it instead of copying the derivation. When the example's result is built from parts and one part decides the verdict (one fee that makes up most of a price, one stage that takes most of a request's time), show the build-up as a table of the captured values and name that part in one sentence.
 6. **Why it is built this way**, only for decisions a reader would otherwise question or undo.
@@ -136,19 +136,35 @@ One or two sentences: what this page answers.
 
 ## Pictures, tables and charts
 
-Long runs of text are where readers give up. Read each section and ask what the reader has to build in their head to follow it. When it is one of these, show it next to the sentence that explains it:
+Long runs of text are where readers give up. Read each section and ask what the reader has to build in their head to follow it, and show that next to the sentence that explains it.
 
-| To follow the section, the reader must hold | Show it as |
+**The form follows the thing shown, not the page's outline.** The sections above say where a picture goes; this project decides what it is. A set of services that call each other, a tool that reshapes a file and a calculation do not get the same drawings. Before drawing, say in one sentence what the reader will see that the words did not give them, then take the form whose shape is the shape of that answer:
+
+| To follow the section, the reader must see | Show it as |
 |---|---|
 | steps in order, with branches or loops | a flowchart |
+| a conversation: parts that take turns, wait for an answer or work at once (a browser, a server and a database; a client and a device; two processes) | a sequence diagram: one column for each part, time running down |
+| the life of one thing: an order, a job, a connection, a document | a state diagram: its states, and what moves it from one to the next |
+| things that are stored and how they point at each other | an entity diagram (`erDiagram`): one box for each table or record, with the fields a reader meets and the links |
+| kinds of one thing and what each adds: writers, plug-ins, strategies | a class diagram, or a table when there is nothing but the list |
+| when things happen: waits and time-outs, a schedule, how long a cached value lives | a timeline |
+| what a value looks like before and after: a parsed document, a record on its way through | the real value at each stage, as short blocks in order, each under the step that made it |
+| where things live | a tree of the folders, with a few words on each line |
+| what a symbol, a field or an area is on the thing itself: a dimension on a part, the regions of a page or a screen, the bytes of a record | the project's own figure or a screenshot, else a figure (§Figures); `packet-beta` for bytes; a table of areas |
 | a choice: which rule applies, which path is taken, why a run fails | a decision flowchart, or a table `If \| Then \| Decided in` |
 | several things compared on the same properties: commands, features, settings, screens, endpoints | a table, one row per thing. A list of paragraphs that all say the same kinds of things is a table waiting to be drawn |
 | a number built from parts: a price from its fees, a request's time from its stages | its formula (§Formulas), a table of the parts with the example's values, and one sentence naming the part that decides the result |
 | a quantity across a range: a factor against speed, latency against load | a short table of values the code computed, or a chart when it passes the test below |
-| the states something goes through | a state diagram |
 | a screen or a window | a table of its areas, `Area \| What it shows \| What you do there`, or a screenshot of the running program |
 
-Words stay words where they read easily: one or two facts, a single condition, a reason, an idea the reader already knows. A picture never repeats the table beside it: give each its own facts, as the pipeline diagram and its step table do.
+The table is a start, not a fence. `render` draws every kind of Mermaid diagram in the wiki's look, and a form not listed is the right one when it is how someone who knows this project would draw it on a whiteboard. Hold each picture to two checks:
+
+- **Cover the words.** If the shape that is left would fit any project (boxes in a row, a fan of arrows from one box), the picture shows nothing this project has. Find what is particular here (the loop, the two things that happen at once, the one store everything reads, the step where the shape of the data changes) and draw that, in the form that shows it, or leave the picture out.
+- **Look at it.** `render` writes a PNG of every picture it draws and says where. Open each one you drew or changed: the reader sees the drawing, not its source, and words on top of each other, one box crowding out the rest or a picture that is mostly empty show only there.
+
+When every picture of a wiki has the same form, they were probably drawn from the outline: the lint counts the pictures by kind, so read that line.
+
+Words stay words where they read easily: one or two facts, a single condition, a reason, an idea the reader already knows. A picture never repeats the table beside it: give each its own facts, as a flow's picture and its step table do.
 
 Charts are rare. A chart earns its place only when its point is a shape that neither a short table nor one sentence gives: many values with a bend, a crossover, a peak or an outlier. A rule one sentence states (each wait doubles, up to 30 s), a handful of numbers, or which of a few factors is largest stays a sentence or a table. A chart that passes is a Mermaid `xychart-beta` or `pie` block (`xychart-beta horizontal` when the bar labels are longer than a word). Its numbers are evidence: take them from a captured run, or compute them with the project's own functions in a `check:run` block whose `check:output` shows the values, and say under the chart where they come from. A chart is never drawn from numbers typed by hand, and no table repeats it.
 
@@ -170,13 +186,33 @@ flowchart TB
 </details>
 ````
 
-- **Draw what a reader needs to see, in words.** A box names a part ("API server") or a step ("wait, then retry"); an edge says what passes or when ("HTTP JSON", "on a 429"). Worth drawing: the parts and what flows between them (the overview), a flow's pipeline and its call map (its how-it-works page), the steps of a decision or a loop, the states something goes through. Each function-level map is drawn once; other pages link to it.
-- **Syntax that parses.** Every node label and edge label in double quotes, with no `;`, `<`, `>` or `#` apart from `<br/>` between the lines of a box. No node id named `end`. In a chart, the title and axis names are quoted (`title "…"`, `x-axis "…" ["a", "b"]`); a `pie` title is not, and each slice is `"label" : value`.
+- **Draw what a reader needs to see, in words.** A box names a part ("API server") or a step ("wait, then retry"); an edge says what passes or when ("HTTP JSON", "on a 429"). Worth drawing: the parts and what flows between them (the overview), a flow's steps and its call map (its how-it-works page), the steps of a decision or a loop, who waits for whom, the states something goes through. Each function-level map is drawn once; other pages link to it.
+- **Syntax that parses.** In a flowchart, every node label and edge label in double quotes, with no `;`, `<`, `>` or `#` apart from `<br/>` between the lines of a box. No node id named `end`. In a chart, the title and axis names are quoted (`title "…"`, `x-axis "…" ["a", "b"]`); a `pie` title is not, and each slice is `"label" : value`.
 - **A box that names code ends with `file: function`** on its last line, as in `"3 Price the order<br/>pricing.py: price_order"`. The path may be shortened to any tail that names one file, and `a.py: f and g` names two functions.
 - **Call maps.** A diagram whose second line is `%% calls` is a call map: each box is `file: function`, and each solid arrow says the first function calls the second. An indirect call (a registry lookup, a callback, a call into another process, a method reached through an object whose type the reader must know) is drawn dotted, `-.->`, with how it is reached on the arrow.
 - **Phases.** Group the steps of a longer flow into a few named phases, each a `subgraph` whose title says what the phase achieves ("Read the input", "Score the candidates"). Draw the input and the output as rounded boxes, `IN(["…"])`, so the start and the end stand out. Join phase to phase, not box to box (`P1 -->|"what passes"| P2`), and give each phase `direction LR`: Mermaid then sets the steps of a phase side by side and stacks the phases, which fits a Markdown column. When one step decides the example's result, it is the picture's `%% key:`.
+
+  ````text
+  ```mermaid
+  %% id: how-export-works
+  %% key: S3
+  %% legend: key = the totals are made here
+  flowchart TB
+      IN(["a report file"]) --> P1
+      subgraph P1["Read the input"]
+        direction LR
+        S1["1 Parse the file<br/>load.py: read_report"] -->|"rows: list of dict"| S2["2 Drop empty rows<br/>load.py: clean"]
+      end
+      subgraph P2["Work out the result"]
+        direction LR
+        S3["3 Group and sum<br/>export.py: group_rows"]
+      end
+      P1 -->|"rows"| P2
+      P2 --> OUT(["a CSV file"])
+  ```
+  ````
 - **Say what the picture means; `render` draws it.** Every flowchart comes out in one look: groups as tinted bands, the box to notice filled, the way to it coloured where the picture branches, a title line and a code line in each box, a legend. The source gives the meaning in plain Mermaid and never a colour, `style`, `classDef` or `linkStyle`:
-  - `%% key: <node id>`: the one box to leave remembering (test 3). A picture with more than a handful of boxes has one.
+  - `%% key: <node id>`: the one box to leave remembering (test 3). A picture with more than a handful of boxes has one. `%% key: none` says that no box matters more than the others; then ask whether the picture is a list drawn as boxes, which a table shows better.
   - `subgraph`: the groups of a picture of many parts, each named for what its members share (the layers of a system, the phases of a flow). Where Mermaid would spread the groups apart because arrows cross them, `render` draws the picture without the bands and shows each group by colour.
   - `-.->`: something that comes back or is reached indirectly (a result, a reply, a lookup). `==>`: only where one route is the point of the picture, such as the way a request goes in.
   - `class <ids> stop` and `class <ids> ok`: the ends of a decision that refuse or fail, and the ends that succeed.
@@ -184,7 +220,32 @@ flowchart TB
   - A box whose text has a `<br/>` starts with its title: the part or step in a few words, then what it is made of or its `file: function`.
   Because the look is not in the source, a change in the code is a change to a line of text, and the picture is drawn again.
 - **Fit a Markdown column.** GitHub and VS Code show a diagram no wider than their text column, about 860 px, and shrink a wider one with its labels; `render` names each diagram whose labels end up too small to read. A chain reads top to bottom (`flowchart TB`). Break a long label over lines with `<br/>`. A question is `ID{"…?"}` with yes and no arrows; `render` draws it as a flat six-sided box, since Mermaid's diamond grows both ways with its text. Split a diagram that is still too wide. Call maps are the exception: draw each in the direction that is narrower; the viewer zooms it, and GitHub opens it full size on a click.
-- **Render after every edit**: `wiki_browser.py render` fails on a diagram that does not parse, and writes each SVG at its natural size on a white ground with a hash of its source. A diagram changes in the same change as the code it shows.
+- **Other kinds than a flowchart** keep Mermaid's own drawing in the wiki's colours, and need less from the source:
+  - Labels are written without quotes there: a message, a note, a state, a title.
+  - A part that is code names it on its second line, `participant A as API server<br/>api/orders.py: create_order`; the lint checks it like a flowchart's box.
+  - A `Note` is the one thing to notice, drawn in the colour of a flowchart's marked box. A picture full of notes marks nothing.
+  - A sequence diagram follows one real request or run, in the words of its messages (`POST /orders`, `order id 4182`), not every path the code can take; `alt` and `loop` hold the branch that matters. A state diagram runs top to bottom.
+- **Render after every edit**: `wiki_browser.py render` fails on a diagram that does not parse, and writes each SVG at its natural size on a white ground with a hash of its source, and a PNG of it to look at. A diagram changes in the same change as the code it shows.
+
+## Figures
+
+Some things are neither steps nor boxes: where the symbols of a formula sit on the part, the areas of a page a parser reads, how a screen is laid out. Show the project's own picture first: a figure in its documents, a plot or drawing the program itself writes, a screenshot of it running. Link it where it lives.
+
+When there is none, draw a figure: an SVG file in `figures/` beside `diagrams/`, shown as a diagram's image is, `![The areas of a label](../figures/label-areas.svg)`.
+
+- **It shows the thing, not the code**, so it stays true when the code is refactored. Every label is a name the page uses: a symbol of the formula beside it, a field, an area, each placed as the code or its documents define it. What you know of the subject but this project does not say is not drawn (rule 1: every claim is traceable).
+- **A few plain shapes**, with "not to scale" under it when it is not. The file starts `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 <width> <height>">`, no wider than a Markdown column, and holds only shapes and text.
+- **Shapes carry a class and never a colour**; `render` writes the look into the file, so every figure is drawn like the diagrams:
+
+  | Class | For |
+  |---|---|
+  | `part`, `part2`, `part3` | the things shown, one class for each kind |
+  | `key` | the one thing to notice: on a shape, a line or a text |
+  | `line`, `arrow`, `dim` | an outline; a pointer; a dimension line, tipped at both ends |
+  | `axis`, `ghost` | a centre line; what is hidden, left out or ignored |
+  | `sym`, `quiet`, `title` | on text: a formula's symbol; a remark; a heading |
+
+- `render` fails on a figure that is not well-formed, and the lint warns about one no page shows. Look at its PNG as you would a diagram's.
 
 ## Formulas
 
@@ -270,8 +331,9 @@ This is the page developers need most. Start from `templates/run-and-debug.md.tm
 | with `--strict`: a command block neither run nor skipped with a reason | code files that are on no page and under no row of the map, by folder; a folder row of the map that links no code to open first; a run-and-debug page with no `Part \| Start it under a debugger` table |
 | | a table or diagram that repeats another; a `$$` formula; a template placeholder left in |
 | | a flowchart of many boxes with no `%% key:`, a key that names no box, colours written by hand, thick arrows the legend does not name; a formula of several lines without `\tag` numbers |
+| a figure not given its look by `render` | a figure with colours written by hand; a figure no page shows |
 
-It also reports the words a reader has to read and the longest pages, so growth is visible; there is no limit, and a page is as long as its facts need.
+It also reports the pictures by kind, the words a reader has to read and the longest pages, so growth is visible; there is no limit, and a page is as long as its facts need.
 
 **A warning that stays.** Fix a warning, or keep it with its reason on the page it is about, where the next maintainer reads it:
 

@@ -33,13 +33,15 @@ In a temporary copy of the repository, run the commands you will document that n
 
 - the README as the front page, following `readme.md`;
 - `concepts/overview.md`, following `pages.md` §The overview page: every part of the system, not only the primary path, and a card for every capability (§Capability cards), not only the one the wiki works through;
-- a how-it-works page for each core flow, starting with the primary path, following `pages.md` §How-it-works pages: the picture, the pipeline, the call map and the rules that decide the result;
+- a how-it-works page for each core flow, starting with the primary path, following `pages.md` §How-it-works pages: the everyday picture, the steps, the call map and the rules that decide the result;
 - `howto/run-and-debug.md`, following `pages.md` §Run and debug, pointing into the call maps instead of drawing them again;
 - `reference/map.md`, following `pages.md` §The map of the code: one row for every module, so the code the pages above do not explain still has a way in. Every wiki has one; on a small project it is a short page;
 - `reference/sources.md` when the code follows any external source, following `pages.md` §Sources page, with every mention on the other pages and in the README linked to it or to the repository's own chapter;
 - reference pages for what readers will look up while working: each subsystem the primary path passes through, the public API, the command-line flags, the configuration, the data formats, as far as the code has them;
 - how-to pages for the changes the code invites: an extension point, a registry or a plugin interface suggests "Add a …";
 - a tutorial only when one guided walk through the code would help a newcomer more than the pages above.
+
+**The pictures.** For the overview and for each core flow, decide what a newcomer cannot picture from words, and the form that shows it (`pages.md` §Pictures, tables and charts). The outline says where a picture goes; the project decides what it is. Look first for what the project can show of itself: a real input beside its output, a screen, a figure in its documents, a plot the program writes.
 
 Before writing, decide where each fact lives (`pages.md`, "One home per fact, said once"). The README already holds the project's own tables and steps. Where a page would repeat one in full, either link to the README or propose moving the full table to the page and leaving the README the part a newcomer needs to start. Do the same for README sections a page will cover in full, such as a long debugging, configuration or architecture section: propose the short replacement (what a newcomer needs, and a link), so the reader is not given the same fact twice in different words.
 
@@ -50,7 +52,7 @@ Everything else the code would support is listed at the end of `index.md`, under
 Present, in this order:
 
 1. One line: the stack and the files that show it.
-2. A table of what will be written: `# | File | New or changed | Purpose`. It covers the wiki pages, `SCHEMA.md`, `index.md`, `log.md`, the copied tools, and the README.
+2. A table of what will be written: `# | File | New or changed | Purpose`. It covers the wiki pages, `SCHEMA.md`, `index.md`, `log.md`, the copied tools, and the README. Under it, the pictures the pages will carry, `Page | What it shows | Form`, so the user can ask for another.
 3. The exact README text to add or replace (see `readme.md`), the README content you will keep unchanged, and each proposed trim with the section's words before and after, so the user sees what a reader is spared.
 4. The rules block from `templates/rules-block.md.tmpl`, with the file it goes in. Put it in `AGENTS.md`, which Codex reads and Claude Code reads when the repository has no `CLAUDE.md`. When a `CLAUDE.md` exists and does not import `AGENTS.md`, also propose a one-line `@AGENTS.md` import in `CLAUDE.md`. When neither file exists, propose creating `AGENTS.md` with only this block.
 5. The command blocks that will carry `<!-- check:run -->`, with exactly what each runs and what it installs and where. They run in a temporary clean checkout, so the user's working tree is not touched.
@@ -80,7 +82,7 @@ Replace every `{{…}}` placeholder; lint warns about any that are left.
 
 Run each check from the repository root and fix what it finds before the next one:
 
-1. `python <skill folder>/tools/wiki_browser.py render`. A diagram that does not parse, or that it names as too wide, is fixed in the page (`pages.md` §Diagrams), never dropped. Exit code 3 means there is no browser or no Mermaid file: keep the Mermaid source in the page, and say so in the report.
+1. `python <skill folder>/tools/wiki_browser.py render`. A diagram that does not parse, or that it names as too wide, is fixed in the page (`pages.md` §Diagrams), never dropped. It writes a PNG of each picture and says where: open every one, as the reader will see it, and fix what you see there (`pages.md` §Pictures, tables and charts, the two checks). Exit code 3 means there is no browser or no Mermaid file: keep the Mermaid source in the page, and say so in the report.
 2. `python <skill folder>/tools/wiki.py lint`. Fix every problem, and read every warning: fix it, or keep it with its reason on the page (`pages.md` §What the lint checks, "A warning that stays"). Its last line counts the code files on pages, under map rows and on none. A map row that stands for many files hides them: give the files in it that hold logic their own rows.
 3. `python <skill folder>/tools/wiki.py lint --run --strict --clean-env --capture <a temporary folder outside the repository>`. This is the proof that a reader can follow the pages without changing anything:
    - The approved command blocks run, README first, in one temporary clean checkout, with only system environment variables. A step that relies on something the page does not state, such as a variable set on your machine, an installed tool, or a file outside git, fails here.

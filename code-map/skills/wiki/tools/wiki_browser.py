@@ -285,9 +285,90 @@ def ungrouped(lines: list[str]) -> tuple[str, dict[str, int], list[str]] | None:
     return ("\n".join(flat) + "\n", groups, names) if names else None
 
 
+# The kinds other than a flowchart keep Mermaid's own drawing, which suits each of them (lifelines, state boxes,
+# table-like entities), in the colours and type of the flowcharts, so a wiki's pictures read as one family whatever
+# their form. A note is the highlight in every kind, in the colour of a flowchart's marked box.
+KIN = {"ink": "#0f172a", "muted": "#475569", "line": "#64748b", "faint": "#94a3b8", "soft": "#f1f5f9", "box": "#ffffff",
+       "tint": "#eef0fe", "edge": "#4f46e5", "tint2": "#e6f3fb", "edge2": "#0369a1", "note": "#fff4e6", "key": "#ea580c",
+       "noteInk": "#7c2d12"}
+KIN_SCALE = [("#eef0fe", "#4f46e5"), ("#e6f3fb", "#0369a1"), ("#fdf5e4", "#b45309"), ("#e8f7ef", "#047857"),
+             ("#fcecf2", "#be185d"), ("#e5f5f5", "#0f766e")]
+KIN_VARIABLES = {
+    "fontSize": "15px", "background": "#ffffff", "textColor": KIN["ink"], "titleColor": KIN["ink"],
+    "primaryColor": KIN["tint"], "primaryBorderColor": KIN["edge"], "primaryTextColor": KIN["ink"],
+    "secondaryColor": KIN["tint2"], "secondaryBorderColor": KIN["edge2"], "secondaryTextColor": KIN["ink"],
+    "tertiaryColor": KIN["soft"], "tertiaryBorderColor": KIN["faint"], "tertiaryTextColor": KIN["ink"],
+    "lineColor": KIN["line"], "mainBkg": KIN["tint"], "nodeBorder": KIN["edge"], "edgeLabelBackground": "#ffffff",
+    "noteBkgColor": KIN["note"], "noteBorderColor": KIN["key"], "noteTextColor": KIN["noteInk"],
+    # sequence
+    "actorBkg": KIN["tint"], "actorBorder": KIN["edge"], "actorTextColor": KIN["ink"], "actorLineColor": KIN["faint"],
+    "signalColor": KIN["muted"], "signalTextColor": KIN["ink"], "labelBoxBkgColor": KIN["soft"],
+    "labelBoxBorderColor": KIN["faint"], "labelTextColor": KIN["muted"], "loopTextColor": KIN["muted"],
+    "activationBkgColor": KIN["tint2"], "activationBorderColor": KIN["edge2"], "sequenceNumberColor": "#ffffff",
+    # state
+    "stateBkg": KIN["tint"], "stateLabelColor": KIN["ink"], "compositeBackground": "#ffffff",
+    "compositeTitleBackground": KIN["soft"], "compositeBorder": KIN["faint"], "transitionColor": KIN["line"],
+    "transitionLabelColor": KIN["muted"], "specialStateColor": KIN["ink"], "innerEndBackground": "#ffffff",
+    "altBackground": KIN["soft"],
+    # entities and classes
+    "attributeBackgroundColorOdd": "#ffffff", "attributeBackgroundColorEven": "#f8fafc", "classText": KIN["ink"],
+    # charts and the rest
+    "xyChart": {"plotColorPalette": ", ".join(CHART_COLORS), "titleColor": KIN["ink"], "xAxisLabelColor": KIN["muted"],
+                "yAxisLabelColor": KIN["muted"], "xAxisTitleColor": KIN["muted"], "yAxisTitleColor": KIN["muted"],
+                "xAxisLineColor": KIN["faint"], "yAxisLineColor": KIN["faint"], "xAxisTickColor": KIN["faint"],
+                "yAxisTickColor": KIN["faint"]},
+    "packet": {"blockFillColor": KIN["tint"], "blockStrokeColor": KIN["edge"], "blockStrokeWidth": "1.5",
+               "labelColor": KIN["ink"], "startByteColor": KIN["muted"], "endByteColor": KIN["muted"],
+               "titleColor": KIN["muted"]},
+    **{f"pie{i + 1}": c for i, c in enumerate(CHART_COLORS)},
+    **{f"cScale{i}": tint for i, (tint, _) in enumerate(KIN_SCALE)},
+    **{f"cScaleLabel{i}": KIN["ink"] for i in range(len(KIN_SCALE))},
+    **{f"cScaleInv{i}": edge for i, (_, edge) in enumerate(KIN_SCALE)},
+}
+KIN_CONFIG = {
+    "theme": "base", "themeVariables": KIN_VARIABLES,
+    # the words on a line sit on white, as a flowchart's do, not on a tinted patch
+    "themeCSS": ".edgeLabel rect, .edgeLabel .label rect, .labelBkg, .er.relationshipLabelBox { fill: #ffffff; opacity: .92; } "
+                ".edgeLabel text, .edgeLabel tspan, .messageText { font-size: 13.5px; } "
+                ".packetBlock { fill: #eef0fe; stroke: #4f46e5; stroke-width: 1.5px; }",
+    # one row of participants, and words that wrap inside the space they have, so a note is never cut off
+    "sequence": {"mirrorActors": False, "wrap": True, "messageMargin": 34, "noteMargin": 12, "boxMargin": 8,
+                 "actorMargin": 36, "width": 170, "messageFontSize": 14, "noteFontSize": 14, "actorFontSize": 15,
+                 "actorFontWeight": 600},
+    "state": {"nodeSpacing": 40, "rankSpacing": 44}, "class": {"nodeSpacing": 40, "rankSpacing": 50},
+    "er": {"layoutDirection": "TB", "minEntityWidth": 120, "entityPadding": 12},
+    "timeline": {"disableMulticolor": False}, "packet": {"bitsPerRow": 32, "rowHeight": 34, "paddingY": 14},
+}
+# Where these kinds print a label's quotes as written (a flowchart needs them, so a page tends to write them everywhere).
+QUOTED_TAIL = re.compile(r'^(.*?:\s*)"([^"]*)"\s*$')
+QUOTED_WORD = {
+    "sequence": re.compile(r'^(\s*(?:(?:participant|actor)\s+\S+\s+as|loop|alt|else|opt|par|and|critical|option|break)\s+)"([^"]*)"\s*$'),
+    "timeline": re.compile(r'^(\s*(?:title|section)\s+)"([^"]*)"\s*$'),
+    "gantt": re.compile(r'^(\s*(?:title|section)\s+)"([^"]*)"\s*$'),
+    "journey": re.compile(r'^(\s*(?:title|section)\s+)"([^"]*)"\s*$'),
+    "packet": re.compile(r'^(\s*title\s+)"([^"]*)"\s*$'),
+}
+
+
+def kin_source(source: str, kind: str) -> str:
+    """The source of a picture that is no flowchart, as it is laid out: in the family's colours, its labels unquoted."""
+    lines = []
+    for line in source.split("\n"):
+        if not line.lstrip().startswith("%%"):
+            if kind in ("sequence", "state", "class"):
+                line = QUOTED_TAIL.sub(r"\1\2", line)
+            if kind in QUOTED_WORD:
+                line = QUOTED_WORD[kind].sub(r"\1\2", line)
+        lines.append(line)
+    return "%%{init: " + json.dumps(KIN_CONFIG) + "}%%\n" + "\n".join(lines)
+
+
 def diagram_look(source: str) -> tuple[str, dict | None]:
     """(the source to lay out, what to tell diagram_style.js), or (the source, None) for a picture drawn as it is."""
-    if not re.search(r"^\s*(flowchart|graph)\b", source, re.M) or re.search(r"^\s*(style|classDef|linkStyle)\b", source, re.M):
+    kind = wiki.diagram_kind(source)
+    if kind != "flowchart":
+        return (kin_source(source, kind) if kind != "other" else source), None
+    if re.search(r"^\s*(style|classDef|linkStyle)\b", source, re.M):
         return source, None
     key = re.search(r"^\s*%%\s*key:\s*([A-Za-z_][\w-]*)", source, re.M)
     # a question is drawn as a flat six-sided box: Mermaid's diamond grows with its text until it fills the picture
@@ -324,9 +405,134 @@ def diagram_look(source: str) -> tuple[str, dict | None]:
     return "\n".join(lines) + "\n", look
 
 
+# A figure is a drawing kept as its own SVG file in <wiki>/figures: what the symbols of a formula mean on the part
+# itself, the areas of a page or a screen. Its shapes carry classes and no colours; render writes the look into the
+# file, as it does for a diagram, so every figure of every wiki is drawn alike and a page never spells a colour.
+FIGURE_LOOK = (
+    '<style id="wiki-look">'
+    'text{font-family:' + FONT + ';font-size:14px;fill:#0f172a}'
+    '.part{fill:#eef0fe;stroke:#4f46e5;stroke-width:1.5}'
+    '.part2{fill:#e6f3fb;stroke:#0369a1;stroke-width:1.5}'
+    '.part3{fill:#e8f7ef;stroke:#047857;stroke-width:1.5}'
+    '.key{fill:#fff4e6;stroke:#ea580c;stroke-width:2.5}'
+    'text.key,tspan.key{fill:#c2410c;stroke:none;font-weight:700}'
+    '.line{fill:none;stroke:#64748b;stroke-width:1.5}'
+    '.arrow{fill:none;stroke:#475569;stroke-width:1.5;marker-end:url(#wiki-tip)}'
+    '.dim{fill:none;stroke:#475569;stroke-width:1;marker-start:url(#wiki-tip);marker-end:url(#wiki-tip)}'
+    '.key.line,.key.arrow,.key.dim{fill:none;stroke:#ea580c}'
+    '.key.arrow{marker-end:url(#wiki-tip-key)}'
+    '.key.dim{marker-start:url(#wiki-tip-key);marker-end:url(#wiki-tip-key)}'
+    '.axis{fill:none;stroke:#94a3b8;stroke-width:1;stroke-dasharray:12 3 2 3}'
+    '.ghost{fill:none;stroke:#94a3b8;stroke-width:1.25;stroke-dasharray:5 4}'
+    'text.sym,tspan.sym{font-family:"Cambria Math","STIX Two Math","Times New Roman",serif;font-style:italic;font-size:16px}'
+    'text.quiet,tspan.quiet{fill:#475569;font-size:12.5px}'
+    'text.title,tspan.title{font-weight:650;font-size:15px}'
+    '</style>'
+    '<defs id="wiki-marks">'
+    '<marker id="wiki-tip" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">'
+    '<path d="M0,0 L10,5 L0,10 Z" fill="#475569"/></marker>'
+    '<marker id="wiki-tip-key" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">'
+    '<path d="M0,0 L10,5 L0,10 Z" fill="#ea580c"/></marker>'
+    '</defs>')
+FIGURE_OWN = re.compile(r'<style id="wiki-look">.*?</style>|<defs id="wiki-marks">.*?</defs>|<rect id="wiki-ground"[^>]*>', re.S)
+FIGURE_UNSAFE = re.compile(r"""<script\b|<foreignObject\b|\son\w+\s*=|(?:href|src)\s*=\s*["'](?:https?:|//|data:)""", re.I)
+
+
+def dress_figure(text: str) -> tuple[str, float, str]:
+    """(the figure in the family's look at its natural size on a white ground, its width, what is wrong with it)."""
+    import xml.etree.ElementTree as ET
+    own = FIGURE_OWN.sub("", text)
+    try:
+        root = ET.fromstring(own)
+    except ET.ParseError as e:
+        return text, 0.0, f"not well-formed XML ({e})"
+    if not root.tag.endswith("svg"):
+        return text, 0.0, "its root element is not <svg>"
+    if FIGURE_UNSAFE.search(own):
+        return text, 0.0, "holds a script, a foreignObject, an event handler or a link out of the file"
+    head = SVG_HEAD.search(own)
+    box = VIEWBOX.search(head.group(0)) if head else None
+    if not box:
+        return text, 0.0, 'its <svg> has no viewBox="0 0 <width> <height>"'
+    x, y, w, h = (float(v) for v in box.groups())
+    tag = re.sub(r'\s(?:width|height)="[^"]*"', "", head.group(0)[:-1]).rstrip("/ ")
+    tag += f' width="{math.ceil(w)}" height="{math.ceil(h)}">'
+    ground = f'<rect id="wiki-ground" x="{x:g}" y="{y:g}" width="{w:g}" height="{h:g}" fill="#ffffff"/>'
+    return own[:head.start()] + tag + FIGURE_LOOK + ground + own[head.end():], w, ""
+
+
+def render_figures(repo: Path, wiki_dir: Path) -> tuple[int, list[str], list[tuple[str, str]]]:
+    """(figures that failed, the ones too wide, [(preview name, svg)]) after giving each figure the family's look."""
+    failed, wide, drawn = 0, [], []
+    for fig in sorted((wiki_dir / "figures").glob("*.svg")) if (wiki_dir / "figures").exists() else []:
+        text = fig.read_text(encoding="utf-8")
+        new, width, wrong = dress_figure(text)
+        label = wiki.posix(fig, repo)
+        if wrong:
+            failed += 1
+            print(f"FAIL {label}: {wrong}")
+            continue
+        if new != text:
+            fig.write_text(new, encoding="utf-8")
+        print(f"ok   {label}")
+        drawn.append((f"figure-{fig.stem}", new))
+        if width > LEGIBLE_PX:
+            wide.append(f"wide {label}: {width:.0f} px")
+    return failed, wide, drawn
+
+
+def write_previews(items: list[tuple[str, str]], out_dir: Path) -> bool:
+    """A PNG of each picture, so whoever drew it can look at it: a model reads Mermaid text, a reader sees the
+    drawing, and faults such as words on top of each other or one box filling the picture show only in the drawing.
+    The folder ignores itself in git. False when no browser could take the pictures."""
+    out_dir.mkdir(parents=True, exist_ok=True)
+    (out_dir / ".gitignore").write_text("*\n", encoding="utf-8")
+    for old in out_dir.glob("*.png"):
+        old.unlink()
+    shell = '<!doctype html><html><head><meta charset="utf-8"></head><body style="margin:8px;background:#ffffff">{}</body></html>'
+    try:
+        from playwright.sync_api import sync_playwright
+        with sync_playwright() as p:
+            browser, _ = launch(p)
+            try:
+                page = browser.new_page(viewport={"width": 1400, "height": 900})
+                for name, svg in items:
+                    page.set_content(shell.format(svg))
+                    page.locator("svg").first.screenshot(path=str(out_dir / f"{name}.png"))
+            finally:
+                browser.close()
+        return True
+    except ImportError:
+        pass
+    except Exception:  # a browser that does not start: try the installed one
+        pass
+    exe = browser_binary()
+    if not exe:
+        return False
+    with tempfile.TemporaryDirectory(prefix="wiki-preview-") as tmp:
+        for name, svg in items:
+            head = SVG_HEAD.search(svg)
+            size = re.search(r'width="(\d+)" height="(\d+)"', head.group(0)) if head else None
+            w, h = (int(size.group(1)) + 16, int(size.group(2)) + 16) if size else (1400, 900)
+            src = Path(tmp) / f"{name}.html"
+            src.write_text(shell.format(svg), encoding="utf-8")
+            try:
+                subprocess.run([exe, "--headless=new", "--disable-gpu", "--no-first-run", "--hide-scrollbars",
+                                f"--user-data-dir={Path(tmp) / 'profile'}", f"--window-size={w},{h}",
+                                f"--screenshot={out_dir / (name + '.png')}", src.as_uri()],
+                               capture_output=True, timeout=120)
+            except (OSError, subprocess.TimeoutExpired):
+                return False
+    return any(out_dir.glob("*.png"))
+
+
 def render(repo: Path, wiki_dir: Path, mermaid_arg: str | None, renderer: str) -> int:
     pages = wiki.collect_pages(repo, wiki_dir)
-    jobs, failed, seen = [], 0, {}
+    fig_failed, fig_wide, drawn = render_figures(repo, wiki_dir)
+    preview_dir = wiki_dir / "diagrams" / ".preview"
+    look = (f"A picture of each one is in {wiki.posix(preview_dir, repo)}/ (<id>.png, figure-<name>.png; not committed): "
+            "open the ones you drew or changed and look at them.")
+    jobs, failed, seen = [], fig_failed, {}
     for page in pages:
         for block in wiki.mermaid_blocks(page):
             if not block["id"]:
@@ -339,7 +545,11 @@ def render(repo: Path, wiki_dir: Path, mermaid_arg: str | None, renderer: str) -
                 seen[block["id"]] = page.label
                 jobs.append((page, block))
     if not jobs:
-        print(f"no mermaid blocks; {failed} failed")
+        if drawn and write_previews(drawn, preview_dir):
+            print(look)
+        for line in fig_wide:
+            print(line)
+        print(f"no mermaid blocks; {len(drawn)} figures; {failed} failed")
         return 1 if failed else 0
     keep = "Until then the Mermaid source stays readable in each page, and GitHub renders it."
     try:
@@ -369,12 +579,13 @@ def render(repo: Path, wiki_dir: Path, mermaid_arg: str | None, renderer: str) -
         return NO_BROWSER
     out_dir = wiki_dir / "diagrams"
     out_dir.mkdir(parents=True, exist_ok=True)
-    wide = []
+    wide = list(fig_wide)
     for (page, block), res in zip(jobs, results):
         if res.get("ok"):
             stamp = f'<!-- code-map-wiki diagram="{block["id"]}" source-sha256="{block["hash"]}" -->\n'
             svg, width = fit_svg(res["svg"])
             (out_dir / f"{block['id']}.svg").write_text(stamp + svg, encoding="utf-8")
+            drawn.append((block["id"], svg))
             print(f"ok   {page.label}:{block['line']} -> {wiki.posix(out_dir, repo)}/{block['id']}.svg")
             # a call map's boxes are long file: function names, so a path several calls deep is wider than a column
             # whichever way it runs; pages.md lets it be, drawn in its narrower direction
@@ -390,6 +601,8 @@ def render(repo: Path, wiki_dir: Path, mermaid_arg: str | None, renderer: str) -
         print(f"GitHub and VS Code shrink a diagram to their Markdown column, about {COLUMN_PX} px; one wider than about "
               f"{LEGIBLE_PX} px ends up with labels too small to read. Draw it top to bottom, break long labels, or split "
               "it (pages.md §Diagrams).")
+    if drawn and write_previews(drawn, preview_dir):
+        print(look)
     print(f"{len(jobs) - sum(1 for r in results if not r.get('ok'))} rendered, {failed} failed, {len(wide)} too wide "
           f"({label}, Mermaid {MERMAID_VERSION})")
     return 1 if failed else 0

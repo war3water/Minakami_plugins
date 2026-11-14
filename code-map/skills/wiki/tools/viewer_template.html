@@ -790,7 +790,9 @@ function build(p) {
     hint.textContent = "Choose a step for its method, code and values. The function under a step opens its code.";
     track.append(bands, panels, hint);
     const cap = fig && fig.previousElementSibling, para = cap && cap.classList.contains("zoom-hint") && cap.previousElementSibling;
-    if (para && para.classList.contains("fig")) {
+    // only the flowchart of these same steps repeats the track; any other picture stays on show above it
+    const sameSteps = /^\s*(flowchart|graph)\b/m.test(src) && (Object.keys(phaseOf).length > 0 || Object.keys(stepFns).length > 0);
+    if (sameSteps && para && para.classList.contains("fig")) {
       const fold = document.createElement("details"); fold.className = "flowfold";
       const sum = document.createElement("summary"); sum.textContent = "The same steps as a flowchart, with what passes between them";
       para.before(fold); fold.append(sum, para, cap, fig); fold.before(track);
