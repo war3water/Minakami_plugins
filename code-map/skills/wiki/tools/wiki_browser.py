@@ -46,7 +46,7 @@ STYLE_JS = Path(__file__).resolve().parent / "diagram_style.js"
 # What the theme variables of the other kinds (KIN_VARIABLES) cannot say. Mermaid sizes a note's box for words a
 # little smaller than it then draws, so the words are drawn smaller; the words on a line sit on white, not on a patch.
 KIN_CSS = (".noteText, .noteText > tspan { font-size: 14px !important; } "
-           ".statediagram .edgeLabel rect, .classDiagram .edgeLabel rect, .labelBkg, .er.relationshipLabelBox { fill: #ffffff; opacity: .92; } "
+           ".edgeLabel .label rect, .labelBkg, .er.relationshipLabelBox { fill: #ffffff; opacity: .92; } "
            ".packetBlock { fill: #eef0fe; stroke: #4f46e5; stroke-width: 1.5px; }")
 MERMAID_INIT = ('mermaid.initialize({startOnLoad: false, theme: "neutral", securityLevel: "strict", htmlLabels: false, '
                 'flowchart: {htmlLabels: false, nodeSpacing: 30, rankSpacing: 40}, '

@@ -1716,10 +1716,12 @@ def first_read_checks(pages: list[Page], warnings: list[dict]) -> None:
             flows = []
             for _, target in links("\n".join(lines[top:end])):
                 path = target.partition("#")[0]
-                if is_external(target) or not re.search(r"how-[\w-]+-works\.md$", path):
+                if is_external(target) or not path.endswith(".md"):
                     continue
+                # a how-it-works page is known by its step table, whatever its file is called
                 other = by_path.get((page.path.parent / path).resolve())
-                if other and other not in flows:
+                if other and other is not page and other not in flows and any(
+                        h and h[0] == "#" and "step" in h and "code" in h for _, h, _ in table_rows(other)):
                     flows.append(other)
             if not flows:
                 warnings.append({"page": page.label, "line": start, "msg": "the code-to-know-first section links no how-it-works "
@@ -1805,11 +1807,23 @@ def tracked_code(repo: Path, wiki: Path) -> list[str]:
             and not any(part in SKIP_DIRS for part in Path(f).parts) and not any(f.startswith(s) for s in skip)]
 
 
+def holds_nothing(path: Path) -> bool:
+    """A code file with nothing to lead a reader to: empty, or only comments and a docstring (a package marker)."""
+    try:
+        if path.stat().st_size > 4000:
+            return False
+        text = read(path)
+    except OSError:
+        return False
+    text = re.sub(r'^\s*("""|\'\'\')(.*?)\1', "", text, count=1, flags=re.S)
+    return not any(line.strip() and not line.strip().startswith(("#", "//")) for line in text.split("\n"))
+
+
 def coverage_checks(repo: Path, wiki: Path, pages: list[Page], warnings: list[dict]) -> dict:
     """How much of the code the wiki leads to. A code file counts when a page links it or names it in `sources:`, or
     when a row of the map (a table with an `Open first` column) names it, or a folder above it, in its first cell.
     The files left over are where a reader with a user's report finds no way in, so they are reported, by folder."""
-    code = tracked_code(repo, wiki)
+    code = [f for f in tracked_code(repo, wiki) if not holds_nothing(repo / f)]
     if not code:
         return {}
     root = repo.resolve()
