@@ -1804,6 +1804,10 @@ def tracked_code(repo: Path, wiki: Path) -> list[str]:
         skip.append(posix(HERE, repo) + "/")
     except ValueError:
         pass
+    # a copy of these tools (copy-tools writes tools.json beside wiki.py) is the wiki's, wherever it was put
+    listed = set(names)
+    skip += [f[:-len("wiki.py")] for f in names if f.endswith("/wiki.py") and f[:-len("wiki.py")] + "tools.json" in listed]
+    skip += [f.rpartition("/")[0] + "/" for f in names if f.endswith("/tools.json") and (repo / f).parent.joinpath("wiki_browser.py").exists()]
     return [f for f in names if Path(f).suffix.lower() in CODE_EXT - CONFIG_EXT and not f.endswith(".d.ts")
             and not any(part in SKIP_DIRS for part in Path(f).parts) and not any(f.startswith(s) for s in skip)]
 
