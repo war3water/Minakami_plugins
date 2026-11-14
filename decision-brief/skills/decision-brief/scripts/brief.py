@@ -67,6 +67,7 @@ import subprocess
 import sys
 import threading
 import time
+import xml.etree.ElementTree as ET
 from contextlib import contextmanager
 from datetime import datetime, timezone
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
@@ -75,6 +76,7 @@ from urllib.parse import parse_qs, unquote, urlsplit
 
 HERE = Path(__file__).resolve().parent
 TEMPLATE = HERE.parent / "assets" / "page.html"
+FONTS = HERE.parent / "assets" / "fonts"
 APP = "decision-brief"
 FORMAT = 2
 DEFAULT_PORT = 8377           # tried first; a busy port falls back to one the system picks
@@ -90,6 +92,16 @@ ABBR_RE = re.compile(r"(?<![\w-])[A-Z][A-Z0-9]*[A-Z0-9](?:[-/][A-Z0-9]+)*(?![\w-
                      r"|(?<![\w-])[A-Z][A-Z0-9]+(?:-[A-Za-z0-9]+)+(?![\w-])")  # also codes such as WF-flat, SW-cache
 IMAGE_TYPES = {".png": "image/png", ".jpg": "image/jpeg", ".jpeg": "image/jpeg", ".gif": "image/gif",
                ".webp": "image/webp", ".svg": "image/svg+xml", ".avif": "image/avif"}
+LIVE_TYPES = {".html": "text/html"}  # a live demo, which the page shows in a sealed frame
+FIGURE_TYPES = {**IMAGE_TYPES, **LIVE_TYPES}
+FENCE_RE = re.compile(r"^```[^\n]*\n.*?^```[ \t]*$", re.M | re.S)  # a text sketch, shown as it is typed
+STYLES = ("notebook", "ledger", "rose", "slate")
+# The notebook look's typefaces, IBM Plex (SIL Open Font License, assets/fonts/OFL.txt): the local page serves them, a
+# static file carries them, and an Artifact, whose page may load fonts from Google Fonts only, loads them from there.
+PLEX = [("IBM Plex Sans", "400 700", "plex-sans.woff2"), ("IBM Plex Sans Condensed", "600", "plex-sans-condensed-600.woff2"),
+        ("IBM Plex Mono", "400", "plex-mono-400.woff2"), ("IBM Plex Mono", "500", "plex-mono-500.woff2")]
+PLEX_CSS = ("https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500"
+            "&family=IBM+Plex+Sans+Condensed:wght@600&family=IBM+Plex+Sans:wght@400..700&display=swap")
 
 # Headless agents for "Ask now", each limited to reading the project. The prompt goes in on stdin, or through
 # the file named by {prompt_file}; codex writes its last message to {reply_file}.
@@ -244,7 +256,8 @@ def table_texts(where: str, t):
         for cell in (t.get("head") or []):
             yield where, cell
         for row in (t.get("rows") or []):
-            for cell in row:
+            cells = row.get("cells") if isinstance(row, dict) else row
+            for cell in cells if isinstance(cells, list) else []:
                 yield where, cell
 
 
@@ -276,8 +289,8 @@ def check(data, base: Path) -> tuple[list, list]:
         return ["the file must hold one JSON object"], []
     if not isinstance(data.get("title"), str) or not data["title"].strip():
         errors.append('"title" is missing')
-    if data.get("style") not in (None, "rose", "ledger", "slate"):
-        errors.append('"style" is "rose", "ledger" or "slate"')
+    if data.get("style") not in (None, *STYLES):
+        errors.append('"style" is "notebook", "ledger", "rose" or "slate"')
     if data.get("density") not in (None, "compact", "detailed"):
         errors.append('"density" is "compact" or "detailed"')
     for key in ("glossary", "questions", "progress"):
@@ -320,7 +333,6 @@ def check(data, base: Path) -> tuple[list, list]:
 
     seen_q, seen_p = set(), set()
     unsourced: list = []
-    no_example: list = []
     for p in data.get("progress") or []:
         pid = p.get("id")
         if not isinstance(pid, str) or not ID_RE.match(pid):
@@ -337,7 +349,8 @@ def check(data, base: Path) -> tuple[list, list]:
         for key in ("status", "round"):
             if p.get(key) is not None and not isinstance(p[key], str):
                 errors.append(f'progress report {pid}: "{key}" must be text')
-        figure_check(p.get("figures"), base, f"report {pid}", errors)
+        figure_check(p.get("figures"), base, f"report {pid}", errors, warnings)
+        table_check(p.get("table"), f"report {pid}", errors, warnings, set())
 
     for q in all_questions(data):
         qid = q.get("id")
@@ -372,7 +385,7 @@ def check(data, base: Path) -> tuple[list, list]:
             if isinstance(o, dict) and not o.get("label"):
                 errors.append(f"question {qid}: option {oid} needs a label")
             if isinstance(o, dict) and o.get("figure") is not None:
-                figure_check([o["figure"]], base, f"question {qid}, option {oid}", errors)
+                figure_check([o["figure"]], base, f"question {qid}, option {oid}", errors, warnings)
         recs = [o for o in opts if isinstance(o, dict) and o.get("recommended")]
         if len(recs) > 1:
             errors.append(f"question {qid}: more than one option is recommended; recommend one and say when "
@@ -382,16 +395,12 @@ def check(data, base: Path) -> tuple[list, list]:
                             "have no preference.")
         ex = q.get("example")
         if isinstance(ex, dict):
-            figure_check(ex.get("figures"), base, f"question {qid}", errors)
+            figure_check(ex.get("figures"), base, f"question {qid}", errors, warnings, oids)
+            table_check(ex.get("table"), f"question {qid}", errors, warnings, oids)
         if ex and q.get("state", "open") == "open" and not (isinstance(ex, dict) and ex.get("source")):
             unsourced.append(qid)
-        pictured = q.get("figures") or any(isinstance(o, dict) and o.get("figure") for o in opts)
-        if not ex and not pictured and q.get("state", "open") == "open":
-            no_example.append(qid)
-        figure_check(q.get("figures"), base, f"question {qid}", errors)
-    if no_example:
-        warnings.append("open questions without an example: " + ", ".join(no_example) + ". Give each a concrete case "
-                        "from the project in a sentence or two (its working goes in \"more\"), or a picture per option.")
+        figure_check(q.get("figures"), base, f"question {qid}", errors, warnings, oids)
+        table_check(q.get("table"), f"question {qid}", errors, warnings, oids)
     if unsourced:
         warnings.append("examples that do not say where they come from: " + ", ".join(unsourced) + '. Write the '
                         'example as an object with "text" and "source": the file, record or document it is taken '
@@ -399,7 +408,7 @@ def check(data, base: Path) -> tuple[list, list]:
 
     glossary_texts = [(f'glossary "{g.get("term")}"', g.get("meaning")) for g in data.get("glossary") or []]
     for where, text in [*glossary_texts, *texts(data)]:
-        for label, url in LINK_RE.findall(flat(text)):
+        for label, url in LINK_RE.findall(FENCE_RE.sub(" ", flat(text))):
             if url.startswith("#"):
                 if url[1:] not in anchors:
                     warnings.append(f"{where}: link [{label}]({url}) points to no card or glossary entry here")
@@ -408,7 +417,7 @@ def check(data, base: Path) -> tuple[list, list]:
 
     missing: dict = {}
     for where, text in texts(data):
-        plain_text = LINK_RE.sub(lambda m: m.group(1), flat(text))
+        plain_text = LINK_RE.sub(lambda m: m.group(1), FENCE_RE.sub(" ", flat(text)))  # a sketch is shown as typed
         plain_text = re.sub(r"`[^`\n]*`", " ", plain_text)  # file names and identifiers in code stay as they are
         for tok in ABBR_RE.findall(plain_text):
             if tok not in covered and tok.split("-")[0] not in covered and tok.split("/")[0] not in covered:
@@ -419,7 +428,9 @@ def check(data, base: Path) -> tuple[list, list]:
     return errors, warnings
 
 
-def figure_check(figs, base: Path, where: str, errors: list) -> None:
+def figure_check(figs, base: Path, where: str, errors: list, warnings: list | None = None,
+                 oids: set | None = None) -> None:
+    warnings = [] if warnings is None else warnings
     for f in figs or []:
         if not isinstance(f, dict) or not f.get("src"):
             errors.append(f'{where}: every figure needs "src"')
@@ -427,18 +438,195 @@ def figure_check(figs, base: Path, where: str, errors: list) -> None:
         if not f.get("alt"):
             errors.append(f'{where}: figure {f["src"]} needs "alt", a description for readers who cannot see it')
         src = str(f["src"])
+        height = f.get("height")
+        if height is not None and (isinstance(height, bool) or not isinstance(height, (int, float)) or not 80 <= height <= 2000):
+            errors.append(f'{where}: figure {src}: "height" is a number of pixels from 80 to 2000')
         if src.startswith("data:"):
             continue
         if re.match(r"^[a-z]+:", src, re.I):
             errors.append(f"{where}: figure {src} must be a file in the task folder, not a web address")
             continue
         path = (base / src).resolve()
+        suffix = path.suffix.lower()
         if not path.is_file():
             errors.append(f"{where}: figure {src} not found (paths are relative to questions.json)")
-        elif path.suffix.lower() not in IMAGE_TYPES:
-            errors.append(f"{where}: figure {src} is not an image type the page can show")
+        elif suffix not in FIGURE_TYPES:
+            errors.append(f"{where}: figure {src} is not a type the page can show: an image, an .svg drawing or an "
+                          ".html demo")
         elif base.resolve() not in path.parents:
             errors.append(f"{where}: figure {src} must sit inside the folder that holds questions.json")
+        elif suffix in (".svg", ".html"):
+            bad, warn, marks = (svg_check if suffix == ".svg" else live_check)(path)
+            errors.extend(f"{where}: figure {src} {e}" for e in bad)
+            warnings.extend(f"{where}: figure {src} {w}" for w in warn)
+            if not f.get("caption"):
+                warnings.append(f"{where}: figure {src} has no caption. Say in one line what it shows: the point "
+                                "the reader should take from it")
+            stray = sorted(marks - oids) if oids is not None else []
+            if stray:
+                warnings.append(f"{where}: figure {src} marks data-option " + ", ".join(stray)
+                                + ", which is no option on this card")
+
+
+def svg_check(path: Path) -> tuple[list, list, set]:
+    """A drawing goes into the page itself, so it may hold no code and load nothing from outside.
+    Returns (errors, warnings, the option ids it marks with data-option)."""
+    errors, warnings, marks = [], [], set()
+    text = path.read_text(encoding="utf-8-sig", errors="replace")
+    if re.search(r"<!ENTITY", text, re.I):
+        return ["declares XML entities; remove its DOCTYPE"], warnings, marks
+    try:
+        root = ET.fromstring(text)
+    except ET.ParseError as e:
+        return [f"is not well-formed SVG ({e})"], warnings, marks
+    if str(root.tag).split("}")[-1] != "svg":
+        return ["needs <svg> as its outer element"], warnings, marks
+    if len((root.get("viewBox") or "").replace(",", " ").split()) != 4:
+        errors.append('needs a viewBox="0 0 <width> <height>", so it scales with the card')
+    outside = re.compile(r"url\(\s*['\"]?(?!#|data:)")
+    for node in root.iter():
+        tag = str(node.tag).split("}")[-1].lower()
+        if tag in ("script", "foreignobject", "iframe", "object", "embed"):
+            errors.append(f"holds <{tag}>: a drawing on the page holds no code or embedded page (make an .html demo "
+                          "for something the reader should try)")
+        for key, value in node.attrib.items():
+            name, value = str(key).split("}")[-1].lower(), str(value).strip()
+            if name.startswith("on"):
+                errors.append(f"has an event attribute ({name}): a drawing on the page runs no code")
+            elif name == "href" and value and not value.startswith(("#", "data:image/")):
+                errors.append(f"links to {value[:60]}: a drawing loads nothing from outside; embed an image as a data: URI")
+            elif name == "data-option":
+                marks.add(value)
+            elif outside.search(value):
+                errors.append(f"loads a file through url() in {name}: refer only to ids inside the drawing")
+        if tag == "style" and (re.search(r"@import", node.text or "") or outside.search(node.text or "")):
+            errors.append("has a <style> that loads a file: keep its styles inside the drawing")
+    size = path.stat().st_size
+    if size > 400_000:
+        warnings.append(f"is {size // 1024} KB, slow to show for a drawing: simplify it, or save it as PNG")
+    if not errors:
+        warnings.extend(label_problems(root))
+    return list(dict.fromkeys(errors)), warnings, marks
+
+
+def _num(v, default=0.0) -> float:
+    m = re.match(r"\s*(-?[\d.]+)", str(v or ""))
+    return float(m.group(1)) if m else default
+
+
+def _style(node, name: str):
+    m = re.search(rf"(?:^|;)\s*{name}\s*:\s*([^;]+)", node.get("style") or "")
+    return m.group(1).strip() if m else node.get(name)
+
+
+def label_boxes(root) -> list:
+    """(text, x0, y0, x1, y1) for each label, from its position, font size and anchor: an estimate, without a browser.
+    Labels under a rotation or scale are left out."""
+    out = []
+
+    def width(text: str, size: float) -> float:  # typical sans-serif widths, in em
+        def em(ch):
+            if ord(ch) > 0x2E80:
+                return 1.0
+            if ch in " .,:;'|!ilj()[]/\\":
+                return 0.28
+            if ch in "ftr-":
+                return 0.36
+            if ch in "mwMW%":
+                return 0.84
+            if ch.isdigit():
+                return 0.56
+            return 0.64 if ch.isupper() else 0.52
+        return sum(em(ch) for ch in text) * size
+
+    def walk(node, dx, dy, size, anchor):
+        tag = str(node.tag).split("}")[-1]
+        if tag in ("defs", "marker", "clipPath", "mask", "pattern", "symbol", "title", "desc", "style"):
+            return
+        t = node.get("transform") or ""
+        if re.search(r"rotate|scale|matrix|skew", t):
+            return
+        m = re.search(r"translate\(\s*(-?[\d.]+)(?:[\s,]+(-?[\d.]+))?", t)
+        if m:
+            dx, dy = dx + float(m.group(1)), dy + float(m.group(2) or 0)
+        size = _num(_style(node, "font-size"), size) if _style(node, "font-size") else size
+        anchor = _style(node, "text-anchor") or anchor
+        if tag == "text":
+            x, y = dx + _num(node.get("x")), dy + _num(node.get("y"))
+            parts = [(x, y, (node.text or "").strip())]
+            for sp in node:
+                if str(sp.tag).split("}")[-1] != "tspan":
+                    continue
+                x = dx + _num(sp.get("x")) if sp.get("x") else x
+                y = (dy + _num(sp.get("y")) if sp.get("y") else y) + _num(sp.get("dy"))
+                parts.append((x, y, (sp.text or "").strip()))
+            for x, y, text in parts:
+                if text:
+                    w = width(text, size)
+                    x0 = x - w / 2 if anchor == "middle" else x - w if anchor == "end" else x
+                    out.append((text, x0, y - 0.72 * size, x0 + w, y + 0.22 * size))
+            return
+        for kid in node:
+            walk(kid, dx, dy, size, anchor)
+
+    walk(root, 0.0, 0.0, _num(_style(root, "font-size"), 16.0) if _style(root, "font-size") else 16.0,
+         _style(root, "text-anchor") or "start")
+    return out
+
+
+def label_problems(root) -> list:
+    boxes = label_boxes(root)
+    problems = []
+    for i, a in enumerate(boxes):
+        for b in boxes[i + 1:]:
+            if min(a[3], b[3]) - max(a[1], b[1]) > 1.5 and min(a[4], b[4]) - max(a[2], b[2]) > 1.5:
+                problems.append(f'"{a[0][:30]}" and "{b[0][:30]}"')
+    vb = [float(v) for v in re.split(r"[\s,]+", (root.get("viewBox") or "").strip()) if v]
+    off = []
+    if len(vb) == 4:
+        for text, x0, y0, x1, y1 in boxes:
+            if x0 < vb[0] - 2 or y0 < vb[1] - 2 or x1 > vb[0] + vb[2] + 2 or y1 > vb[1] + vb[3] + 2:
+                off.append(f'"{text[:30]}"')
+    out = []
+    if problems:
+        out.append("may have labels on top of each other: " + "; ".join(problems[:6]) + (f" and {len(problems) - 6} more" if len(problems) > 6 else "")
+                   + " (estimated from their positions; "
+                   "move one, or look at the page to check)")
+    if off:
+        out.append("may have labels running off its edge: " + ", ".join(off[:6]) + (f" and {len(off) - 6} more" if len(off) > 6 else "")
+                   + " (widen the viewBox or move them)")
+    return out
+
+
+def live_check(path: Path) -> tuple[list, list, set]:
+    """A live demo runs sealed off from the page, the network and browser storage; warn about what would fail there."""
+    text = path.read_text(encoding="utf-8-sig", errors="replace")
+    warnings = []
+    if (re.search(r"""(?:src|href)\s*=\s*["']?(?:https?:)?//""", text, re.I)
+            or re.search(r"""@import\s+(?:url\()?\s*["']?(?:https?:)?//""", text, re.I)):
+        warnings.append("loads something from the web, which its sealed frame blocks: put scripts, styles and images "
+                        "(as data: URIs) in the file")
+    if re.search(r"\b(?:fetch|XMLHttpRequest|WebSocket|EventSource|localStorage|sessionStorage|indexedDB)\b", text):
+        warnings.append("uses the network or browser storage, which its sealed frame blocks: keep its data in the file")
+    size = path.stat().st_size
+    if size > 300_000:
+        warnings.append(f"is {size // 1024} KB: keep a demo small, it travels with the page")
+    return [], warnings, set(re.findall(r"""data-option\s*=\s*["']([^"']+)["']""", text))
+
+
+def table_check(t, where: str, errors: list, warnings: list, oids: set) -> None:
+    if t is None:
+        return
+    if not isinstance(t, dict) or not isinstance(t.get("rows"), list):
+        errors.append(f'{where}: a table is {{"head": [...], "rows": [[...], ...]}}')
+        return
+    for row in t["rows"]:
+        cells = row.get("cells") if isinstance(row, dict) else row
+        if not isinstance(cells, list):
+            errors.append(f'{where}: each table row is a list of cells, or {{"cells": [...], "option": "<option id>"}} '
+                          "for a row that belongs to one option")
+        elif isinstance(row, dict) and row.get("option") is not None and row["option"] not in oids:
+            warnings.append(f"{where}: a table row is marked for option {row['option']!r}, which is no option on this card")
 
 
 def figure_list(data: dict) -> list:
@@ -504,15 +692,15 @@ def term_origins(data: dict, base: Path) -> dict:
     return found
 
 
-def prepare(data: dict, base: Path, inline_images: bool, embed_archive: bool = False) -> tuple[dict, int]:
-    """The data the page embeds: glossary anchors, a page id, the build time, image sources, and the archive's index
-    (its rounds load when opened; a static file, which cannot fetch them, gets them embedded). Returns (data, image
-    bytes)."""
+def prepare(data: dict, base: Path, inline_images: bool, static: bool = False) -> tuple[dict, int]:
+    """The data the page embeds: glossary anchors, a page id, the build time, picture sources, and the archive's index
+    (its rounds load when opened). A static file cannot fetch, so it carries the archived rounds and the text of every
+    drawing and demo. Returns (data, picture bytes)."""
     out = copy.deepcopy(data)
     rounds = read_archive(base)["rounds"]
     if rounds:
         out["archive"] = [{k: r.get(k) for k in ("round", "file", "questions", "reports")} for r in rounds]
-        if embed_archive:
+        if static:
             out["archive_rounds"] = {r["file"]: read_json(base / r["file"]) for r in rounds if (base / r["file"]).is_file()}
     # one id per task folder, the same from round to round: a static page keeps the reader's answers under it
     out["page_id"] = hashlib.sha1(str(base.resolve()).encode("utf-8")).hexdigest()[:12]
@@ -523,19 +711,42 @@ def prepare(data: dict, base: Path, inline_images: bool, embed_archive: bool = F
         if str(g.get("term")) in origins:
             g["found_in"] = origins[str(g.get("term"))]
     size = 0
-    for f in figure_list(out):
+    figs = figure_list(out)
+    for r in (out.get("archive_rounds") or {}).values():
+        figs += figure_list(r)
+    for f in figs:
         src = str(f.get("src", ""))
         if src.startswith("data:"):
             size += len(src)
             continue
         path = (base / src).resolve()
         size += path.stat().st_size if path.is_file() else 0
-        if inline_images and path.is_file():
+        if static and path.suffix.lower() in (".svg", ".html") and path.is_file():
+            f["svg" if path.suffix.lower() == ".svg" else "html"] = path.read_text(encoding="utf-8-sig", errors="replace")
+            f["src"] = Path(src).as_posix()
+        elif inline_images and path.is_file():
             mime = IMAGE_TYPES.get(path.suffix.lower()) or mimetypes.guess_type(path.name)[0] or "application/octet-stream"
             f["src"] = f"data:{mime};base64," + base64.b64encode(path.read_bytes()).decode("ascii")
         else:
             f["src"] = Path(src).as_posix()
     return out, size
+
+
+def fonts_for(data: dict, mode: str) -> str:
+    """The notebook look's typefaces for this kind of page; the other looks use the reader's system fonts."""
+    if (data.get("style") or "notebook") != "notebook":
+        return ""
+    if mode == "artifact":
+        return f'<link rel="stylesheet" href="{PLEX_CSS}">\n'
+    faces = []
+    for family, weight, name in PLEX:
+        path = FONTS / name
+        if path.is_file():
+            url = (f"data:font/woff2;base64,{base64.b64encode(path.read_bytes()).decode('ascii')}" if mode == "static"
+                   else f"/_fonts/{name}")
+            faces.append(f'@font-face {{ font-family: "{family}"; font-weight: {weight}; font-style: normal; '
+                         f'font-display: swap; src: url("{url}") format("woff2"); }}')
+    return "<style>\n" + "\n".join(faces) + "\n</style>\n" if faces else ""
 
 
 def render(data: dict, config: dict, mode: str) -> str:
@@ -548,6 +759,7 @@ def render(data: dict, config: dict, mode: str) -> str:
         return json.dumps(obj, ensure_ascii=False).replace("<", "\\u003c").replace(">", "\\u003e").replace("&", "\\u0026")
 
     head = head.replace("__BRIEF_TITLE__", html.escape(str(data.get("title", "Decisions")), quote=False))
+    head = head.replace("<!-- brief:fonts -->\n", fonts_for(data, mode))
     body = body.replace("__BRIEF_DATA__", blob(data)).replace("__BRIEF_CONFIG__", blob(config))
     if mode == "artifact":
         return head + body
@@ -608,7 +820,7 @@ def page_words(data: dict, ask_name: str | None = None) -> str:
 def cmd_build(a) -> int:
     questions = Path(a.questions).resolve()
     data, warnings = load_checked(questions)
-    page, size = prepare(data, questions.parent, a.inline_images, embed_archive=a.mode == "static")
+    page, size = prepare(data, questions.parent, a.inline_images, static=a.mode == "static")
     out = Path(a.out).resolve() if a.out else task_files(questions)["page"]
     if not a.inline_images and out.parent != questions.parent and size:
         print("warning: the page is written outside the task folder, so its relative image paths will not resolve; "
@@ -618,14 +830,20 @@ def cmd_build(a) -> int:
     print(f"the page's words, to use as they are in your message: {page_words(data)}")
     figs = sorted({str(f.get("src")) for f in figure_list(data) if not str(f.get("src", "")).startswith("data:")})
     if size:
-        print(f"images: {size // 1024} KB" + (" inlined into the page" if a.inline_images else
-                                              ", linked by relative path; keep them next to the page"))
+        print(f"pictures: {size // 1024} KB" + (" inlined into the page" if a.inline_images else
+                                                ", linked by relative path; keep them next to the page"))
         if a.mode == "artifact" and not a.inline_images:
             print("publish them with the page as files: " + ", ".join(f'"{s}": "{s}"' for s in figs))
     rounds = page.get("archive") or []
     if a.mode == "artifact" and rounds:
-        print("earlier rounds load from these files; publish any that are new or changed with the page (files left out "
-              "stay published): " + ", ".join(f'"{r["file"]}": "{r["file"]}"' for r in rounds))
+        # an archived card's pictures were published while it was open; list them anyway, for a first publish
+        old_figs = sorted({str(f.get("src")) for r in rounds if (questions.parent / r["file"]).is_file()
+                           for f in figure_list(read_json(questions.parent / r["file"]))
+                           if f.get("src") and not str(f["src"]).startswith("data:")} - set(figs))
+        files = [r["file"] for r in rounds] + old_figs
+        print("earlier rounds load from these files" + (" and show these pictures" if old_figs else "") + "; publish any "
+              "that are new or changed with the page (files left out stay published): "
+              + ", ".join(f'"{f}": "{f}"' for f in files))
     if a.mode == "artifact" and data.get("marked_at"):
         print(f"read back only answers given since the last mark: ArtifactData query on \"answers\" where at >= "
               f"\"{data['marked_at']}\"")
@@ -1243,6 +1461,12 @@ def ask_spec(choice: str | None, name: str | None):
     return name or choice.split()[0], choice
 
 
+def picture_lines(figs) -> str:
+    lines = [f"- {f.get('alt')}" + (f" ({flat(f.get('caption'))})" if f.get("caption") else "")
+             for f in figs or [] if isinstance(f, dict) and f.get("alt")]
+    return "Pictures on the card:\n" + "\n".join(lines) + "\n\n" if lines else ""
+
+
 def card_text(data: dict, target: str, answers: dict) -> str:
     """The commented place as plain text for a headless agent."""
     def opts(q):
@@ -1271,11 +1495,15 @@ def card_text(data: dict, target: str, answers: dict) -> str:
                 ex_text += f" (source: {flat(ex['source'])})"
             return (f"Question: {q.get('title')}\n\nIn plain words: {flat(q.get('plain'))}\n\n"
                     + (f"More background: {flat(q.get('more'))}\n\n" if q.get("more") else "")
-                    + (f"Example: {ex_text}\n\n" if ex_text else "") + "Options:\n" + opts(q)
+                    + (f"Example: {ex_text}\n\n" if ex_text else "")
+                    + picture_lines((q.get("figures") or []) + ((ex.get("figures") or []) if isinstance(ex, dict) else [])
+                                    + [o["figure"] for o in q.get("options") or [] if isinstance(o.get("figure"), dict)])
+                    + "Options:\n" + opts(q)
                     + (f"\n\nWhat the agent did: {flat(q.get('outcome'))}" if q.get("outcome") else ""))
     for p in data.get("progress") or []:
         if target == "p-" + p["id"]:
             return (f"Progress report: {p.get('title')} ({p.get('status', 'built')})\n\n{flat(p.get('text'))}"
+                    + ("\n\n" + picture_lines(p.get("figures")).rstrip() if picture_lines(p.get("figures")) else "")
                     + (f"\n\n{flat(p.get('more'))}" if p.get("more") else "")
                     + (f"\n\nAction asked of the user: {p['action']}" if p.get("action") else ""))
     for g, anchor in glossary_anchors(data):
@@ -1479,7 +1707,7 @@ class Handler(BaseHTTPRequestHandler):
             page, _ = prepare(data, self.ctx["questions"].parent, inline_images=False)
             out = render(page, {"mode": "local", "api": "/api/", "token": self.ctx["token"]}, "local")
             csp = ("default-src 'none'; img-src 'self' data:; style-src 'unsafe-inline'; script-src 'unsafe-inline'; "
-                   "connect-src 'self'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'")
+                   "font-src 'self'; connect-src 'self'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'")
             return self.send(200, out.encode("utf-8"), "text/html; charset=utf-8", {"Content-Security-Policy": csp})
         if url.path == "/api/ping":
             return self.json(200, {"app": APP, "pid": os.getpid(), "questions": str(self.ctx["questions"])})
@@ -1499,11 +1727,20 @@ class Handler(BaseHTTPRequestHandler):
                 time.sleep(0.4)
                 state = self.state()
             return self.json(200, state)
-        # images next to questions.json, the archive's round files, and nothing else
+        if url.path.startswith("/_fonts/"):  # the notebook look's typefaces
+            font = FONTS / Path(unquote(url.path)).name
+            if font.suffix == ".woff2" and font.is_file():
+                return self.send(200, font.read_bytes(), "font/woff2")
+            return self.json(404, {"error": "not found"})
+        # pictures next to questions.json, the archive's round files, and nothing else; a file opened on its own runs
+        # nothing, and a demo goes to the page as text, which shows it in a sealed frame
         base = self.ctx["questions"].parent.resolve()
         target = (base / unquote(url.path).lstrip("/")).resolve()
+        sealed = {"Content-Security-Policy": "default-src 'none'; style-src 'unsafe-inline'; img-src data:; sandbox"}
         if base in target.parents and target.is_file() and target.suffix.lower() in IMAGE_TYPES:
-            return self.send(200, target.read_bytes(), IMAGE_TYPES[target.suffix.lower()])
+            return self.send(200, target.read_bytes(), IMAGE_TYPES[target.suffix.lower()], sealed)
+        if base in target.parents and target.is_file() and target.suffix.lower() in LIVE_TYPES:
+            return self.send(200, target.read_bytes(), "text/plain; charset=utf-8", sealed)
         if target.parent == base / "archive" and target.suffix == ".json" and target.name != "index.json" and target.is_file():
             return self.send(200, target.read_bytes(), "application/json; charset=utf-8")
         self.json(404, {"error": "not found"})
@@ -1739,8 +1976,8 @@ def cmd_new(a) -> int:
         if not src.is_file():
             print(f"warning: {img} not found; not copied", file=sys.stderr)
             continue
-        if src.suffix.lower() not in IMAGE_TYPES:
-            print(f"warning: {img} is not an image type the page can show; not copied", file=sys.stderr)
+        if src.suffix.lower() not in FIGURE_TYPES:
+            print(f"warning: {img} is not a picture the page can show; not copied", file=sys.stderr)
             continue
         shutil.copy2(src, task / "shots" / src.name)
         copied.append(f"shots/{src.name}")
