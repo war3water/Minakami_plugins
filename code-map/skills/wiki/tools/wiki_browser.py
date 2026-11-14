@@ -551,6 +551,12 @@ def render(repo: Path, wiki_dir: Path, mermaid_arg: str | None, renderer: str) -
             else:
                 seen[block["id"]] = page.label
                 jobs.append((page, block))
+    # a picture render drew for a diagram that is gone: it carries render's stamp, so it is render's to remove
+    if not failed:
+        for old in sorted((wiki_dir / "diagrams").glob("*.svg")) if (wiki_dir / "diagrams").exists() else []:
+            if old.stem not in seen and 'code-map-wiki diagram="' in old.read_text(encoding="utf-8", errors="replace")[:300]:
+                old.unlink()
+                print(f"gone {wiki.posix(old, repo)}: no diagram has this id any more")
     if not jobs:
         if drawn and write_previews(drawn, preview_dir):
             print(look)
