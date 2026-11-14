@@ -43,8 +43,15 @@ CHART_COLORS = ["#2f6db3", "#d9822b", "#3a9a5b", "#c0504d", "#7b5ea7", "#6b7a89"
 # Measured and drawn in the same family, so a label fits the box Mermaid sized for it.
 FONT = '"Segoe UI", system-ui, -apple-system, "Helvetica Neue", Arial, sans-serif'
 STYLE_JS = Path(__file__).resolve().parent / "diagram_style.js"
+# What the theme variables of the other kinds (KIN_VARIABLES) cannot say. Mermaid sizes a note's box for words a
+# little smaller than it then draws, so the words are drawn smaller; the words on a line sit on white, not on a patch.
+KIN_CSS = (".noteText, .noteText > tspan { font-size: 14px !important; } "
+           ".statediagram .edgeLabel rect, .classDiagram .edgeLabel rect, .labelBkg, .er.relationshipLabelBox { fill: #ffffff; opacity: .92; } "
+           ".packetBlock { fill: #eef0fe; stroke: #4f46e5; stroke-width: 1.5px; }")
 MERMAID_INIT = ('mermaid.initialize({startOnLoad: false, theme: "neutral", securityLevel: "strict", htmlLabels: false, '
-                'flowchart: {htmlLabels: false, nodeSpacing: 30, rankSpacing: 40}, themeVariables: {fontFamily: \'' + FONT + '\', xyChart: {plotColorPalette: "' + ", ".join(CHART_COLORS) + '"}, '
+                'flowchart: {htmlLabels: false, nodeSpacing: 30, rankSpacing: 40}, '
+                'sequence: {actorFontFamily: \'' + FONT + '\', noteFontFamily: \'' + FONT + '\', messageFontFamily: \'' + FONT + '\'}, '
+                'themeCSS: "' + KIN_CSS + '", themeVariables: {fontFamily: \'' + FONT + '\', xyChart: {plotColorPalette: "' + ", ".join(CHART_COLORS) + '"}, '
                 + ", ".join(f'pie{i + 1}: "{c}"' for i, c in enumerate(CHART_COLORS)) + '}});')
 # About the width of the Markdown column on GitHub and in VS Code's preview: a wider diagram is shrunk to fit, and its
 # labels with it. Mermaid sets them at 16 px; below three quarters of that they are hard to read.
@@ -327,14 +334,9 @@ KIN_VARIABLES = {
 }
 KIN_CONFIG = {
     "theme": "base", "themeVariables": KIN_VARIABLES,
-    # the words on a line sit on white, as a flowchart's do, not on a tinted patch
-    "themeCSS": ".edgeLabel rect, .edgeLabel .label rect, .labelBkg, .er.relationshipLabelBox { fill: #ffffff; opacity: .92; } "
-                ".edgeLabel text, .edgeLabel tspan, .messageText { font-size: 13.5px; } "
-                ".packetBlock { fill: #eef0fe; stroke: #4f46e5; stroke-width: 1.5px; }",
-    # one row of participants, and words that wrap inside the space they have, so a note is never cut off
-    "sequence": {"mirrorActors": False, "wrap": True, "messageMargin": 34, "noteMargin": 12, "boxMargin": 8,
-                 "actorMargin": 36, "width": 170, "messageFontSize": 14, "noteFontSize": 14, "actorFontSize": 15,
-                 "actorFontWeight": 600},
+    # one row of participants, each as wide as its words; a note wraps inside the space it has (see kin_source)
+    "sequence": {"mirrorActors": False, "wrap": False, "messageMargin": 34, "noteMargin": 12, "boxMargin": 8,
+                 "actorMargin": 36, "width": 170},
     "state": {"nodeSpacing": 40, "rankSpacing": 44}, "class": {"nodeSpacing": 40, "rankSpacing": 50},
     "er": {"layoutDirection": "TB", "minEntityWidth": 120, "entityPadding": 12},
     "timeline": {"disableMulticolor": False}, "packet": {"bitsPerRow": 32, "rowHeight": 34, "paddingY": 14},
@@ -350,6 +352,9 @@ QUOTED_WORD = {
 }
 
 
+SEQ_NOTE = re.compile(r"^(\s*Note\s+over\s+[^:,]+,[^:]+:\s*)(?!wrap:|nowrap:)", re.I)
+
+
 def kin_source(source: str, kind: str) -> str:
     """The source of a picture that is no flowchart, as it is laid out: in the family's colours, its labels unquoted."""
     lines = []
@@ -359,6 +364,8 @@ def kin_source(source: str, kind: str) -> str:
                 line = QUOTED_TAIL.sub(r"\1\2", line)
             if kind in QUOTED_WORD:
                 line = QUOTED_WORD[kind].sub(r"\1\2", line)
+            if kind == "sequence":  # a note across participants wraps inside its box, where Mermaid would run it out
+                line = SEQ_NOTE.sub(r"\1wrap: ", line)
         lines.append(line)
     return "%%{init: " + json.dumps(KIN_CONFIG) + "}%%\n" + "\n".join(lines)
 
