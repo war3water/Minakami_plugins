@@ -161,7 +161,7 @@ window.wikiDress = function (svgText, opt) {
       const shape = shapeOf(g), group = groupOf(g), cls = g.getAttribute("class") || "";
       const isKey = id === key, has = name => new RegExp("(^|\\s)" + name + "(\\s|$)").test(cls);
       // drawn flat (see RENDER_ONE in wiki_browser.py), a box wears its group's colour
-      const worn = opt.flat === true && opt.groups && opt.groups[id] != null ? C.tiers[opt.groups[id] % C.tiers.length] : null;
+      const worn = (opt.flat === true || opt.wear === true) && opt.groups && opt.groups[id] != null ? C.tiers[opt.groups[id] % C.tiers.length] : null;
       let fill = worn ? worn[0] : C.box, stroke = group ? group.colour : worn ? worn[1] : C.faint, width = 1.5, ink = C.ink, soft = C.muted;
       if (has("wikiask")) { fill = C.ask[0]; stroke = C.ask[1]; }
       if (has("stop")) { fill = C.stop[0]; stroke = C.stop[1]; width = 2; }
@@ -184,7 +184,8 @@ window.wikiDress = function (svgText, opt) {
             // file.py: function -> the file quiet, the function strong
             const quiet = k === 0 && /[.\\/]/.test(w.textContent) && (words.length > 1 || /:\s*$/.test(w.textContent) || !!title);
             css(w, {"font-family": MONO, "font-size": "12.5px", "font-weight": quiet ? "400" : "600", fill: quiet ? soft : ink});
-          } else if (first) css(w, {"font-weight": "650", fill: ink});
+          } else if (first && opt.calls) css(w, {"font-family": MONO, "font-size": "13px", "font-weight": "700", fill: ink});
+          else if (first) css(w, {"font-weight": "650", fill: ink});
           else if (alone) css(w, {"font-weight": "500", fill: ink});
           else css(w, {"font-size": "13.5px", fill: soft});
         });

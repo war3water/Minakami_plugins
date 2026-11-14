@@ -202,6 +202,7 @@ const one = {RENDER_ONE};
 LEGEND_WORDS = ("key", "thick", "solid", "dashed", "stop", "ok")
 LABEL = re.compile(r'(?<![\w])([A-Za-z_][\w-]*)\s*(?:\[\[|\[\(|\(\[|\(\(|\{\{|\[|\(|\{)\s*"([^"]*)"')
 BREAK = re.compile(r"<br\s*/?>")
+CALL_BOX = re.compile(r'"([\w./\\-]+\.\w+):\s+([^"<]+)"')
 ASK = re.compile(r'(?<![\w{])([A-Za-z_][\w-]*)\{(?!\{)\s*("[^"]*"|[^{}"]+?)\s*\}(?!\})')
 
 
@@ -297,14 +298,29 @@ def diagram_look(source: str) -> tuple[str, dict | None]:
             line = ASK.sub(r"\1{{\2}}", line)
         lines.append(line)
     lines, turned = returning(lines)
+    # a call map's boxes are `file: function` in the source, which the lint reads; drawn, the function comes first
+    # and its file sits under it, and boxes of one file share a colour unless the page grouped them itself
+    calls = bool(re.search(r"^\s*%%\s*calls\b", source, re.M))
+    by_file: dict[str, int] = {}
+    if calls:
+        files: dict[str, int] = {}
+        for m in LABEL.finditer(source):
+            box = CALL_BOX.fullmatch('"' + m.group(2) + '"')
+            if box:
+                by_file[m.group(1)] = files.setdefault(box.group(1), len(files))
+        lines = [ln if ln.lstrip().startswith("%%") else CALL_BOX.sub(lambda m: f'"{m.group(2).strip()}<br/>{m.group(1)}"', ln)
+                 for ln in lines]
     if asks:
         lines = [ln for ln in lines if ln.strip()] + ["    class " + ",".join(dict.fromkeys(asks)) + " wikiask"]
     # a box whose text the page broke with <br/> has a title: its first part
-    titles = {m.group(1): BREAK.split(m.group(2))[0].strip() for m in LABEL.finditer(source) if BREAK.search(m.group(2))}
-    look = {"key": key.group(1) if key else None, "legend": diagram_legend(source), "titles": titles, "turned": turned}
+    titles = {m.group(1): BREAK.split(m.group(2))[0].strip() for m in LABEL.finditer("\n".join(lines)) if BREAK.search(m.group(2))}
+    look = {"key": key.group(1) if key else None, "legend": diagram_legend(source), "titles": titles, "turned": turned,
+            "calls": calls}
     without = ungrouped(lines)
     if without:
         look.update(flat=without[0], groups=without[1], groupNames=without[2])
+    elif len(set(by_file.values())) > 1:
+        look.update(groups=by_file, wear=True)
     return "\n".join(lines) + "\n", look
 
 
