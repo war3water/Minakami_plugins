@@ -6,7 +6,7 @@ The rules below come from five tests. Where no rule covers what you are writing,
 
 1. **Like things at like depth.** Whatever the project has several of (commands, endpoints, screens, calculations, jobs) is covered in one shape, every one of them. Where the wiki goes deep on one, it says that this is the worked example, and where the depth for the others is.
 2. **Nothing to decode.** Before a formula, a code block, a table, a picture or a folded block, a sentence says what it is and why it is here, and names anything in it the page has not explained.
-3. **A place to start and one thing to notice.** A picture or table of many like parts is grouped, shows where to begin, and marks the part that decides the example's result.
+3. **A place to start and one thing to notice.** A picture or table of many like parts is grouped, shows where to begin, and marks the one part to leave remembering: the part everything passes through, the step that decides the example's result, the function where the number is made. This holds for every picture on every page, not for one kind of diagram.
 4. **A route, not a pile.** The index gives the order to read the pages in; each page builds on the ones before it.
 5. **Try before reading.** Where a part can be run, called or sent a request, the shortest real use comes first, with its real answer.
 
@@ -154,7 +154,7 @@ Charts are rare. A chart earns its place only when its point is a shape that nei
 
 ## Diagrams
 
-- Write each diagram as a fenced `mermaid` block whose first line is `%% id: <name>` (lowercase letters, digits and hyphens, unique across the wiki). The page shows the rendered SVG and keeps the source in a collapsed block below it: an image shows in every Markdown viewer, while VS Code's built-in preview and many others show a Mermaid block as code. Leave a blank line after the summary line so GitHub renders the block:
+- Write each diagram as a fenced `mermaid` block whose first line is `%% id: <name>` (lowercase letters, digits and hyphens, unique across the wiki). The page shows the rendered SVG and keeps the source in a collapsed block below it: an image shows in every Markdown viewer, while VS Code's built-in preview and many others show a Mermaid block as code. The viewer shows the picture alone. Leave a blank line after the summary line so GitHub renders the block:
 
 ````text
 ![Call chain from the CLI to the report](../diagrams/call-chain.svg)
@@ -174,30 +174,38 @@ flowchart TB
 - **Syntax that parses.** Every node label and edge label in double quotes, with no `;`, `<`, `>` or `#` apart from `<br/>` between the lines of a box. No node id named `end`. In a chart, the title and axis names are quoted (`title "…"`, `x-axis "…" ["a", "b"]`); a `pie` title is not, and each slice is `"label" : value`.
 - **A box that names code ends with `file: function`** on its last line, as in `"3 Price the order<br/>pricing.py: price_order"`. The path may be shortened to any tail that names one file, and `a.py: f and g` names two functions.
 - **Call maps.** A diagram whose second line is `%% calls` is a call map: each box is `file: function`, and each solid arrow says the first function calls the second. An indirect call (a registry lookup, a callback, a call into another process, a method reached through an object whose type the reader must know) is drawn dotted, `-.->`, with how it is reached on the arrow.
-- **Phases.** Group the steps of a longer flow into a few named phases, each a `subgraph` whose title says what the phase achieves ("Read the input", "Score the candidates"). Draw the input and the output as rounded boxes, `IN(["…"])`, so the start and the end stand out. Join phase to phase, not box to box (`P1 -->|"what passes"| P2`), and give each phase `direction LR`: Mermaid then sets the steps of a phase side by side and stacks the phases, which fits a Markdown column. When one step decides the example's result, add the line `%% key: <its node id>`. Write no colours or styles: `render` tints each phase and marks the key step.
-- **Fit a Markdown column.** GitHub and VS Code show a diagram no wider than their text column, about 860 px, and shrink a wider one with its labels; `render` names each diagram whose labels end up too small to read. A chain reads top to bottom (`flowchart TB`). Break a long label over lines with `<br/>`. A decision whose label names code is a box with yes and no arrows, not a diamond, which grows both ways with its label. Split a diagram that is still too wide. Call maps are the exception: draw each in the direction that is narrower; the viewer zooms it, and GitHub opens it full size on a click.
+- **Phases.** Group the steps of a longer flow into a few named phases, each a `subgraph` whose title says what the phase achieves ("Read the input", "Score the candidates"). Draw the input and the output as rounded boxes, `IN(["…"])`, so the start and the end stand out. Join phase to phase, not box to box (`P1 -->|"what passes"| P2`), and give each phase `direction LR`: Mermaid then sets the steps of a phase side by side and stacks the phases, which fits a Markdown column. When one step decides the example's result, it is the picture's `%% key:`.
+- **Say what the picture means; `render` draws it.** Every flowchart comes out in one look: groups as tinted bands, the box to notice filled, the way to it coloured where the picture branches, a title line and a code line in each box, a legend. The source gives the meaning in plain Mermaid and never a colour, `style`, `classDef` or `linkStyle`:
+  - `%% key: <node id>`: the one box to leave remembering (test 3). A picture with more than a handful of boxes has one.
+  - `subgraph`: the groups of a picture of many parts, each named for what its members share (the layers of a system, the phases of a flow). Where Mermaid would spread the groups apart because arrows cross them, `render` draws the picture without the bands and shows each group by colour.
+  - `-.->`: something that comes back or is reached indirectly (a result, a reply, a lookup). `==>`: only where one route is the point of the picture, such as the way a request goes in.
+  - `class <ids> stop` and `class <ids> ok`: the ends of a decision that refuse or fail, and the ends that succeed.
+  - `%% legend: key = …; thick = …; dashed = …; stop = …; ok = …`: a few words for each of these the picture uses, printed under it. The key's words say why it is the one to notice ("every request passes through here").
+  - A box whose text has a `<br/>` starts with its title: the part or step in a few words, then what it is made of or its `file: function`.
+  Because the look is not in the source, a change in the code is a change to a line of text, and the picture is drawn again.
+- **Fit a Markdown column.** GitHub and VS Code show a diagram no wider than their text column, about 860 px, and shrink a wider one with its labels; `render` names each diagram whose labels end up too small to read. A chain reads top to bottom (`flowchart TB`). Break a long label over lines with `<br/>`. A question is `ID{"…?"}` with yes and no arrows; `render` draws it as a flat six-sided box, since Mermaid's diamond grows both ways with its text. Split a diagram that is still too wide. Call maps are the exception: draw each in the direction that is narrower; the viewer zooms it, and GitHub opens it full size on a click.
 - **Render after every edit**: `wiki_browser.py render` fails on a diagram that does not parse, and writes each SVG at its natural size on a white ground with a hash of its source. A diagram changes in the same change as the code it shows.
 
 ## Formulas
 
 A formula the reader has to follow gets its own lines, typeset. A table cell or a sentence keeps only a short relation that reads at a glance (wait = base · 2ⁿ); anything with a root, a fraction of products or a chain of factors moves out under the table, and the cell names it and links to it.
 
-- **One `math` block per idea**, in the order the code computes it: a fenced block with the info string `math` and TeX inside, `\begin{aligned} … \end{aligned}` with `&=` for a chain of lines. GitHub, GitLab, VS Code's built-in preview and the viewer typeset it; any other viewer shows its TeX source, which still reads. Not `$$`, which Markdown mangles where math is not supported.
+- **One `math` block per idea**, in the order the code computes it: a fenced block with the info string `math` and TeX inside. A chain of lines is `\begin{align} … \end{align}` with `&=`, each line ending in its number, `\tag{1}`, `\tag{2}`. GitHub, GitLab, VS Code's built-in preview and the viewer typeset it; any other viewer shows its TeX source, which still reads. Not `$$`, which Markdown mangles where math is not supported.
 - **Before it, what it computes and where it comes from**: one sentence on what the block works out, the function it lives in, linked, and the source the code or its documents name for it (a standard and its clause, a paper, a section of the design document), linked. Where they name none, say that the code names no source.
-- **Under a block of several lines, how they follow**: a numbered line for each line of the block, saying what it is (the delay before the cap; the cap; the random share of it that is waited). Where the source gives the reason for a shape the reader would stop at (a root, an exponent, a cap), give it in a few words. The reader sees how one line leads to the next, not a list of equations.
+- **Under a block of several lines, how they follow**: a numbered line for each line of the block, under the number the line carries, saying what it is (the delay before the cap; the cap; the random share of it that is waited). A number under a block points at a `\tag` in it, never at nothing. Where the source gives the reason for a shape the reader would stop at (a root, an exponent, a cap), give it in a few words. The reader sees how one line leads to the next, not a list of equations.
 - **After it, a table of its symbols**, `Symbol | What it is | In the example`: each symbol in words with its unit, and its value from the captured run, so the reader can redo the arithmetic. Symbols in prose and tables are plain text (`d_max`, `t_n`). Group symbols that need no explanation on one row; a symbol defined earlier on the page is not defined again.
 - **Then the result**, one line with the values the formula gave, and which of them decides the verdict.
 - **Only what the code does.** Copy each formula from the function, not from the standard or the design document, and check it against the captured values: a formula that does not reproduce the run's number is wrong. State the constants, floors and branches the code applies in one line under it ("the delay is never below 50 ms"). Formulas the reader does not need to follow the result stay in the design document, linked.
-- Use the TeX that KaTeX and MathJax both support: `\frac`, `\sqrt`, `\cdot`, subscripts and superscripts, Greek letters, `\min`, `\text{…}`, `\qquad`, `aligned`. `wiki_browser.py check-viewer` fails on a formula that does not typeset.
+- Use the TeX that KaTeX and MathJax both support: `\frac`, `\sqrt`, `\cdot`, subscripts and superscripts, Greek letters, `\min`, `\text{…}`, `\qquad`, `align` with `\tag`. `wiki_browser.py check-viewer` fails on a formula that does not typeset.
 
 ````text
 **Wait before a retry**, in [`backoff`](../../src/client/retry.py), the "full jitter" scheme of [Exponential Backoff and Jitter](sources.md#aws-backoff):
 
 ```math
-\begin{aligned}
-d_n &= \min\left(d_{\max},\ d_0 \cdot 2^{\,n}\right) \\
-t_n &= u \cdot d_n, \qquad u \sim U(0, 1)
-\end{aligned}
+\begin{align}
+d_n &= \min\left(d_{\max},\ d_0 \cdot 2^{\,n}\right) \tag{1} \\
+t_n &= u \cdot d_n, \qquad u \sim U(0, 1) \tag{2}
+\end{align}
 ```
 
 1. The delay doubles with each attempt, up to a cap, so a long outage does not grow the wait without bound.
@@ -261,6 +269,7 @@ This is the page developers need most. Start from `templates/run-and-debug.md.tm
 | with `--run`: a failing command, or output that no longer matches `check:output` | a main-flow step with no function in the overview's code-to-know-first table; a step table that repeats the diagram's arrows in Takes and Gives columns |
 | with `--strict`: a command block neither run nor skipped with a reason | code files that are on no page and under no row of the map, by folder; a folder row of the map that links no code to open first; a run-and-debug page with no `Part \| Start it under a debugger` table |
 | | a table or diagram that repeats another; a `$$` formula; a template placeholder left in |
+| | a flowchart of many boxes with no `%% key:`, a key that names no box, colours written by hand, thick arrows the legend does not name; a formula of several lines without `\tag` numbers |
 
 It also reports the words a reader has to read and the longest pages, so growth is visible; there is no limit, and a page is as long as its facts need.
 

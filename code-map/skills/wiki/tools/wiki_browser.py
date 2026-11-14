@@ -40,8 +40,11 @@ NO_BROWSER = 3
 # The neutral theme draws chart bars, lines and pie slices in pale greys; charts get a palette that reads on white.
 CHART_COLORS = ["#2f6db3", "#d9822b", "#3a9a5b", "#c0504d", "#7b5ea7", "#6b7a89"]
 # Spacing a little tighter than Mermaid's (50 and 50) keeps more diagrams within a Markdown column (COLUMN_PX).
+# Measured and drawn in the same family, so a label fits the box Mermaid sized for it.
+FONT = '"Segoe UI", system-ui, -apple-system, "Helvetica Neue", Arial, sans-serif'
+STYLE_JS = Path(__file__).resolve().parent / "diagram_style.js"
 MERMAID_INIT = ('mermaid.initialize({startOnLoad: false, theme: "neutral", securityLevel: "strict", htmlLabels: false, '
-                'flowchart: {htmlLabels: false, nodeSpacing: 30, rankSpacing: 40}, themeVariables: {xyChart: {plotColorPalette: "' + ", ".join(CHART_COLORS) + '"}, '
+                'flowchart: {htmlLabels: false, nodeSpacing: 30, rankSpacing: 40}, themeVariables: {fontFamily: \'' + FONT + '\', xyChart: {plotColorPalette: "' + ", ".join(CHART_COLORS) + '"}, '
                 + ", ".join(f'pie{i + 1}: "{c}"' for i, c in enumerate(CHART_COLORS)) + '}});')
 # About the width of the Markdown column on GitHub and in VS Code's preview: a wider diagram is shrunk to fit, and its
 # labels with it. Mermaid sets them at 16 px; below three quarters of that they are hard to read.
@@ -67,8 +70,17 @@ def fit_svg(svg: str) -> tuple[str, float]:
     return svg[:head.start()] + tag + ground + svg[head.end():], w
 
 
-RENDER_ONE = """async ([id, src]) => {
-  try { const r = await mermaid.render("wiki-" + id, src); return {ok: true, svg: r.svg}; }
+# Mermaid keeps the boxes of a group together, and when calls cross the groups it sets the groups out like a staircase
+# with most of the picture empty. Such a picture is laid out a second time without its groups; when that is well under
+# the size (0.6 of the area), it is the one kept, and diagram_style.js shows each group by colour.
+RENDER_ONE = """async ([id, src, look]) => {
+  try { let r = await mermaid.render("wiki-" + id, src), flat = false;
+        if (look && look.flat) {
+          const area = s => { const m = /viewBox="[-\\d.]+[ ,]+[-\\d.]+[ ,]+([\\d.]+)[ ,]+([\\d.]+)"/.exec(s); return m ? m[1] * m[2] : 0; };
+          const f = await mermaid.render("wiki-" + id + "-flat", look.flat);
+          if (area(f.svg) && area(f.svg) < 0.6 * area(r.svg)) { r = f; flat = true; }
+        }
+        return {ok: true, svg: look && window.wikiDress ? window.wikiDress(r.svg, Object.assign({}, look, {flat: flat})) : r.svg}; }
   catch (e) { document.querySelectorAll('[id^="dwiki-"], [id^="wiki-"]').forEach(n => n.remove());
               return {ok: false, error: String(e && e.message || e)}; } }"""
 
@@ -138,7 +150,7 @@ def launch(p):
     raise Unavailable("Playwright is installed but no browser started: " + "; ".join(errors))
 
 
-def render_playwright(jobs: list[tuple[str, str]], mermaid: Path) -> tuple[list[dict], str]:
+def render_playwright(jobs: list[tuple[str, str, dict | None]], mermaid: Path) -> tuple[list[dict], str]:
     from playwright.sync_api import sync_playwright
     with sync_playwright() as p:
         browser, label = launch(p)
@@ -146,13 +158,14 @@ def render_playwright(jobs: list[tuple[str, str]], mermaid: Path) -> tuple[list[
             page = browser.new_page()
             page.set_content("<!doctype html><html><head><meta charset='utf-8'></head><body></body></html>")
             page.add_script_tag(path=str(mermaid))
+            page.add_script_tag(path=str(STYLE_JS))
             page.evaluate(MERMAID_INIT)
-            return [dict(page.evaluate(RENDER_ONE, [i, s]), id=i) for i, s in jobs], label
+            return [dict(page.evaluate(RENDER_ONE, [i, s, look]), id=i) for i, s, look in jobs], label
         finally:
             browser.close()
 
 
-def render_cli(jobs: list[tuple[str, str]], mermaid: Path) -> tuple[list[dict], str]:
+def render_cli(jobs: list[tuple[str, str, dict | None]], mermaid: Path) -> tuple[list[dict], str]:
     """No Playwright: load a page that renders every diagram into the DOM, and read it back with --dump-dom."""
     exe = browser_binary()
     if not exe:
@@ -160,9 +173,10 @@ def render_cli(jobs: list[tuple[str, str]], mermaid: Path) -> tuple[list[dict], 
     with tempfile.TemporaryDirectory(prefix="wiki-render-") as tmp:
         tmpd = Path(tmp)
         shutil.copy(mermaid, tmpd / "mermaid.min.js")
+        shutil.copy(STYLE_JS, tmpd / "diagram_style.js")
         jobs_js = json.dumps(jobs).replace("</", "<\\/")
         (tmpd / "render.html").write_text(f"""<!doctype html><html><head><meta charset="utf-8"></head><body>
-<pre id="out"></pre><script src="mermaid.min.js"></script><script>
+<pre id="out"></pre><script src="mermaid.min.js"></script><script src="diagram_style.js"></script><script>
 {MERMAID_INIT}
 const one = {RENDER_ONE};
 (async () => {{ const res = []; for (const job of {jobs_js}) res.push(Object.assign(await one(job), {{id: job[0]}}));
@@ -181,23 +195,117 @@ const one = {RENDER_ONE};
         return json.loads(html.unescape(blob)), f"{Path(exe).name} headless"
 
 
-# A flowchart's phases (its subgraphs) each get a tint, and the box named on a `%% key: <node id>` line the colour of
-# the step that decides the example. The page's source stays plain: the colours are added here, so every wiki's
-# pictures look alike and no page spells a colour. A source that styles itself is left alone.
-PHASE_TINTS = [("#e2edf8", "#2f6fb3"), ("#ece6f6", "#7a5ab0"), ("#f7ecd6", "#b0761a"), ("#dff0e6", "#0a8a5a"),
-               ("#f8e6ee", "#b0406a"), ("#e1f1f3", "#1f7a86")]
-KEY_STYLE = "fill:#fbe5e2,stroke:#b3261e,stroke-width:3px,color:#5c120d"
+# What a flowchart's source says about itself, handed to diagram_style.js, which draws it. The source stays plain text
+# that any Markdown viewer renders: its groups are subgraphs, `%% key: <node id>` names the box to notice,
+# `class <ids> stop` and `class <ids> ok` name the ends that refuse and the ends that succeed, and
+# `%% legend: thick = ...; dashed = ...` says what the arrow kinds stand for. A source that styles itself is left alone.
+LEGEND_WORDS = ("key", "thick", "solid", "dashed", "stop", "ok")
+LABEL = re.compile(r'(?<![\w])([A-Za-z_][\w-]*)\s*(?:\[\[|\[\(|\(\[|\(\(|\{\{|\[|\(|\{)\s*"([^"]*)"')
+BREAK = re.compile(r"<br\s*/?>")
+ASK = re.compile(r'(?<![\w{])([A-Za-z_][\w-]*)\{(?!\{)\s*("[^"]*"|[^{}"]+?)\s*\}(?!\})')
 
 
-def phase_colours(source: str) -> str:
-    if not re.search(r"^\s*(flowchart|graph)\b", source, re.M) or re.search(r"^\s*(style|classDef)\b", source, re.M):
-        return source
-    extra = [f"    style {sid} fill:{PHASE_TINTS[i % len(PHASE_TINTS)][0]},stroke:{PHASE_TINTS[i % len(PHASE_TINTS)][1]},color:#1c2420"
-             for i, sid in enumerate(re.findall(r"^\s*subgraph\s+([A-Za-z_][\w-]*)", source, re.M))]
-    key = re.search(r"^\s*%%\s*key:\s*([A-Za-z_][\w-]*)\s*$", source, re.M)
-    if key:
-        extra += [f"    classDef wikikey {KEY_STYLE}", f"    class {key.group(1)} wikikey"]
-    return source.rstrip("\n") + "\n" + "\n".join(extra) + "\n" if extra else source
+def diagram_legend(source: str) -> dict[str, str]:
+    line = re.search(r"^\s*%%\s*legend:\s*(.+)$", source, re.M)
+    pairs = (part.split("=", 1) for part in line.group(1).split(";") if "=" in part) if line else ()
+    return {k.strip().lower(): v.strip() for k, v in pairs if k.strip().lower() in LEGEND_WORDS and v.strip()}
+
+
+NODE_ID = re.compile(r"\s*([A-Za-z_][\w-]*)")
+
+
+def returning(lines: list[str]) -> tuple[list[str], list[list[str]]]:
+    """(the lines with every dashed arrow that comes back turned round, those arrows as [from, to] as now written).
+    A dashed arrow comes back when the box it points at already leads to the box it leaves: the result of a call, an
+    answer to a request. Laid out as written, it pulls its source below its target and the picture's rows fall apart;
+    turned round it follows the flow, and diagram_style.js puts the head back on the right end."""
+    forward: dict[str, set[str]] = {}
+    dashed = []
+    for n, line in enumerate(lines):
+        if line.lstrip().startswith("%%"):
+            continue
+        parts = wiki.ARROW.split(line)
+        ends = [[m.group(1) for m in map(NODE_ID.match, seg.split("&")) if m] for seg in parts[0::2]]
+        for i, arrow in enumerate(parts[1::2]):
+            if "-." in arrow:
+                if len(parts) == 3 and len(ends[0]) == 1 and len(ends[1]) == 1:
+                    dashed.append((n, ends[0][0], ends[1][0]))
+            else:
+                for a in ends[i]:
+                    forward.setdefault(a, set()).update(ends[i + 1])
+
+    def leads(a: str, b: str) -> bool:
+        seen, stack = {a}, [a]
+        while stack:
+            for nxt in forward.get(stack.pop(), ()):
+                if nxt == b:
+                    return True
+                if nxt not in seen:
+                    seen.add(nxt)
+                    stack.append(nxt)
+        return False
+
+    out, turned = list(lines), []
+    for n, a, b in dashed:
+        if leads(b, a):
+            left, arrow, right = wiki.ARROW.split(lines[n])
+            pad = left[:len(left) - len(left.lstrip())]
+            out[n] = f"{pad}{right.strip()} {arrow} {left.strip()}"
+            turned.append([b, a])
+    return out, turned
+
+
+SUBGRAPH = re.compile(r'^\s*subgraph\s+(?:([A-Za-z_][\w-]*)\s*\[\s*"?([^"\]]*)"?\s*\]|"?([^"]+?)"?\s*$)')
+
+
+def ungrouped(lines: list[str]) -> tuple[str, dict[str, int], list[str]] | None:
+    """(the source without its subgraphs, each box's group, the groups' names), or None when the picture has no
+    groups or an arrow ends on a group, which cannot be drawn without it."""
+    flat, groups, names, ids, stack = [], {}, [], set(), []
+    for line in lines:
+        head = SUBGRAPH.match(line)
+        if head:
+            ids.add(head.group(1) or head.group(3).strip())
+            names.append((head.group(2) or head.group(3) or head.group(1)).strip())
+            stack.append(len(names) - 1)
+        elif stack and re.match(r"^\s*end\s*$", line):
+            stack.pop()
+        elif stack and re.match(r"^\s*direction\b", line):
+            continue
+        else:
+            flat.append(line)
+            if not line.lstrip().startswith(("%%", "class ", "click ")):
+                for seg in wiki.ARROW.split(re.sub(r'"[^"]*"', '""', line))[0::2]:
+                    for m in filter(None, map(NODE_ID.match, seg.split("&"))):
+                        if m.group(1) in ids:
+                            return None
+                        if stack:
+                            groups.setdefault(m.group(1), stack[-1])
+    return ("\n".join(flat) + "\n", groups, names) if names else None
+
+
+def diagram_look(source: str) -> tuple[str, dict | None]:
+    """(the source to lay out, what to tell diagram_style.js), or (the source, None) for a picture drawn as it is."""
+    if not re.search(r"^\s*(flowchart|graph)\b", source, re.M) or re.search(r"^\s*(style|classDef|linkStyle)\b", source, re.M):
+        return source, None
+    key = re.search(r"^\s*%%\s*key:\s*([A-Za-z_][\w-]*)", source, re.M)
+    # a question is drawn as a flat six-sided box: Mermaid's diamond grows with its text until it fills the picture
+    asks, lines = [], []
+    for line in source.split("\n"):
+        if not line.lstrip().startswith("%%"):
+            asks += [m.group(1) for m in ASK.finditer(line)]
+            line = ASK.sub(r"\1{{\2}}", line)
+        lines.append(line)
+    lines, turned = returning(lines)
+    if asks:
+        lines = [ln for ln in lines if ln.strip()] + ["    class " + ",".join(dict.fromkeys(asks)) + " wikiask"]
+    # a box whose text the page broke with <br/> has a title: its first part
+    titles = {m.group(1): BREAK.split(m.group(2))[0].strip() for m in LABEL.finditer(source) if BREAK.search(m.group(2))}
+    look = {"key": key.group(1) if key else None, "legend": diagram_legend(source), "titles": titles, "turned": turned}
+    without = ungrouped(lines)
+    if without:
+        look.update(flat=without[0], groups=without[1], groupNames=without[2])
+    return "\n".join(lines) + "\n", look
 
 
 def render(repo: Path, wiki_dir: Path, mermaid_arg: str | None, renderer: str) -> int:
@@ -223,7 +331,7 @@ def render(repo: Path, wiki_dir: Path, mermaid_arg: str | None, renderer: str) -
     except Unavailable as e:
         print(f"diagrams not rendered: {e}\n{keep}")
         return NO_BROWSER
-    pairs = [(b["id"], phase_colours(b["source"])) for _, b in jobs]
+    pairs = [(b["id"], *diagram_look(b["source"])) for _, b in jobs]
     results, label, tried = None, "", []
     if renderer in ("auto", "playwright"):
         try:

@@ -18,6 +18,15 @@ The goal: every page tells the truth about the code as it is now, and the change
 6. **Verify.** Render the diagrams you edited (`wiki_browser.py render`) and run `wiki.py lint --strict`. When setup, commands, command blocks, or output shown as `check:output` may have changed, run `wiki.py lint --run --strict --clean-env --capture <folder>` and update the captured outputs. Rebuild the viewer if the repository keeps one. Fix what fails, as in `build.md` §5.
 7. **Report.** List the pages updated and why, the pages confirmed unchanged, new pages, uncovered code left out and why, the lint result, and the command blocks run.
 
+## A reader's comment
+
+A comment on one place in the wiki, left in the hosted copy's review mode or said by the user, is about every place like it.
+
+1. Name the kind of thing it is about (how a diagram looks, the notes under a formula, a folded block, a card) and the test of `pages.md` it fails.
+2. Fix every instance of that kind in the wiki, not only the one the reader had open. Fix the Markdown and build again: a change made to the hosted copy alone is lost at the next build.
+3. A preference this wiki should keep (a term, an order, a depth) goes under Rules in `SCHEMA.md`, where the next update reads it.
+4. When the cause is how the tools draw or check something, or a rule of this skill, say so in the report: that fix belongs in the plugin, where every wiki gets it.
+
 ## Lint
 
 The mechanical part is `python <skill folder>/tools/wiki.py lint`, plus `--run` when the user asked for it or when setup or commands changed since the wiki's last commit. What it checks is listed in `pages.md` §What the lint checks; with `--run` it also runs every `check:run` block in a clean checkout.

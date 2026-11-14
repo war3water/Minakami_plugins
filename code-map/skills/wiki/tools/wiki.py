@@ -37,7 +37,7 @@ from pathlib import Path
 
 TOOLS_VERSION = "0.4.0"
 HERE = Path(__file__).resolve().parent
-TOOL_FILES = ["wiki.py", "wiki_browser.py", "viewer_template.html", "vendor/marked.min.js", "vendor/marked-LICENSE.txt",
+TOOL_FILES = ["wiki.py", "wiki_browser.py", "diagram_style.js", "viewer_template.html", "vendor/marked.min.js", "vendor/marked-LICENSE.txt",
               "vendor/katex.min.js", "vendor/katex.min.css", "vendor/katex-LICENSE.txt",
               "vendor/jetbrains-mono-latin.woff2", "vendor/jetbrains-mono-LICENSE.txt"]
 SPECIAL_PAGES = {"index.md": "index", "log.md": "log", "SCHEMA.md": "schema"}
@@ -548,6 +548,51 @@ def mermaid_blocks(page: Page) -> list[dict]:
     return out
 
 
+FLOW_SKIP = ("%%", "subgraph", "direction", "class ", "classDef", "style", "linkStyle", "click", "flowchart", "graph", "end")
+FLOW_BOX = re.compile(r'(?<![\w"])([A-Za-z_][\w-]*)\s*[\[({]')
+MANY_BOXES = 6  # from here on a picture needs one box marked as the one to notice
+
+
+def flow_boxes(source: str) -> set[str]:
+    """The ids of the boxes a flowchart defines with a label."""
+    ids: set[str] = set()
+    for line in source.split("\n"):
+        if not line.strip().startswith(FLOW_SKIP):
+            ids.update(FLOW_BOX.findall(re.sub(r'"[^"]*"', '""', line)))
+    return ids
+
+
+def picture_checks(page: Page, block: dict, warn) -> None:
+    """What a flowchart says about itself, which wiki_browser.py render then draws (pages.md, Diagrams)."""
+    source = block["source"]
+    if not re.search(r"^\s*(flowchart|graph)\b", source, re.M):
+        return
+    where = f"[{block['id']}]"
+    if re.search(r"^\s*(style|classDef|linkStyle)\b", source, re.M):
+        warn(page, block["line"], f"{where} writes colours by hand (style, classDef or linkStyle), so render leaves it as it "
+                                  "is: say what the picture means and let render draw it (pages.md, Diagrams)")
+        return
+    boxes = flow_boxes(source)
+    key = re.search(r"^\s*%%\s*key:\s*([A-Za-z_][\w-]*)", source, re.M)
+    if key and key.group(1) not in boxes:
+        warn(page, block["line"], f"{where} `%% key: {key.group(1)}` names no box of the diagram")
+    elif not key and len(boxes) >= MANY_BOXES:
+        warn(page, block["line"], f"{where} {len(boxes)} boxes and no `%% key:` line: the picture gives a reader no one thing "
+                                  "to notice. Name the box to leave remembering (pages.md, Diagrams)")
+    legend = re.search(r"^\s*%%\s*legend:(.*)$", source, re.M)
+    if re.search(r'==>|==\s*"[^"]*"\s*==>', source) and not (legend and re.search(r"\bthick\s*=", legend.group(1))):
+        warn(page, block["line"], f"{where} thick arrows that `%% legend: thick = …` does not name: say what the heavy route is")
+
+
+def formula_checks(page: Page, warn) -> None:
+    """A formula of several lines numbers them, so the notes under it have something to point at."""
+    for m in re.finditer(r"^```math[^\n]*\n(.*?)^```", page.text, re.M | re.S):
+        if re.search(r"\\\\\s*$", m.group(1), re.M) and "\\tag{" not in m.group(1):
+            warn(page, page.text[:m.start()].count("\n") + 1,
+                 "a formula of several lines without \\tag numbers: end each line with \\tag{1}, \\tag{2}, in an align "
+                 "block, and number the notes under it the same (pages.md, Formulas)")
+
+
 def diagram_hash(source: str) -> str:
     norm = "\n".join(line.rstrip() for line in source.strip().split("\n"))
     return sha256(norm.encode("utf-8"))
@@ -1033,6 +1078,7 @@ def lint(repo: Path, wiki: Path, run: bool = False, in_place: bool = False, time
             if block["id"] in seen_ids:
                 bad(page, block["line"], f"diagram id '{block['id']}' also used in {seen_ids[block['id']]}")
             seen_ids[block["id"]] = page.label
+            picture_checks(page, block, warn)
             svg = wiki / "diagrams" / f"{block['id']}.svg"
             if not svg.exists():
                 bad(page, block["line"], f"diagrams/{block['id']}.svg not rendered (run wiki_browser.py render)")
@@ -1046,6 +1092,7 @@ def lint(repo: Path, wiki: Path, run: bool = False, in_place: bool = False, time
                                           "or squeezes it (run wiki_browser.py render again)")
             if f"diagrams/{block['id']}.svg" not in page.text:
                 warn(page, block["line"], f"the page does not show diagrams/{block['id']}.svg")
+        formula_checks(page, warn)
         # boxes that name code, and the calls a call map draws
         if "```mermaid" in page.text:
             if files is None:

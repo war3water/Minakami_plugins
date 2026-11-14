@@ -162,7 +162,7 @@ code-map/
     references/extraction.md        Shared method: languages, entry points, pipeline, stable names, editor link schemes
     skills/code-map/                The map: SKILL.md runbook, references/data-schema.md, templates/viewer.html
     skills/wiki/                    The wiki: SKILL.md, references/ (build, update, pages, readme), templates/, tools/
-    skills/wiki/tools/              wiki.py, wiki_browser.py, viewer_template.html, vendor/ (marked, KaTeX, the viewer's font; copied into repositories)
+    skills/wiki/tools/              wiki.py, wiki_browser.py, diagram_style.js (how every flowchart is drawn), viewer_template.html, vendor/ (marked, KaTeX, the viewer's font; copied into repositories)
 ```
 
 Each skill reads its own folder and the shared `references/`. In Claude Code these reads are pre-approved for the turn that invokes the skill (`allowed-tools`), and so are the wiki's runs of its own tools, so neither prompts for permission. In Codex the same SKILL.md files apply, with paths resolved from each SKILL.md's folder. Codex loads plugin skills only in interactive sessions (see the repository README); in headless Codex runs, the rules block and the copied tools keep the wiki current.
