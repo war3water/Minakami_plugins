@@ -338,7 +338,7 @@ KIN_CONFIG = {
     "sequence": {"mirrorActors": False, "wrap": False, "messageMargin": 34, "noteMargin": 12, "boxMargin": 8,
                  "actorMargin": 36, "width": 170},
     "state": {"nodeSpacing": 40, "rankSpacing": 44}, "class": {"nodeSpacing": 40, "rankSpacing": 50},
-    "er": {"layoutDirection": "TB", "minEntityWidth": 120, "entityPadding": 12},
+    "er": {"layoutDirection": "TB", "minEntityWidth": 120, "minEntityHeight": 40, "entityPadding": 12},
     "timeline": {"disableMulticolor": False}, "packet": {"bitsPerRow": 32, "rowHeight": 34, "paddingY": 14},
 }
 # Where these kinds print a label's quotes as written (a flowchart needs them, so a page tends to write them everywhere).

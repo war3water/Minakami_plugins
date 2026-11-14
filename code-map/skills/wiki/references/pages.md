@@ -93,6 +93,12 @@ The test: from this page alone, a newcomer can name each step, its method and it
 
 The test: take anything a user can see or any message the program prints; a reader finds its row and opens the right file first.
 
+## Limits and defaults
+
+`reference/limits.md`, titled "Limits and defaults": every named number the code decides by (a wait, a cap, a window, a threshold, a default), with the functions that read it and the code's own comment on it. `python <tools folder>/wiki.py limits --write` writes it from the code, so it costs no writing; list it in the index under Reference. A user's "where does that number come from" lands there, for any part of the code.
+
+The table between its two markers is the tool's: change nothing in it. What a number means for a user goes where the reader meets it, in the map row of its module or on its flow's page. A number the code uses without a name (a literal in a condition, a slice) is in no table: the map row or the step that applies it says it.
+
 ## Sources page
 
 When the code follows any external source (a standard, a handbook, a paper, a specification, a vendor's API document), write `reference/sources.md`, titled "Standards and sources", from `templates/sources.md.tmpl`. One row per source: its short name as pages cite it, the full citation with the clauses the code uses, where the repository keeps it or notes on it, a public link when one exists, and the pages and functions that use it. Each row's first cell starts with an anchor, `<a id="rfc-9457"></a>RFC 9457` (the short name in lower case, with letters, digits and hyphens), so a page links straight to that row: `../reference/sources.md#rfc-9457`. Cite only what the code or its documents name; a source you cannot place in the repository or its documents is reported, not listed.
@@ -130,6 +136,7 @@ One or two sentences: what this page answers.
 - **Code on a page is read before it is run.** The sentence before a block that calls the project's own code (a short script, a REPL session) says what the block shows, and names each call the page has not explained: what it does, and what happens without it ("`init_db()` creates the tables; without it the first query fails").
 - **Headings say the point**, in the reader's words, not the name of a rule in the code: "If a setting is set in more than one place", not "Which value wins". Someone who reads only the headings learns what the page says.
 - **The consequence first, then the reason.** Open a section with what the reader should do or expect, with one concrete example; the mechanism follows. For example: "Setting `os.environ["LLM_MODEL"]` after the import changes nothing: pass `model=` instead. The value is read once, at import…".
+- **A word that closes a door is a claim about every path.** "Only on a `.doc`", "every command", "once per document", "until the service restarts", "at most 5 minutes": before writing one, read the other branches. Where they differ, give the main case and name the exception. A summary line on a card or in the overview says no more than the page it summarises.
 - **One home per fact, said once.** A table, list or procedure is written in full in one place: settings and flags on a reference page, a procedure on its how-to page, setup in the README, a flow's steps on its how-it-works page, where each module lives on the map. Another page gives the part its reader needs for the task at hand, and a link. This holds for the same fact in other words: the overview tells a flow at the level of parts, its how-it-works page owns the steps and the code, run-and-debug owns where to break. Within a page, cut a sentence that restates its heading, the table or diagram beside it, or the page's purpose. The test: a reader finishes a task without opening another page, and a change in the code needs the fact edited in one place.
 - **Cite the sources the code follows, with a link.** When a page names a standard, a handbook, a paper or a specification the code implements, the first mention in each section links it, and so does every step's Method cell. A short form is a citation too: "RFC 9457 §3" and "§3.1.2" need the link as much as "RFC 9457". Link a clause to the repository's own document on it (a handbook chapter, a spec), and otherwise to the source's row on `reference/sources.md` by its anchor. Before writing a Method cell, read the docstrings and comments of the step's functions and of the helpers they call: the clause is often there. When neither the code nor the project's documents name a source for a method, say so in the cell ("Method B; the code names no clause"), so the reader does not look for one.
 - **Links are relative.** Between pages, `../howto/run-and-debug.md`; to code, the file's relative path; to a section, `page.md#heading-slug`.
@@ -215,7 +222,7 @@ flowchart TB
   - `%% key: <node id>`: the one box to leave remembering (test 3). A picture with more than a handful of boxes has one. `%% key: none` says that no box matters more than the others; then ask whether the picture is a list drawn as boxes, which a table shows better.
   - `subgraph`: the groups of a picture of many parts, each named for what its members share (the layers of a system, the phases of a flow). Where Mermaid would spread the groups apart because arrows cross them, `render` draws the picture without the bands and shows each group by colour.
   - `-.->`: something that comes back or is reached indirectly (a result, a reply, a lookup). `==>`: only where one route is the point of the picture, such as the way a request goes in.
-  - `class <ids> stop` and `class <ids> ok`: the ends of a decision that refuse or fail, and the ends that succeed.
+  - `class <ids> stop` and `class <ids> ok`: the ends of a decision that refuse or fail, and the ends that succeed. An end is named for its outcome and carries no step number.
   - `%% legend: key = …; thick = …; dashed = …; stop = …; ok = …`: a few words for each of these the picture uses, printed under it. The key's words say why it is the one to notice ("every request passes through here").
   - A box whose text has a `<br/>` starts with its title: the part or step in a few words, then what it is made of or its `file: function`.
   Because the look is not in the source, a change in the code is a change to a line of text, and the picture is drawn again.
@@ -314,7 +321,7 @@ This is the page developers need most. Start from `templates/run-and-debug.md.tm
    - where a command reproduces the symptom safely, give it, marked `check:run exit=<code>`.
 
    Under the table, one line sends a report the table does not list to the map (`../reference/map.md`).
-7. **Where each output value is set.** Include this when the program writes a structured result (a JSON or CSV file, a report, an API response, database rows). A table `Field | What it holds | Set in`, one row per field a reader would question, derived from the code that writes the field. `Set in` is a link whose text is the symbol and whose target is its file, for example ``[`merge_signals`](../../src/pipeline.py)``, so a wrong value leads straight to the function to break in. When a reference page already describes the format, add the `Set in` column to its table and link it from here.
+7. **Where each output value is set.** Include this when the program writes a structured result (a JSON or CSV file, a report, an API response, database rows). A table `Field | What it holds | Set in`, one row per field a reader would question. `Set in` names the function that works the value out, where a breakpoint shows it being decided; a function that only copies it into the result is not that function. It is a link whose text is the symbol and whose target is its file, for example ``[`merge_signals`](../../src/pipeline.py)``, so a wrong value leads straight to the function to break in. When a reference page already describes the format, add the `Set in` column to its table and link it from here.
 8. **Debug configurations.** The committed launch configurations by name, and what each runs.
 
 ## What the lint checks
@@ -332,6 +339,7 @@ This is the page developers need most. Start from `templates/run-and-debug.md.tm
 | | a table or diagram that repeats another; a `$$` formula; a template placeholder left in |
 | | a flowchart of many boxes with no `%% key:`, a key that names no box, colours written by hand, thick arrows the legend does not name; a formula of several lines without `\tag` numbers |
 | a figure not given its look by `render` | a figure with colours written by hand; a figure no page shows |
+| a limits table older than the code | named limits in the code on no page, when the wiki has no limits page |
 
 It also reports the pictures by kind, the words a reader has to read and the longest pages, so growth is visible; there is no limit, and a page is as long as its facts need.
 

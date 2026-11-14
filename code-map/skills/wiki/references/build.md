@@ -36,6 +36,7 @@ In a temporary copy of the repository, run the commands you will document that n
 - a how-it-works page for each core flow, starting with the primary path, following `pages.md` §How-it-works pages: the everyday picture, the steps, the call map and the rules that decide the result;
 - `howto/run-and-debug.md`, following `pages.md` §Run and debug, pointing into the call maps instead of drawing them again;
 - `reference/map.md`, following `pages.md` §The map of the code: one row for every module, so the code the pages above do not explain still has a way in. Every wiki has one; on a small project it is a short page;
+- `reference/limits.md`, which the tool writes from the code (`pages.md` §Limits and defaults);
 - `reference/sources.md` when the code follows any external source, following `pages.md` §Sources page, with every mention on the other pages and in the README linked to it or to the repository's own chapter;
 - reference pages for what readers will look up while working: each subsystem the primary path passes through, the public API, the command-line flags, the configuration, the data formats, as far as the code has them;
 - how-to pages for the changes the code invites: an extension point, a registry or a plugin interface suggests "Add a …";
@@ -74,7 +75,8 @@ Write only what was approved:
 2. `SCHEMA.md` from `templates/SCHEMA.md.tmpl`. Fill in this repository's source layers, where captured evidence lives, the design documents pages must agree with, and the chosen folders in the commands.
 3. `index.md` and `log.md` from their templates. The log's first entry is `build`.
 4. The pages, following `pages.md`. Set `updated:` to today's date.
-5. The README edits, the rules block, and the approved extras.
+5. `python <skill folder>/tools/wiki.py limits --write`, and its page listed in the index.
+6. The README edits, the rules block, and the approved extras.
 
 Replace every `{{…}}` placeholder; lint warns about any that are left.
 
@@ -101,6 +103,8 @@ Run each check from the repository root and fix what it finds before the next on
 
    Fix what fails, and compare the word count the lint reports before and after this pass.
 6. **Audit the claims.** List every concrete claim a reader will act on: commands, versions, defaults, limits, flags, ports, environment variables, exit codes, error messages, file locations, the methods and formulas named on how-it-works pages, and the behaviour of requests and responses. Verify each one, either by a `check:run` block (with `check:output` where the page shows output) or by the line of code it comes from. A claim you can verify neither way is removed, or labelled as unverified with what would verify it. Report the counts: verified by running, verified in the code, unverified.
+
+   An author reads what they meant to write. Where the runtime has subagents, give every page that makes claims about the code (the how-it-works pages, the capability cards, the tables of run-and-debug, the map's "not what it seems" table) to a fresh agent that has the code and did not see you write them. Ask it for what is wrong or imprecise, starting with the sentences that close a door (`pages.md`, Rules), and with what each diagram's source says. Fix what it finds on every page that says the same, and report how many claims it checked and how many it changed.
 
 ## 6. Report
 

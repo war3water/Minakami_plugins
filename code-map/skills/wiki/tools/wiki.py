@@ -986,7 +986,7 @@ def lint(repo: Path, wiki: Path, run: bool = False, in_place: bool = False, time
                 bad(page, 1, f"kind is '{page.kind or '(none)'}'; use one of {', '.join(sorted(PAGE_KINDS))}")
             if not page.meta.get("title"):
                 warn(page, 1, "no title in front matter")
-            if not page.sources and page.kind in ("reference", "explanation", "how-to") and not any(
+            if not page.sources and page.kind in ("reference", "explanation", "how-to") and not LIMITS_BLOCK.search(page.text) and not any(
                     "open first" in header for _, header, _ in table_rows(page)):  # the map's rows are checked one by one
                 warn(page, 1, "no sources: the page cannot be checked against the code")
             if page.path.resolve() not in indexed:
@@ -1196,6 +1196,7 @@ def lint(repo: Path, wiki: Path, run: bool = False, in_place: bool = False, time
     repeat_checks(pages, warnings)
     first_read_checks(pages, warnings)
     report["map"] = coverage_checks(repo, wiki, pages, warnings)
+    report["limits"] = limit_checks(repo, wiki, pages, problems, warnings)
 
     report["commands"] = [dict(b, status="not run") for b in all_blocks]
     if run and all_blocks:
@@ -1819,6 +1820,144 @@ def holds_nothing(path: Path) -> bool:
     return not any(line.strip() and not line.strip().startswith(("#", "//")) for line in text.split("\n"))
 
 
+# ---------------------------------------------------------------- limits and defaults
+
+# A named number at the top level of a code file: RETRY_AFTER_S = 3600.0, export const MAX_ROWS = 1000, MAX_GAP=2.
+LIMIT_LINE = re.compile(r"^(?:export\s+)?(?:(?:const|final|static|let|var|public|private|readonly|val)\s+)*\$?"
+                        r"([A-Z][A-Z0-9]*(?:_[A-Z0-9]+)+|[A-Z]{4,})\b\s*(?::\s*[\w\[\], .|]+)?\s*=\s*(.+?)\s*;?\s*"
+                        r"(?:(?:#|//)\s*(.*))?$")
+LIMIT_VALUE = re.compile(r"^[-+]?[\d_.]+(?:e[-+]?\d+)?[a-zA-Z]{0,2}(?:\s*[-+*/]\s*[\w.]+)*$|^\(?[\w.]+\s*[*/]\s*[\d_.]+\)?$")
+TEST_PARTS = {"tests", "test", "__tests__", "spec", "specs", "testing", "fixtures", "spikes", "examples"}
+LIMITS_BEGIN = "<!-- limits:begin (written by wiki.py limits --write from the code; change the code, not this table) -->"
+LIMITS_END = "<!-- limits:end -->"
+LIMITS_BLOCK = re.compile(r"<!-- limits:begin[^>]*-->\n(.*?)<!-- limits:end -->", re.S)
+
+
+def named_limits(repo: Path, wiki: Path) -> list[dict]:
+    """The named numbers the code decides by: a wait, a cap, a window, a threshold, a default. Top-level constants
+    with a numeric value, outside tests, each with the comment the code gives it (on its line, else the line above).
+    A user who asks where a number comes from is asking for one of these."""
+    out = []
+    for f in tracked_code(repo, wiki):
+        path = Path(f)
+        if any(part.lower() in TEST_PARTS for part in path.parts) or re.search(r"(^|[._-])(test|spec)s?[._-]", path.name.lower()):
+            continue
+        try:
+            lines = read(repo / f).split("\n")
+        except OSError:
+            continue
+        for i, line in enumerate(lines):
+            m = None if line[:1] in " \t" else LIMIT_LINE.match(line)
+            if not m or not LIMIT_VALUE.match(m.group(2)) or len(m.group(2)) > 40:
+                continue
+            note = (m.group(3) or "").strip()
+            above = lines[i - 1].strip() if i else ""
+            if not note and above.startswith(("#", "//")) and not above.startswith(("#!", "# -*-", "// eslint", "# type:", "# noqa", "# pylint")):
+                note = above.lstrip("#/ ").strip()
+            out.append({"path": f, "name": m.group(1), "value": m.group(2), "note": note[:160], "line": i + 1})
+    return out
+
+
+NOT_A_NAME = {"if", "else", "for", "while", "switch", "case", "catch", "try", "return", "do", "with", "function", "new"}
+
+
+def limit_users(repo: Path, syms: Symbols, item: dict) -> list[str]:
+    """The functions of the limit's own file that read it, innermost first found: where the number takes effect."""
+    path = repo / item["path"]
+    try:
+        _, defs = syms.defs(path)
+        lines = read(path).split("\n")
+    except (OSError, ValueError):
+        return []
+    name = re.compile(rf"(?<![\w$]){re.escape(item['name'])}(?![\w])")
+    users: list[str] = []
+    for n, line in enumerate(lines, 1):
+        if n == item["line"] or not name.search(line):
+            continue
+        # outside Python the definitions are found by pattern, which can take a statement for one
+        inside = [d for d in defs if d[1] <= n <= (d[2] or d[1]) and d[0].split(".")[-1] not in NOT_A_NAME]
+        if inside:
+            best = max(inside, key=lambda d: d[1])[0]
+            if best not in users and best != item["name"]:
+                users.append(best)
+    return users[:3]
+
+
+def limits_block(repo: Path, wiki: Path) -> str:
+    """The table of named_limits, one section for each folder, as reference/limits.md carries it."""
+    found = named_limits(repo, wiki)
+    if not found:
+        return ""
+    by_dir: dict[str, list[dict]] = {}
+    for item in found:
+        by_dir.setdefault(item["path"].rpartition("/")[0] or ".", []).append(item)
+    page_dir = wiki / "reference"
+    syms = Symbols(repo)
+    out = []
+    for folder in sorted(by_dir):
+        out += [f"### `{folder}/`", "", "| Limit | Value | Read in | The code's note | File |", "|---|---|---|---|---|"]
+        for item in sorted(by_dir[folder], key=lambda x: (x["path"], x["line"])):
+            link = os.path.relpath(repo / item["path"], page_dir).replace(os.sep, "/")
+            note = item["note"].replace("|", "\\|").replace("`", "'")
+            users = ", ".join(f"`{u}`" for u in limit_users(repo, syms, item))
+            out.append(f"| `{item['name']}` | `{item['value']}` | {users} | {note} | [`{Path(item['path']).name}`]({link}) |")
+        out.append("")
+    return "\n".join(out)
+
+
+def write_limits(repo: Path, wiki: Path) -> str:
+    """Write or refresh reference/limits.md. Only the block between its two markers is the tool's; the words around
+    it stay as the page has them."""
+    block = limits_block(repo, wiki)
+    page = wiki / "reference" / "limits.md"
+    if not block:
+        return "no named limits found in the code; nothing written"
+    body = f"{LIMITS_BEGIN}\n{block}{LIMITS_END}"
+    if page.exists():
+        text = read(page)
+        new = LIMITS_BLOCK.sub(lambda _: body, text, count=1) if LIMITS_BLOCK.search(text) else text.rstrip("\n") + "\n\n" + body + "\n"
+    else:
+        new = ("---\ntitle: Limits and defaults\nkind: reference\nupdated: " + date.today().isoformat() + "\n---\n"
+               "# Limits and defaults\n\n"
+               "Every named number the code decides by: a wait, a cap, a window, a threshold, a default. When someone asks "
+               "where a number comes from, search this page for the number or the word, then open its file. The table is "
+               "written from the code by `wiki.py limits --write`, with the code's own comment on each line; the lint fails "
+               "when it is older than the code. A number the code uses without a name is not here: the page of its flow, or "
+               "the map row of its module, says it. `Read in` names the functions of the same file that use the number: "
+               "start there.\n\n" + body + "\n")
+    if not page.exists() or new != read(page):
+        page.parent.mkdir(parents=True, exist_ok=True)
+        page.write_text(new, encoding="utf-8", newline="\n")
+        state = "written"
+    else:
+        state = "already current"
+    return (f"{posix(page, repo)} {state}: {len(named_limits(repo, wiki))} limits in {block.count('### ')} folders. "
+            "List it in index.md under Reference.")
+
+
+def limit_checks(repo: Path, wiki: Path, pages: list[Page], problems: list[dict], warnings: list[dict]) -> dict:
+    found = named_limits(repo, wiki)
+    if not found:
+        return {}
+    text = "\n".join(p.text for p in pages)
+    unnamed = [x for x in found if not re.search(rf"(?<![\w]){re.escape(x['name'])}(?![\w])", text)]
+    page = next((p for p in pages if p.wiki_rel and p.wiki_rel.replace("\\", "/") == "reference/limits.md"), None)
+    block = LIMITS_BLOCK.search(page.text) if page else None
+    if block:
+        if block.group(1).strip() != limits_block(repo, wiki).strip():
+            problems.append({"page": page.label, "line": 1, "msg": "the limits table is older than the code (run wiki.py limits --write)"})
+    elif unnamed:
+        files: dict[str, int] = {}
+        for x in unnamed:
+            files[x["path"]] = files.get(x["path"], 0) + 1
+        top = ", ".join(f"{f} ({n})" for f, n in sorted(files.items(), key=lambda kv: (-kv[1], kv[0]))[:5])
+        warnings.append({"page": "index.md", "line": 0, "msg": f"{len(unnamed)} of {len(found)} named limits in the code are on no "
+                         f"page ({top}{', …' if len(files) > 5 else ''}): a reader asked where a number comes from finds no way "
+                         "in. `wiki.py limits --write` writes them as reference/limits.md, from the code and at no cost in "
+                         "writing; list that page in the index"})
+    return {"named": len(found), "on_pages": len(found) - len(unnamed)}
+
+
 def coverage_checks(repo: Path, wiki: Path, pages: list[Page], warnings: list[dict]) -> dict:
     """How much of the code the wiki leads to. A code file counts when a page links it or names it in `sources:`, or
     when a row of the map (a table with an `Open first` column) names it, or a folder above it, in its first cell.
@@ -2266,6 +2405,9 @@ def summary(report: dict) -> str:
     if cmap:
         parts.append(f"{cmap['code_files']} code files: {cmap['on_pages']} on pages, {cmap['under_map_rows']} under map rows, "
                      f"{len(cmap['on_none'])} on none" + "".join(f" (widest map row: {r}/, {n} files)" for r, n in cmap["largest_rows"][:1]))
+    lim = report.get("limits") or {}
+    if lim:
+        parts.append(f"{lim['named']} named limits, {lim['on_pages']} on a page")
     kept = len(report.get("accepted") or [])
     return (", ".join(parts) + f": {len(report['problems'])} problems, {len(report['warnings'])} warnings"
             + (f", {kept} kept with a reason" if kept else ""))
@@ -2759,6 +2901,10 @@ def main(argv: list[str] | None = None) -> int:
     f.add_argument("--repo", type=Path)
     f.add_argument("--wiki", type=Path)
     f.add_argument("--max-lines", type=int, default=40, help="keep the first and last lines of longer output")
+    li = sub.add_parser("limits", help="the named numbers the code decides by, as a table for reference/limits.md")
+    li.add_argument("--repo", type=Path)
+    li.add_argument("--wiki", type=Path)
+    li.add_argument("--write", action="store_true", help="write or refresh reference/limits.md instead of printing the table")
     c = sub.add_parser("copy-tools")
     c.add_argument("dest", type=Path)
     c.add_argument("--force", action="store_true")
@@ -2796,6 +2942,9 @@ def main(argv: list[str] | None = None) -> int:
             print("clean environment left out: " + ", ".join(report["env_left_out"]))  # names only, never values
         print(json.dumps(report, indent=2, ensure_ascii=False)) if a.json else print_lint(report)
         return 1 if report["problems"] else 0
+    if a.cmd == "limits":
+        print(write_limits(repo, wiki) if a.write else (limits_block(repo, wiki) or "no named limits found in the code"))
+        return 0
     if a.cmd == "fill":
         res = fill(repo, wiki, a.capture.resolve(), a.max_lines)
         for r in res["filled"]:

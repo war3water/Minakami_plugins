@@ -65,6 +65,7 @@ Run from the repository root. The tools in `{{tools_dir}}/` need only Python 3.9
 | Lint | `python {{tools_dir}}/wiki.py lint --strict` |
 | Lint and run the documented commands as a newcomer would | `python {{tools_dir}}/wiki.py lint --run --strict --clean-env` |
 | Render the diagrams | `python {{tools_dir}}/wiki_browser.py render` |
+| Refresh the limits table | `python {{tools_dir}}/wiki.py limits --write` |
 | A call map read from Python code | `python {{tools_dir}}/wiki.py callgraph <path>#<function>` (`--table` for the complete `Caller | Calls` list) |
 | Write captured outputs into blocks marked `check:output fill` | `python {{tools_dir}}/wiki.py fill --capture <folder from lint --run --capture>` |
 | Questions asked in sessions here, not answered yet | `python {{tools_dir}}/wiki.py questions` |

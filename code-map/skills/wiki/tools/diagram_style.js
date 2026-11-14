@@ -130,7 +130,8 @@ window.wikiDress = function (svgText, opt) {
     const byHand = edges.some(e => e.kind === "thick");
     const way = new Set();
     if (byHand) edges.forEach(e => { if (e.kind === "thick") way.add(e); });
-    else if (key && !starts.includes(key)) {
+    // a picture of questions is a decision: each of its branches is a way through it, so none is coloured as the way
+    else if (key && !starts.includes(key) && !svg.querySelector("g.node.wikiask")) {
       const back = (edgesInto) => {
         const via = new Map([[key, null]]), queue = [key];
         while (queue.length) {
