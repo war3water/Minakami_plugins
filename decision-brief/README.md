@@ -8,11 +8,17 @@ when you are done it reads everything at once. One `SKILL.md` serves every runti
 The page has four tabs, so finished rounds never pile up above the new questions:
 
 - **Waiting for you** (with the number still unanswered): one short card per open question. It gives two or
-  three sentences of background in plain words (anything longer folds under **More**), an example from your
-  project that says where it comes from, the options each with what it changes, and a **Recommended** tag on one.
+  three sentences of background in plain words (anything longer folds under **More**), the options each with
+  what it changes, and a **Recommended** tag on one. Where those would leave you unsure, it adds an example from
+  your project that says where it comes from; where they already make the choice plain, it adds nothing.
   Below them are an **Other** answer with its own text box, **Add a note**, and **Clear** to take a choice back.
-  When options look different, a switch shows each option's picture before you choose. New questions that came
-  up during the work sit under a heading that says where they came from.
+  Where a picture makes a question easier to understand than words, the card shows one made for that question: a
+  chart over the range that matters, the mechanism drawn with its real parts, a timeline, the numbers worked through,
+  screenshots, or a live demo you can try. Each one reads without explanation: axes and marks say what they are, and
+  the card gives the facts behind its numbers. Choosing an option highlights its part of the picture. Questions that
+  a sentence makes clear stay words only. When
+  options look different, a switch shows each option's picture before you choose. New questions that came up during
+  the work sit under a heading that says where they came from.
 - **Work status**: what your earlier answers turned into, with before and after screenshots to check, and a
   count of the ones that need something from you.
 - **Decided**: the latest round, under its name, with what the agent did; you can still change an answer there.
@@ -27,15 +33,18 @@ the thread while it reads along, or a read-only helper agent answers when you pr
 top shows how many questions you have answered, whether answers save, and whether the agent is reading along;
 **I'm done** tells it to read your answers. The instructions fold under **How this works**.
 
-The agent keeps each card to about one laptop screen: a few sentences of background, an example in a sentence or
-two, and a line per option, with worked numbers folded under **More**. Beside the tabs, **Compact** turns each card
-into a short form, with each option on one line followed by what it changes; **Detailed**, the default, gives each
-effect its own line. The page remembers your pick.
+The agent keeps each card to about one laptop screen: a few sentences of background and a line per option, plus an
+example, a table or a picture only where the choice is not yet plain, with worked numbers folded under **More**.
+Beside the tabs, **Compact** shows each card as the question, its background and its options on one screen, with
+the example, pictures and tables one click away; **Detailed**, the default, shows the whole card. The page
+remembers your pick.
 
-Answers save as you choose. Every picture opens full size, where the wheel or a pinch zooms and dragging pans. The
-page follows your system's light or dark theme, comes in three looks (ledger by default, rose and slate), works
-with the keyboard alone (arrow keys move between tabs), fits a phone screen, and comes in English or Chinese (other
-languages through translated labels).
+Answers save as you choose. Every picture has its own **Comment** and opens full size, where the wheel or a pinch
+zooms and dragging pans; a live demo runs sealed off from the network and from your answers. The page follows your
+system's light or dark theme, comes in four looks (notebook by default, set in IBM Plex, then ledger, rose and
+slate), works with the keyboard alone (arrow keys move between tabs), fits a phone screen, and comes in English or
+Chinese (other languages through translated labels). It loads nothing from the internet, except that an Artifact
+loads its typeface from Google Fonts.
 
 ## Install
 
@@ -258,6 +267,49 @@ The same holds for the local page and the static file, not only on claude.ai. Th
 page, and `read` prints only this round's comment threads, leaving settled ones to `history --threads`. A static
 page keeps the reader's saved answers from round to round, and its Copy and Download carry only the current cards.
 
+**Pictures where they help, and nothing added to a clear card (0.6.0).** A card can now carry a picture made for
+its question: a chart, the mechanism drawn with its real parts, a timeline or a live demo. Two harder projects were
+written to test this: an order pipeline where duplicate parcels enter at two places (English), and a tea shop whose
+price rules make some members pay more than non-members (Chinese). They ran beside the tile estimator on Claude
+Sonnet 5.5, Claude Opus 5.5 and gpt-6.1-sol in Codex.
+
+A first draft with pictures won a blind panel against 0.5.0 in 10 of 15 verdicts, with 1 tie, and scored 3.3
+against 2.6 on pictures. It scored lower on straightforward, 3.3 against 3.9. Measured on a laptop screen (1366 by
+768), a later draft showed why: a card with a picture ran 1.3 to 1.8 screens, and its options began 800 to 1,090
+pixels down, below the first screen. The picture came on top of an example, a table and sentences that said the
+same thing, and every card carried an example because 0.4.0 required one. The person the pages were made for found
+them long-winded.
+
+0.6.0 asks for less. A card is the question, its background, the options and a recommendation. An example, a table
+or a picture is added only where those leave the choice unclear, once, in the form that shows it fastest, and the
+build no longer warns about a card without an example. Each option is one line: what it gains and what it costs
+compared with today, with how many and how much.
+
+| | Draft with an example on every card | 0.6.0 |
+|---|---|---|
+| Words to read on a page's cards, Sonnet 5.5 | 820 to 1,060 | 540 to 800 |
+| The same, Opus 5.5, the two harder projects | 870 to 890 | 640 to 770 |
+| The same, gpt-6.1-sol in Codex, the two harder projects | 550 to 600 | 510 to 640 |
+| Cards with an example | 28 of 28 | 10 of 33 |
+| Where the options begin on the hard cards, Sonnet 5.5 | 800 to 1,090 pixels down | 275 to 570 |
+| Cost per page, Sonnet 5.5 | about $0.49 | about $0.36 |
+
+Three slips came back in draft after draft. The last wording removed each of them in every run of the final round
+(7 pages on Claude, 3 in Codex):
+
+- **A cost left unsaid.** One tea-shop option makes 1,164 member orders 3 yuan dearer than today. Some drafts
+  recommended it, or offered it, without saying so. The final pages state it with its count and amount.
+- **A claim nobody tried.** The tile estimator's cards said a larger allowance "answers the pilot complaint" in 5
+  of 6 runs of one draft, though the complaint's own order comes out at the same number of boxes either way. The
+  skill now has the agent try an option on the case that was reported and say what it found. Every final run there did,
+  and one found a likelier cause in the project's own files.
+- **How an option is built, where its effect should be.** Options for the pipeline described the fix instead of
+  what it stops. They now say what stops, what continues and how long the work takes.
+
+Every figure on the tea-shop pages was recomputed from the order data, and all of them matched. No panel graded the
+final wording: it was measured on the page and read by a person. On these projects Sonnet now mostly chooses a small
+table where the draft drew a picture; Opus and Codex draw more often.
+
 - **Where the gap comes from.** Without the skill, the pages were a Markdown checklist, a static form that
   overflowed a phone screen by 590 pixels, or nothing. Twice Codex could not write its file in the Windows
   sandbox and asked in the chat instead; twice it made the page on chatgpt.com through the ChatGPT connector.
@@ -283,11 +335,13 @@ page keeps the reader's saved answers from round to round, and its Copy and Down
 The panel saw two runs per arm, so treat the exact numbers as indicative. The fixtures, the harness and every run
 are kept outside this repository.
 
-**The page and its helper.** A browser test (Chromium on Windows 11, Python 3.14, 83 checks, and 19 more for the
-picture viewer) covers the following:
+**The page and its helper.** A browser test (Chromium on Windows 11, Python 3.14: 86 checks, 77 more for pictures on
+cards, 21 for the picture viewer and 25 for the archive of earlier rounds) covers the following:
 
-- the compact and detailed views, the switch, and the remembered pick; sans-serif headings on Chinese pages;
-
+- the compact and detailed views, the switch, and the remembered pick; in the compact view, the example, pictures
+  and tables behind one handle; sans-serif headings on Chinese pages;
+- drawings placed into the page in both themes, the part marked for an option standing out when it is chosen,
+  live demos sealed in their frame, and a Comment on each picture;
 - answers, Other, Clear, Add a note, keyboard selection and reload;
 - the glossary terms explained in place: by pointing, by keyboard focus and by tapping, without choosing the
   option a term sits in;
@@ -341,9 +395,17 @@ without a permission prompt; other runtimes ignore the field.
 - **Live without a framework.** The page's update request waits on the server until an answer or comment
   changes or the agent starts or stops reading along; `wait`, `reply` and the server share `answers.json`
   through a lock file, and every change raises its revision number.
+- **Pictures chosen per question, carried safely.** The agent reads each card as a newcomer and uses a picture
+  where the reader would otherwise get stuck, or leaves the card as words; `references/pictures.md` gives direction
+  on where pictures help, how to make each form so it reads cold, and how to check it. A drawing
+  (`.svg`) is placed into the page, so it takes the page's colours in both themes and the part marked for an option
+  stands out when that option is chosen; its ids and styles are kept to itself. A live demo (`.html`) runs in a
+  sandboxed frame with no network, storage or access to the page. A static file carries both inside it.
 - **Checks the agent would otherwise skip.** `build` refuses duplicate ids, missing `alt` text, images outside
-  the task folder, web images and links that are not http(s). It warns about all-capital short names missing
-  from the glossary, cards without a recommendation or an example, examples that do not say where they come
+  the task folder, web images, links that are not http(s), and drawings that hold code or load outside files. It
+  warns when a drawing's labels look likely to overlap or run off its edge, estimated from their positions, since
+  an agent cannot always look at the page. It also warns about all-capital short names missing
+  from the glossary, cards without a recommendation, examples that do not say where they come
   from, and terms found neither in a source nor in the project's files. A term without a source shows the
   project file it first appears in. `links` lists every link to check before publishing, and `read` lists the
   answers given under Other for the agent to confirm. Codenames in ordinary words are left to the runbook's
@@ -358,3 +420,6 @@ without a permission prompt; other runtimes ignore the field.
   history through `brief.py history`, one line per decision or one card at a time. On claude.ai it never reads the
   published page back, and asks the answer store only for answers given since the last round.
 - **No review rules.** The skill asks for no reviewer and no second model; a review happens when you ask.
+
+The notebook look is set in IBM Plex, which ships with the plugin under the SIL Open Font License
+(`skills/decision-brief/assets/fonts/OFL.txt`).

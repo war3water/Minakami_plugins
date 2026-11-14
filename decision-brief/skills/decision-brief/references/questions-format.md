@@ -15,8 +15,8 @@ The page sorts the cards into tabs. **Waiting for you** holds every question who
 | `intro` | no | Replaces the default opening paragraph (markup allowed) |
 | `lang` | no | The page's language code, such as `en` or `zh-CN` (default `en`). A code starting with `zh` also switches the page's own labels to Chinese |
 | `ui` | no | Replacement interface text, by key (see "Interface text") |
-| `style` | no | The page's look: `ledger` (the default: paper and navy, serif headings; sans-serif on Chinese, Japanese and Korean pages), `rose` (warm pink accent) or `slate` (cool grey and teal). Each has a light and a dark version |
-| `density` | no | How cards open: `detailed` (the default: each effect on its own line) or `compact` (each option on one line with its effect after it, the example as one line). The reader can switch, and the page remembers the pick in that browser |
+| `style` | no | The page's look: `notebook` (the default: IBM Plex type on a grey-green paper), `ledger` (paper and navy, serif headings; sans-serif on Chinese, Japanese and Korean pages), `rose` (warm pink accent) or `slate` (cool grey and teal). Each has a light and a dark version |
+| `density` | no | How cards open: `detailed` (the default: the card reads straight through, each effect on its own line) or `compact` (the question, its background and its options on one screen, each option on one line; the table, pictures, example and "More" open on a click). The reader can switch, and the page remembers the pick in that browser |
 | `glossary` | no | Terms, in reading order |
 | `questions` | yes, unless `progress` holds them | The open question cards |
 | `progress` | no | Reports on decisions already made, each with optional follow-up questions |
@@ -44,10 +44,10 @@ On the cards, the first use of each term (and of each `aka`) is underlined: poin
 | `ref` | no | The project's own number for the question, such as a ticket or decision id, shown after the title so the user can match the card to its source (explain the numbering in the glossary) |
 | `group` | no | The heading the card sits under on Waiting for you, such as "New questions from the sync work" |
 | `plain` | yes | The background in plain words, two or three sentences: what is true today and why it needs a choice (markup) |
-| `more` | no | What would push the card past one screen, folded under "More": the example's working, more cases, history, caveats (markup) |
-| `table` | no | `{"head": [...], "rows": [[...], ...]}`; cells take inline markup |
-| `figures` | no | Images shown after the background (see "Figures") |
-| `example` | no | `{"text": ..., "source": ..., "label": ..., "table": ..., "figures": [...]}`. `source` says where the example comes from, in the page's language: a file and line, a ticket, a log, or that it was made up to illustrate; the build warns when an open question's example has none. `label` replaces the heading "Example" |
+| `more` | no | What would push the card past one screen, folded under "More": the example's working, more cases, how an option is built, history. Nothing that could change the choice (markup) |
+| `table` | no | `{"head": [...], "rows": [[...], ...]}`; cells take inline markup, and a column of numbers lines up on the right. A row that belongs to one option is `{"cells": [...], "option": "<option id>"}`: it stands out when that option is chosen |
+| `figures` | no | Pictures shown after the background: images, drawings or live demos (see "Figures") |
+| `example` | no | For a card whose background and options do not already make the choice plain: `{"text": ..., "source": ..., "label": ..., "table": ..., "figures": [...]}`. `source` says where the example comes from, in the page's language: a file and line, a ticket, a log, or that it was made up to illustrate; the build warns when an open question's example has none. `label` replaces the heading "Example" |
 | `options` | yes | At least one; see below. The page adds Other, Clear, Add a note and Comment |
 | `state` | no | `open` (default) or `answered`, which moves the card to Decided; `brief.py mark` sets it |
 | `round` | no | The heading the card sits under on Decided, such as "Round 1, decided 20 October"; `brief.py mark --round` sets it |
@@ -58,7 +58,7 @@ An option is `{"id": "...", "label": "...", "effect": "...", "recommended": true
 
 - `id`: lowercase letters, digits and dashes, unique within the card; `other` is reserved;
 - `label`: the answer in a few words (inline markup);
-- `effect`: what choosing it changes (inline markup);
+- `effect`: one line on what choosing it changes from today for the people it touches: its gain and its catch, with direction and rough size; not how it is built (inline markup);
 - `recommended`: `true` tags the option "Recommended"; a string also shows that string under it, such as why, or when another option fits better. At most one option per card;
 - `figure` (optional): one picture of what this option looks like (see "Figures"). When options have pictures, the card shows a switch to compare them, opening on the recommended one, and choosing an option shows its picture.
 
@@ -82,10 +82,13 @@ An option is `{"id": "...", "label": "...", "effect": "...", "recommended": true
 
 A figure is `{"src": "shots/before.png", "alt": "...", "label": "Before", "caption": "..."}`.
 
-- `src` is a path relative to questions.json, inside its folder: png, jpg, gif, webp, svg or avif. Web addresses are refused, because the local page loads nothing from outside.
-- `alt` is required: what the image shows, for a reader who cannot see it.
-- Two or more figures sit side by side on a wide screen and stack on a phone.
-- Every picture opens full size on a click (or Enter): the wheel or a pinch zooms, dragging pans, Esc closes.
+- `src` is a path relative to questions.json, inside its folder: an image (png, jpg, gif, webp or avif), a drawing (`.svg`) or a live demo (`.html`). Web addresses are refused, because the local page loads nothing from outside.
+- A drawing is placed into the page itself: it takes the page's colours in light and dark, and its parts marked `data-option="<option id>"` stand out when that option is chosen. A live demo runs in a sealed frame, with no network and no access to the page; the frame grows to fit it. `references/pictures.md` says how to make both, and `build` refuses a drawing that holds code or loads outside files.
+- `alt` is required: what the picture shows, for a reader who cannot see it.
+- `caption` is the point the picture makes, in one line; `build` warns when a drawing or demo has none.
+- `height` (a demo only): its height in pixels until it loads (default 420).
+- Two or more figures sit side by side on a wide screen and stack on a phone. Each has its own Comment button where comments work.
+- Every image and drawing opens full size on a click (or Enter): the wheel or a pinch zooms, dragging pans, Esc closes. A demo has Open large.
 
 ## Markup
 
@@ -93,6 +96,7 @@ Text fields take a small, safe subset; HTML is shown as text:
 
 - a blank line starts a new paragraph; a single line break stays a line break;
 - lines that all start with `- ` form a list, lines that start with `1. ` a numbered list;
+- lines between two ```` ``` ```` lines form a text sketch, shown exactly as typed in a fixed-width font (a calculation, a small layout drawn in characters);
 - `**bold**`, and `` `code` `` for names, paths and values;
 - `[text](https://...)` opens in a new tab; `[text](#g-term)`, `[text](#q-id)` and `[text](#p-id)` jump within the page.
 

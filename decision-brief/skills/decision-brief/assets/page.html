@@ -1,9 +1,12 @@
 <title>__BRIEF_TITLE__</title>
 <meta name="claude:viewport-fit-sides" content="cover">
+<!-- brief:fonts -->
 <style>
 /* decision-brief page. One reading column; the accent marks what needs the reader's answer.
-   Light and dark follow the system; [data-theme] on the root element forces one. Three looks, picked by "style" in
-   questions.json: ledger (the default: paper and navy, serif headings), rose (warm pink) and slate (cool grey, teal). */
+   Light and dark follow the system; [data-theme] on the root element forces one. Four looks, picked by "style" in
+   questions.json: notebook (the default: IBM Plex on a grey-green paper), ledger (paper and navy, serif headings),
+   rose (warm pink) and slate (cool grey, teal). --s1 to --s4 are the colours pictures draw options and series in,
+   checked for colour-blind readers in both themes. */
 :root {
   --bg: #f6f3ec; --panel: #fffdf7; --ink: #1d232b; --muted: #5c6370; --line: #e2dccd;
   --accent: #1f4f7a; --accent-soft: #e2ecf5; --ok: #2e6b45; --ok-soft: #e2f0e6; --wait: #7a5600; --wait-soft: #f6edd6;
@@ -11,14 +14,17 @@
   --display: Georgia, "Iowan Old Style", "Songti SC", "SimSun", serif;
   --mono: ui-monospace, "Cascadia Mono", Consolas, "SF Mono", Menlo, monospace;
   --radius: 4px;
+  --s1: #2a78d6; --s2: #eb6834; --s3: #1baf7a; --s4: #6250d6;
   color-scheme: light;
 }
 @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
   --bg: #14181d; --panel: #1c2229; --ink: #e9edf2; --muted: #a5afbb; --line: #2f3843;
-  --accent: #8fbfeb; --accent-soft: #1d3247; --ok: #7fd1a1; --ok-soft: #17301f; --wait: #e9c46a; --wait-soft: #33290f; color-scheme: dark } }
+  --accent: #8fbfeb; --accent-soft: #1d3247; --ok: #7fd1a1; --ok-soft: #17301f; --wait: #e9c46a; --wait-soft: #33290f;
+  --s1: #3987e5; --s2: #d95926; --s3: #199e70; --s4: #9085e9; color-scheme: dark } }
 :root[data-theme="dark"] {
   --bg: #14181d; --panel: #1c2229; --ink: #e9edf2; --muted: #a5afbb; --line: #2f3843;
-  --accent: #8fbfeb; --accent-soft: #1d3247; --ok: #7fd1a1; --ok-soft: #17301f; --wait: #e9c46a; --wait-soft: #33290f; color-scheme: dark }
+  --accent: #8fbfeb; --accent-soft: #1d3247; --ok: #7fd1a1; --ok-soft: #17301f; --wait: #e9c46a; --wait-soft: #33290f;
+  --s1: #3987e5; --s2: #d95926; --s3: #199e70; --s4: #9085e9; color-scheme: dark }
 :root[data-style="rose"] {
   --bg: #f7f4f5; --panel: #ffffff; --ink: #1d1a1c; --muted: #655b61; --line: #e2d9dd;
   --accent: #a8175a; --accent-soft: #fbe4ee; --ok: #1d6f47; --ok-soft: #e1f3ea; --wait: #7d5200; --wait-soft: #fbf0d9;
@@ -39,7 +45,23 @@
 :root[data-style="slate"][data-theme="dark"] {
   --bg: #0f1418; --panel: #172026; --ink: #e6edf2; --muted: #9fb0bd; --line: #26333c;
   --accent: #4fd1d9; --accent-soft: #123338; --ok: #7bd88f; --ok-soft: #16301c; --wait: #f2c35b; --wait-soft: #33280e; }
+:root[data-style="notebook"] {
+  --bg: #eceee9; --panel: #fbfbf9; --ink: #15191b; --muted: #596064; --line: #d5d9d2;
+  --accent: #1c5cab; --accent-soft: #e2eaf4; --ok: #1d6b46; --ok-soft: #dcefe4; --wait: #7a5600; --wait-soft: #f2e9d2;
+  --body: "IBM Plex Sans", "Segoe UI", system-ui, -apple-system, Roboto, "PingFang SC", "Microsoft YaHei", "Noto Sans SC", sans-serif;
+  --display: "IBM Plex Sans Condensed", "IBM Plex Sans", "Segoe UI", system-ui, "PingFang SC", "Microsoft YaHei", sans-serif;
+  --mono: "IBM Plex Mono", ui-monospace, "Cascadia Mono", Consolas, "SF Mono", Menlo, monospace;
+  --radius: 10px; }
+@media (prefers-color-scheme: dark) { :root[data-style="notebook"]:not([data-theme="light"]) {
+  --bg: #111413; --panel: #1b1d1c; --ink: #e9ece8; --muted: #a3aaa6; --line: #2f3432;
+  --accent: #7fb2ee; --accent-soft: #1b2836; --ok: #8fd8b0; --ok-soft: #1a3326; --wait: #e9c46a; --wait-soft: #33290f; } }
+:root[data-style="notebook"][data-theme="dark"] {
+  --bg: #111413; --panel: #1b1d1c; --ink: #e9ece8; --muted: #a3aaa6; --line: #2f3432;
+  --accent: #7fb2ee; --accent-soft: #1b2836; --ok: #8fd8b0; --ok-soft: #1a3326; --wait: #e9c46a; --wait-soft: #33290f; }
 body { margin: 0; background: var(--bg); color: var(--ink); font: 17px/1.55 var(--body); }
+:root[data-style="notebook"] body { font-size: 16px; }
+:root[data-style="notebook"] h1, :root[data-style="notebook"] h2, :root[data-style="notebook"] h3 { font-weight: 600; }
+:root[data-style="notebook"] h1 { letter-spacing: -0.01em; }
 .wrap { max-width: 860px; margin: 0 auto; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); padding-block: 32px 64px; display: grid; gap: 28px; }
 h1, h2, h3 { font-family: var(--display); line-height: 1.2; text-wrap: balance; margin: 0; }
 h1 { font-size: 2.1rem; font-weight: 800; }
@@ -119,8 +141,14 @@ fieldset.opts { border: 1px solid var(--line); border-radius: var(--radius); mar
 .opt.on .effect { color: var(--ink); }
 .tag { display: inline-block; margin-left: 6px; font: 600 0.72rem/1.6 var(--body); color: var(--accent); border: 1px solid var(--accent); border-radius: 999px; padding: 0 7px; vertical-align: 1px; white-space: nowrap; }
 .opt .rec-note { display: block; color: var(--accent); font-size: 0.86rem; }
-/* Compact view (the reader can switch to it; detailed, the layout above, is the default): a card reads like a short
-   form, each option on one line with its effect after it, the example as one "Example:" line. */
+/* A card's example, table, pictures and "More" sit in one fold. The detailed view (the default) keeps it open and
+   hides its handle, so the card reads straight through. */
+details.evidence > summary { cursor: pointer; color: var(--accent); font-size: 0.9rem; width: fit-content; }
+:root:not([data-density="compact"]) details.evidence > summary { display: none; }
+.ev-body { display: grid; gap: 10px; min-width: 0; }
+:root[data-density="compact"] details.evidence[open] > .ev-body { margin-top: 8px; }
+/* Compact view (the reader can switch to it): the question, its background and its options on one screen, each
+   option on one line with its effect after it; the fold above stays shut until the reader opens it. */
 :root { --colon: ": "; --sep: " \2014  "; }
 :root[data-script="cjk"] { --display: var(--body); --colon: "\FF1A"; }
 :root[data-density="compact"] .q { padding: 12px 16px; gap: 8px; font-size: 0.95rem; }
@@ -164,6 +192,25 @@ button.ghost:disabled, button.solid:disabled { opacity: 0.45; cursor: default; }
 figure { margin: 0; display: grid; gap: 6px; align-content: start; }
 figure img { border: 1px solid var(--line); border-radius: 8px; width: 100%; height: auto; }
 figcaption { font-size: 0.9rem; color: var(--muted); }
+/* Pictures the agent made: a drawing placed into the page (it takes the page's colours; on a phone a wide one scrolls
+   inside its box), a live demo in a sealed frame, a text sketch. The part of a picture marked for an option stands
+   out when that option is chosen. */
+.pic { overflow-x: auto; border-radius: 8px; cursor: zoom-in; }
+.pic > svg { display: block; width: 100%; height: auto; color: var(--ink); font-family: var(--body); }
+.pic:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.pic-wait { display: block; color: var(--muted); font-size: 0.9rem; padding: 8px 0; }
+[data-option] { transition: opacity .15s; }
+.dim-opt { opacity: 0.25; }
+table.mini tr.dim-opt { opacity: 0.4; }
+table.mini tr.on-opt td { background: var(--accent-soft); }
+table.mini .num { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.live { display: grid; gap: 2px; }
+.live iframe { display: block; width: 100%; border: 1px solid var(--line); border-radius: 8px; background: var(--panel); }
+.live-bar { display: flex; flex-wrap: wrap; gap: 4px 14px; align-items: baseline; font-size: 0.84rem; color: var(--muted); }
+.fig-foot { display: flex; flex-wrap: wrap; gap: 2px 14px; align-items: baseline; justify-content: space-between; }
+.fig-foot figcaption { flex: 1 1 260px; min-width: 0; }
+button.link.fig-comment { font-size: 0.82rem; min-height: 28px; padding: 2px 0; }
+pre.sketch { margin: 0; font: 0.86rem/1.45 var(--mono); background: var(--bg); border: 1px solid var(--line); border-radius: 8px; padding: 10px 12px; overflow-x: auto; white-space: pre; }
 .scroll { overflow-x: auto; }
 table.mini { border-collapse: collapse; font-size: 0.93rem; width: 100%; }
 table.mini th, table.mini td { text-align: left; padding: 6px 8px; border-top: 1px solid var(--line); vertical-align: top; }
@@ -206,6 +253,9 @@ figure img { cursor: zoom-in; }
 .zoom .stage { overflow: auto; cursor: grab; touch-action: none; display: grid; }
 .zoom .stage.dragging { cursor: grabbing; }
 .zoom .stage img { margin: auto; max-width: none; user-select: none; -webkit-user-drag: none; display: block; background: #fff; }
+.zoom .stage svg { margin: auto; display: block; max-width: none; min-width: 0; background: var(--panel); color: var(--ink); border-radius: 6px; user-select: none; }
+.zoom.live-zoom .stage { cursor: default; touch-action: auto; padding: 0 12px 12px; }
+.zoom.live-zoom iframe { width: 100%; height: 100%; border: 0; border-radius: 8px; background: var(--panel); }
 .sel-btn { position: absolute; z-index: 10; font: 600 0.9rem var(--body); color: var(--panel); background: var(--accent); border: 0; border-radius: 999px; padding: 8px 14px; box-shadow: 0 2px 10px rgb(0 0 0 / 0.25); cursor: pointer; }
 footer { color: var(--muted); font-size: 0.85rem; }
 @media (max-width: 620px) {
@@ -229,13 +279,14 @@ footer { color: var(--muted); font-size: 0.85rem; }
   "use strict";
   var DATA = JSON.parse(document.getElementById("brief-data").textContent);
   var CONFIG = JSON.parse(document.getElementById("brief-config").textContent);
-  if (DATA.style) document.documentElement.setAttribute("data-style", String(DATA.style));
+  document.documentElement.setAttribute("data-style", String(DATA.style || "notebook"));
   if (/^(zh|ja|ko)/i.test(String(DATA.lang || ""))) document.documentElement.setAttribute("data-script", "cjk");  // sans headings, full-width colon
   // Detailed or compact cards: the reader's last pick in this browser, else the page's "density", else detailed.
   var densityKey = "decision-brief-density";
   function setDensity(d, remember) {
     document.documentElement.setAttribute("data-density", d);
     document.querySelectorAll(".view button").forEach(function (b) { b.setAttribute("aria-pressed", String(b.getAttribute("data-density") === d)); });
+    document.querySelectorAll("details.evidence").forEach(function (e) { e.open = d !== "compact"; });
     if (remember) try { localStorage.setItem(densityKey, d); } catch (e) { /* kept for this visit only */ }
   }
   (function () {
@@ -339,6 +390,8 @@ footer { color: var(--muted); font-size: 0.85rem; }
     note_add: "Add a note",
     saves_auto: "Saves automatically",
     more: "More",
+    evidence: "Example and details",
+    evidence_plain: "Details",
     source: "Source:",
     view_label: "View",
     view_compact: "Compact",
@@ -350,6 +403,10 @@ footer { color: var(--muted); font-size: 0.85rem; }
     zoom_fit: "Fit",
     zoom_actual: "Actual size",
     zoom_close: "Close",
+    comment_pic: "Comment on this picture",
+    picture_quote: "Picture: {what}",
+    live_label: "Live demo: try it here",
+    live_open: "Open large",
     built_with: "Made with decision-brief"
   };
   var ZH = {
@@ -445,6 +502,8 @@ footer { color: var(--muted); font-size: 0.85rem; }
     note_add: "加备注",
     saves_auto: "自动保存",
     more: "更多",
+    evidence: "例子和细节",
+    evidence_plain: "细节",
     source: "出处：",
     view_label: "视图",
     view_compact: "紧凑",
@@ -456,6 +515,10 @@ footer { color: var(--muted); font-size: 0.85rem; }
     zoom_fit: "适合窗口",
     zoom_actual: "原始大小",
     zoom_close: "关闭",
+    comment_pic: "评论这张图",
+    picture_quote: "图：{what}",
+    live_label: "可操作的演示，可以直接试",
+    live_open: "放大查看",
     built_with: "由 decision-brief 生成"
   };
   var T = Object.assign({}, EN, String(DATA.lang || "en").toLowerCase().indexOf("zh") === 0 ? ZH : {}, DATA.ui || {});
@@ -479,6 +542,14 @@ footer { color: var(--muted); font-size: 0.85rem; }
     var frag = document.createDocumentFragment();
     if (text == null || text === "") return frag;
     var src = Array.isArray(text) ? text.join("\n\n") : String(text);
+    // a text sketch between ``` lines keeps its spacing, in a fixed-width font
+    src.split(/^```[^\n]*\n([\s\S]*?)^```[ \t]*$/m).forEach(function (part, i) {
+      if (i % 2) frag.append(el("pre", { class: "sketch", text: part.replace(/\n$/, "") }));
+      else paragraphs(frag, part);
+    });
+    return frag;
+  }
+  function paragraphs(frag, src) {
     src.split(/\n\s*\n/).forEach(function (para) {
       var lines = para.split("\n").filter(function (l) { return l.trim(); });
       if (!lines.length) return;
@@ -490,7 +561,6 @@ footer { color: var(--muted); font-size: 0.85rem; }
         frag.append(el("p", { html: lines.map(inline).join("<br>") }));
       }
     });
-    return frag;
   }
   function el(tag, attrs) {
     var node = document.createElement(tag);
@@ -512,16 +582,200 @@ footer { color: var(--muted); font-size: 0.85rem; }
   }
   function table(t) {
     if (!t || !t.rows) return "";
-    var head = t.head ? el("thead", {}, el("tr", {}, t.head.map(function (h) { return el("th", { html: inline(h) }); }))) : null;
-    var body = el("tbody", {}, t.rows.map(function (r) { return el("tr", {}, r.map(function (c) { return el("td", { html: inline(c) }); })); }));
+    var rows = t.rows.map(function (r) { return Array.isArray(r) ? { cells: r } : r && Array.isArray(r.cells) ? r : { cells: [] }; });
+    var NUM = /^[-+\u2212]?[$\u00a5\u20ac\u00a3]?\d[\d,.\s]*(%|\u2030|[A-Za-z\u00b2\u00b3\u5143]{0,4})$/;
+    var numeric = (t.head || rows[0].cells || []).map(function (h, col) {  // a column of numbers lines up on the right
+      var vals = rows.map(function (r) { return String(r.cells[col] == null ? "" : r.cells[col]).replace(/\*\*|`/g, "").trim(); })
+        .filter(function (v) { return v; });
+      return col > 0 && vals.length > 0 && vals.every(function (v) { return NUM.test(v); });
+    });
+    var head = t.head ? el("thead", {}, el("tr", {}, t.head.map(function (h, i) { return el("th", { class: numeric[i] ? "num" : null, html: inline(h) }); }))) : null;
+    var body = el("tbody", {}, rows.map(function (r) {
+      return el("tr", { "data-option": r.option || null }, r.cells.map(function (c, i) { return el("td", { class: numeric[i] ? "num" : null, html: inline(c) }); }));
+    }));
     return el("div", { class: "scroll" }, el("table", { class: "mini" }, head, body));
   }
-  function figures(list) {
+  function figures(list, target) {  // target: the card a comment on one of these pictures belongs to
     if (!list || !list.length) return "";
     return el("div", { class: list.length > 1 ? "pair" : "single" }, list.map(function (f) {
       var cap = (f.label ? "<b>" + esc(f.label) + ".</b> " : "") + inline(f.caption || "");
-      return el("figure", {}, zoomable(el("img", { src: f.src, alt: f.alt || "", loading: "lazy" })), cap.trim() ? el("figcaption", { html: cap }) : null);
+      var fig = el("figure", {}, picture(f));
+      var foot = el("div", { class: "fig-foot" }, cap.trim() ? el("figcaption", { html: cap }) : null);
+      if (target) foot.append(pictureComment(target, fig, f));
+      if (foot.childNodes.length) fig.append(foot);
+      return fig;
     }));
+  }
+  function pictureComment(target, fig, f) {
+    var what = String((f.label ? f.label + ". " : "") + (f.caption || f.alt || "")).replace(/\*\*|`/g, "").trim();
+    var b = el("button", { type: "button", class: "link fig-comment", text: T.comment_pic, "data-comment": target, hidden: !(store && store.canComment) });
+    b.addEventListener("click", function () { if (store && store.comment) store.comment(target, null, fill(T.picture_quote, { what: what }), fig); });
+    return b;
+  }
+
+  // An image; a drawing (.svg) placed into the page, so it takes the page's colours and its parts marked with
+  // data-option stand out when that option is chosen; or a live demo (.html) in a sealed frame: no network, no access
+  // to this page or its answers. A static file carries the drawing's or demo's text; other pages fetch it.
+  var fileTexts = {}, picSeq = 0, frames = [];
+  function kindOf(f) {
+    var src = String(f.src || "").toLowerCase().split(/[?#]/)[0];
+    if (f.svg != null || (/\.svg$/.test(src) && src.indexOf("data:") !== 0)) return "svg";
+    if (f.html != null || /\.html?$/.test(src)) return "live";
+    return "img";
+  }
+  function fileText(f, key) {
+    if (f[key] != null) return Promise.resolve(f[key]);
+    if (!fileTexts[f.src]) fileTexts[f.src] = fetch(f.src, { credentials: "same-origin" }).then(function (r) {
+      if (!r.ok) throw new Error("HTTP " + r.status);
+      return r.text();
+    });
+    return fileTexts[f.src];
+  }
+  function picture(f) {
+    var kind = kindOf(f), alt = f.alt || "";
+    if (kind === "img") return zoomable(el("img", { src: f.src, alt: alt, loading: "lazy" }));
+    if (kind === "svg") {
+      var box = el("div", { class: "pic", role: "button", tabindex: "0", "aria-label": T.zoom_open + (alt ? ": " + alt : "") },
+        el("span", { class: "pic-wait", text: alt }));  // the description shows until the drawing arrives, or if it cannot
+      fileText(f, "svg").then(function (text) {
+        var svg = cleanSvg(text, "p" + (++picSeq) + "-");
+        if (!svg) return;
+        svg.setAttribute("role", "img");
+        svg.setAttribute("aria-label", alt);
+        var vb = (svg.getAttribute("viewBox") || "").trim().split(/[\s,]+/).map(Number);
+        svg.removeAttribute("width");
+        svg.removeAttribute("height");
+        if (vb.length === 4 && vb[2] > 0) {  // about its drawn size on a laptop; on a phone it scrolls rather than shrink past legible
+          svg.style.maxWidth = Math.round(vb[2] * 1.25) + "px";
+          svg.style.minWidth = Math.min(Math.round(vb[2]), 560) + "px";
+        }
+        box.textContent = "";
+        box.append(svg);
+        remark(box);
+      }, function () {});
+      return box;
+    }
+    var frame = el("iframe", { sandbox: "allow-scripts", title: alt, referrerpolicy: "no-referrer", style: "height:" + Math.round(f.height || 420) + "px" });
+    var open = el("button", { type: "button", class: "link fig-comment", text: T.live_open, disabled: true });
+    var wrap = el("div", { class: "live" }, frame, el("div", { class: "live-bar" }, el("span", { text: T.live_label }), open));
+    frames.push(frame);
+    frame.addEventListener("load", function () { tell(frame); });
+    fileText(f, "html").then(function (text) {
+      var doc = sealed(text);
+      frame.srcdoc = doc;
+      open.disabled = false;
+      open.addEventListener("click", function () { openLive(doc, alt, frame, open); });
+    }, function () { frame.replaceWith(el("p", { class: "pic-wait", text: alt })); });
+    return wrap;
+  }
+  function cleanSvg(text, prefix) {  // no code, nothing from outside, ids and styles kept to this drawing
+    var doc = new DOMParser().parseFromString(String(text), "image/svg+xml"), svg = doc.documentElement;
+    if (!svg || svg.nodeName.toLowerCase() !== "svg" || doc.getElementsByTagName("parsererror").length) return null;
+    [].slice.call(svg.querySelectorAll("script, foreignObject, iframe, object, embed")).forEach(function (n) { n.remove(); });
+    var all = [svg].concat([].slice.call(svg.querySelectorAll("*"))), ids = {};
+    all.forEach(function (n) {
+      [].slice.call(n.attributes).forEach(function (a) {
+        var name = a.name.toLowerCase(), v = a.value.trim();
+        if (name.indexOf("on") === 0) n.removeAttribute(a.name);
+        else if ((name === "href" || name === "xlink:href") && v && v.charAt(0) !== "#" && v.indexOf("data:image/") !== 0) n.removeAttribute(a.name);
+        else if (/url\(\s*['"]?(?!#|data:)/i.test(v)) n.removeAttribute(a.name);
+      });
+      if (n.id) { ids[n.id] = prefix + n.id; n.id = ids[n.id]; }
+    });
+    function refs(v) { return v.replace(/url\(\s*(['"]?)#([^'")\s]+)\1\s*\)/g, function (m, q, id) { return ids[id] ? "url(#" + ids[id] + ")" : m; }); }
+    all.forEach(function (n) {
+      [].slice.call(n.attributes).forEach(function (a) {
+        if ((a.name === "href" || a.name === "xlink:href") && a.value.charAt(0) === "#" && ids[a.value.slice(1)]) a.value = "#" + ids[a.value.slice(1)];
+        else if (a.value.indexOf("url(") >= 0) a.value = refs(a.value);
+      });
+    });
+    var scope = '[data-pic="' + prefix + '"]';
+    [].slice.call(svg.querySelectorAll("style")).forEach(function (st) { st.textContent = scopeCss(refs(st.textContent), scope, ids); });
+    svg.setAttribute("data-pic", prefix);
+    return document.importNode(svg, true);
+  }
+  function scopeCss(css, scope, ids) {  // plain rules only, each limited to the drawing; @-rules and imports are left out
+    var out = [];
+    String(css).replace(/\/\*[\s\S]*?\*\//g, "").replace(/([^{}]+)\{([^{}]*)\}/g, function (m, sel, body) {
+      sel = sel.trim();
+      if (sel && sel.charAt(0) !== "@" && !/url\(\s*['"]?(?!#|data:)/i.test(body)) {
+        out.push(sel.split(",").map(function (x) {
+          x = x.trim().replace(/#([\w-]+)/g, function (mm, id) { return ids[id] ? "#" + ids[id] : mm; });
+          return x === "svg" || x === ":root" ? scope : scope + " " + x;
+        }).join(", ") + " {" + body + "}");
+      }
+      return m;
+    });
+    return out.join("\n");
+  }
+  var SEAL = '<meta http-equiv="Content-Security-Policy" content="default-src \'none\'; script-src \'unsafe-inline\'; style-src \'unsafe-inline\'; img-src data: blob:; font-src data:; media-src data: blob:">'
+    + "<style>:root { color-scheme: light dark; } html, body { margin: 0; } body { font: 15px/1.5 var(--body, system-ui, sans-serif); color: var(--ink, CanvasText); background: transparent; }</style>";
+  function bridge() {  // runs inside a demo's frame: reports its height, takes the page's colours and the reader's choice
+    var last = 0, root = document.documentElement;
+    function size() {
+      var h = Math.ceil(Math.max(root.getBoundingClientRect().height, document.body ? document.body.scrollHeight : 0));  // the content, not the frame
+      if (Math.abs(h - last) > 1) { last = h; parent.postMessage({ brief: "height", h: h }, "*"); }
+    }
+    addEventListener("load", size);
+    addEventListener("resize", size);
+    if (window.ResizeObserver) new ResizeObserver(size).observe(root);
+    addEventListener("message", function (e) {
+      var d = e.data;
+      if (e.source !== parent || !d) return;
+      if (d.brief === "theme") {
+        Object.keys(d.vars).forEach(function (k) { root.style.setProperty(k, d.vars[k]); });
+        root.style.colorScheme = d.scheme;
+        root.setAttribute("data-theme", d.scheme);
+      } else if (d.brief === "choice") {
+        root.setAttribute("data-choice", d.option || "");
+        dispatchEvent(new CustomEvent("brief-choice", { detail: d.option || null }));
+      }
+    });
+  }
+  function sealed(text) {
+    var add = SEAL + "<script>(" + bridge + ")();<\/script>";
+    if (/<head[^>]*>/i.test(text)) return text.replace(/<head[^>]*>/i, function (m) { return m + add; });
+    if (/<html[^>]*>/i.test(text)) return text.replace(/<html[^>]*>/i, function (m) { return m + "<head>" + add + "</head>"; });
+    return '<!doctype html><html><head><meta charset="utf-8">' + add + "</head><body>" + text + "</body></html>";
+  }
+  var PIC_VARS = ["--bg", "--panel", "--ink", "--muted", "--line", "--accent", "--accent-soft", "--ok", "--wait",
+    "--s1", "--s2", "--s3", "--s4", "--body", "--display", "--mono"];
+  function tell(frame, choice) {  // the page's colours, and the choice on the frame's card
+    if (!frame.contentWindow) return;
+    var cs = getComputedStyle(document.documentElement), vars = {};
+    PIC_VARS.forEach(function (k) { vars[k] = cs.getPropertyValue(k).trim(); });
+    frame.contentWindow.postMessage({ brief: "theme", vars: vars, scheme: /dark/.test(cs.colorScheme) ? "dark" : "light" }, "*");
+    if (choice === undefined) {
+      var card = frame.closest("[data-q]"), host = frame.closest("[data-read]");
+      choice = card && cards[card.getAttribute("data-q")] ? current(card.getAttribute("data-q")).choice : host ? host.getAttribute("data-read") : null;
+    }
+    frame.contentWindow.postMessage({ brief: "choice", option: choice || null }, "*");
+  }
+  window.addEventListener("message", function (e) {
+    var d = e.data;
+    if (!d || d.brief !== "height") return;
+    frames.forEach(function (f) { if (f.contentWindow === e.source) f.style.height = Math.max(80, Math.min(2000, Math.ceil(+d.h || 0))) + "px"; });
+  });
+  function retheme() { frames.forEach(function (f) { tell(f); }); }
+  if (window.matchMedia) {
+    var darkQuery = window.matchMedia("(prefers-color-scheme: dark)");
+    if (darkQuery.addEventListener) darkQuery.addEventListener("change", retheme);
+  }
+  if (window.MutationObserver) new MutationObserver(retheme).observe(document.documentElement, { attributes: true, attributeFilter: ["data-theme"] });
+  function markChoice(root, choice) {  // what belongs to the chosen option stands out; the rest steps back
+    var marked = [].slice.call(root.querySelectorAll("[data-option]"));
+    var known = choice != null && marked.some(function (n) { return n.getAttribute("data-option") === choice; });
+    marked.forEach(function (n) {
+      var mine = n.getAttribute("data-option") === choice;
+      n.classList.toggle("dim-opt", known && !mine);
+      n.classList.toggle("on-opt", known && mine);
+    });
+    root.querySelectorAll(".live iframe").forEach(function (f) { tell(f, choice); });
+  }
+  function remark(node) {  // a drawing arrived after its card was painted
+    var card = node.closest("[data-q]"), host = node.closest("[data-read]");
+    if (card && cards[card.getAttribute("data-q")]) markChoice(card, current(card.getAttribute("data-q")).choice);
+    else if (host) markChoice(host, host.getAttribute("data-read") || null);
   }
   function zoomable(img) {  // a picture opens full size on click, Enter or Space
     img.setAttribute("tabindex", "0");
@@ -575,6 +829,7 @@ footer { color: var(--muted); font-size: 0.85rem; }
     c.chip.className = "state " + kind;
     c.chip.textContent = text;
     if (now.note) c.noteBox.hidden = false;
+    markChoice(c.root, now.choice);
     count();
   }
   function count() {
@@ -666,27 +921,33 @@ footer { color: var(--muted); font-size: 0.85rem; }
     if (q.state === "answered" && q.outcome) { var o = section(T.outcome, "outcome"); o.append(blocks(q.outcome)); root.append(o); }
     var body = el("div", { class: "block" });
     body.append(blocks(q.plain));
-    root.append(body, table(q.table), figures(q.figures));
+    var evBody = el("div", { class: "ev-body" });
+    evBody.append(table(q.table), figures(q.figures, "q-" + id));
     if (q.example) {
       var ex = typeof q.example === "string" ? { text: q.example } : q.example;
       var exBox = section(ex.label || T.example, "example");
-      exBox.append(blocks(ex.text), table(ex.table), figures(ex.figures));
+      exBox.append(blocks(ex.text), table(ex.table), figures(ex.figures, "q-" + id));
       if (ex.source) exBox.append(el("span", { class: "src-line", html: esc(T.source) + " " + inline(ex.source) }));
-      root.append(exBox);
+      evBody.append(exBox);
     }
-    root.append(moreBox(q.more));
+    evBody.append(moreBox(q.more));
+    root.append(body);
+    if (evBody.children.length) {  // shut in the compact view, so the options follow the background at once
+      var ev = el("details", { class: "evidence" }, el("summary", { text: q.example ? T.evidence : T.evidence_plain }), evBody);
+      ev.open = document.documentElement.getAttribute("data-density") !== "compact";
+      root.append(ev);
+    }
     // Options with a picture each get a switch to compare them before choosing; choosing shows that picture too.
     var withFig = (q.options || []).filter(function (o) { return o.figure && o.figure.src; });
     var preview = null;
     if (withFig.length) {
-      var img = zoomable(el("img", { alt: "", loading: "lazy" })), cap = el("figcaption");
+      var holder = el("div", { class: "preview-pic" }), cap = el("figcaption"), built = {};
       var sw = el("div", { class: "switch", role: "group", "aria-label": T.preview + ": " + q.title });
       preview = function (oid) {
         var o = withFig.filter(function (x) { return x.id === oid; })[0];
         if (!o) return;
-        img.setAttribute("src", o.figure.src);
-        img.setAttribute("alt", o.figure.alt || "");
-        img.setAttribute("aria-label", T.zoom_open + (o.figure.alt ? ": " + o.figure.alt : ""));
+        if (!built[oid]) built[oid] = picture(o.figure);  // each option's picture is made once
+        if (holder.firstChild !== built[oid]) { holder.textContent = ""; holder.append(built[oid]); }
         cap.innerHTML = "<b>" + inline(o.label) + "</b> " + inline(o.figure.caption || "");
         sw.querySelectorAll("button").forEach(function (b) { b.setAttribute("aria-pressed", String(b.getAttribute("data-opt") === oid)); });
       };
@@ -695,7 +956,7 @@ footer { color: var(--muted); font-size: 0.85rem; }
         b.addEventListener("click", function () { preview(o.id); });
         sw.append(b);
       });
-      root.append(el("div", { class: "block" }, el("span", { class: "label", text: T.preview }), sw, el("figure", { class: "preview" }, img, cap)));
+      root.append(el("div", { class: "block" }, el("span", { class: "label", text: T.preview }), sw, el("figure", { class: "preview" }, holder, cap)));
       preview((withFig.filter(function (o) { return o.recommended; })[0] || withFig[0]).id);
     }
     var radios = [];
@@ -760,7 +1021,7 @@ footer { color: var(--muted); font-size: 0.85rem; }
       el("span", { class: "state " + (p.done === false ? "progress" : "done"), text: p.status || T.chip_report })));
     var body = el("div", { class: "block" });
     body.append(blocks(p.text));
-    root.append(body, table(p.table), figures(p.figures), moreBox(p.more));
+    root.append(body, table(p.table), figures(p.figures, "p-" + p.id), moreBox(p.more));
     if (p.action) root.append(el("div", { class: "notice", html: "<b>" + esc(T.action) + "</b> " + inline(p.action) }));
     root.append(el("div", { class: "actions" }, commentButton("p-" + p.id)), box);
     annotate(root);
@@ -809,13 +1070,16 @@ footer { color: var(--muted); font-size: 0.85rem; }
   }
   function frozenCard(q) {
     var read = q.read || {};
-    var root = el("article", { class: "q frozen" });
+    var root = el("article", { class: "q frozen", "data-read": read.choice || "" });
     root.append(el("div", { class: "qhead" }, el("h3", {}, q.title, q.ref ? el("span", { class: "ref", text: q.ref }) : null),
       el("span", { class: "state done", text: T.chip_done })));
     if (q.outcome) { var o = section(T.outcome, "outcome"); o.append(blocks(q.outcome)); root.append(o); }
     var body = el("div", { class: "block" });
     body.append(blocks(q.plain));
-    root.append(body);
+    var chosen = (q.options || []).filter(function (o) { return o.id === read.choice && o.figure && o.figure.src; })[0];
+    var ex = q.example && typeof q.example === "object" ? q.example : null;
+    root.append(body, table(q.table), figures(q.figures), ex ? table(ex.table) : "", ex ? figures(ex.figures) : "",
+      chosen ? figures([chosen.figure]) : "");
     var opts = el("ul", { class: "past-opts" });
     (q.options || []).forEach(function (o) {
       opts.append(el("li", { class: read.choice === o.id ? "chosen" : "" }, el("b", { html: inline(o.label) }),
@@ -825,6 +1089,7 @@ footer { color: var(--muted); font-size: 0.85rem; }
     root.append(opts);
     if (read.note) root.append(el("p", { class: "saved", text: T.note + ": " + read.note }));
     annotate(root);
+    markChoice(root, read.choice || null);
     return root;
   }
   function frozenReport(p) {
@@ -832,7 +1097,7 @@ footer { color: var(--muted); font-size: 0.85rem; }
     root.append(el("div", { class: "qhead" }, el("h3", { text: p.title }), el("span", { class: "state done", text: p.status || T.chip_done })));
     var body = el("div", { class: "block" });
     body.append(blocks(p.text));
-    root.append(body);
+    root.append(body, table(p.table), figures(p.figures));
     annotate(root);
     return root;
   }
@@ -863,7 +1128,7 @@ footer { color: var(--muted); font-size: 0.85rem; }
     root.querySelectorAll('a[href^="#g-"]').forEach(function (a) { used[a.getAttribute("href").slice(3)] = true; });  // linked already
     var walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, { acceptNode: function (n) {
       var p = n.parentElement;
-      if (!p || p.closest("a, button, input, textarea, code, .term, .threads, .switch, .tag, legend, summary, .state")) return NodeFilter.FILTER_REJECT;
+      if (!p || p.closest("a, button, input, textarea, code, pre, svg, .pic, .live, .term, .threads, .switch, .tag, legend, summary, .state")) return NodeFilter.FILTER_REJECT;
       return n.nodeValue.trim() ? NodeFilter.FILTER_ACCEPT : NodeFilter.FILTER_REJECT;
     } });
     while (walker.nextNode()) nodes.push(walker.currentNode);
@@ -1080,9 +1345,15 @@ footer { color: var(--muted); font-size: 0.85rem; }
   // ---------- pictures open full size: the wheel or a pinch zooms where it points, dragging pans, double-click
   // switches between fitting the window and twice that, and + / - / 0 / Esc work from the keyboard.
   function openZoom(img) {
-    var src = img && img.getAttribute("src");
-    if (!src) return;
-    var big = el("img", { src: src, alt: img.getAttribute("alt") || "", draggable: "false" });
+    var drawing = img && img.classList.contains("pic") ? img.querySelector("svg") : null;
+    var src = !drawing && img && img.getAttribute("src");
+    if (!drawing && !src) return;
+    var vb = drawing ? (drawing.getAttribute("viewBox") || "").trim().split(/[\s,]+/).map(Number) : null;
+    var big = drawing ? drawing.cloneNode(true) : el("img", { src: src, alt: img.getAttribute("alt") || "", draggable: "false" });
+    if (drawing) { big.style.minWidth = ""; big.style.maxWidth = "none"; }
+    var alt = drawing ? drawing.getAttribute("aria-label") || "" : img.getAttribute("alt") || "";
+    function natW() { return drawing ? (vb && vb[2]) || drawing.getBoundingClientRect().width : big.naturalWidth; }
+    function natH() { return drawing ? (vb && vb[3]) || drawing.getBoundingClientRect().height : big.naturalHeight; }
     var stage = el("div", { class: "stage" }, big);
     var level = el("span", { class: "level", "aria-live": "polite" });
     var scale = 1, fit = 1;
@@ -1090,18 +1361,18 @@ footer { color: var(--muted); font-size: 0.85rem; }
       var r = stage.getBoundingClientRect();
       cx = cx == null ? r.width / 2 : cx;
       cy = cy == null ? r.height / 2 : cy;
-      var px = (stage.scrollLeft + cx) / (big.offsetWidth || 1), py = (stage.scrollTop + cy) / (big.offsetHeight || 1);
+      var px = (stage.scrollLeft + cx) / (big.getBoundingClientRect().width || 1), py = (stage.scrollTop + cy) / (big.getBoundingClientRect().height || 1);
       scale = Math.max(fit / 4, Math.min(Math.max(8, fit * 4), next));
-      big.style.width = Math.round((big.naturalWidth || r.width) * scale) + "px";
+      big.style.width = Math.round((natW() || r.width) * scale) + "px";
       big.style.height = "auto";
-      stage.scrollLeft = px * big.offsetWidth - cx;
-      stage.scrollTop = py * big.offsetHeight - cy;
+      stage.scrollLeft = px * big.getBoundingClientRect().width - cx;
+      stage.scrollTop = py * big.getBoundingClientRect().height - cy;
       level.textContent = Math.round(scale * 100) + "%";
     }
     function fitWindow() {
       var r = stage.getBoundingClientRect();
       // a large screenshot shrinks to the window; a small picture grows to fill it, up to four times its size
-      fit = big.naturalWidth ? Math.min(4, r.width / big.naturalWidth, r.height / big.naturalHeight) : 1;
+      fit = natW() ? Math.min(4, r.width / natW(), r.height / natH()) : 1;
       apply(fit);
     }
     function button(text, label, act) {
@@ -1112,12 +1383,12 @@ footer { color: var(--muted); font-size: 0.85rem; }
     var close = button("✕", T.zoom_close, function () { shut(); });
     var bar = el("div", { class: "bar" }, button("−", T.zoom_out, function () { apply(scale / 1.25); }), level,
       button("+", T.zoom_in, function () { apply(scale * 1.25); }), button(T.zoom_fit, T.zoom_fit, fitWindow),
-      button("1:1", T.zoom_actual, function () { apply(1); }), el("span", { class: "cap", text: img.getAttribute("alt") || "" }), close);
+      button("1:1", T.zoom_actual, function () { apply(1); }), el("span", { class: "cap", text: alt }), close);
     var box = el("div", { class: "zoom", role: "dialog", "aria-modal": "true",
-      "aria-label": T.zoom_title + (img.getAttribute("alt") ? ": " + img.getAttribute("alt") : "") }, bar, stage);
+      "aria-label": T.zoom_title + (alt ? ": " + alt : "") }, bar, stage);
     document.body.append(box);
     document.documentElement.style.overflow = "hidden";
-    if (big.complete && big.naturalWidth) fitWindow(); else big.addEventListener("load", fitWindow);
+    if (drawing || (big.complete && big.naturalWidth)) fitWindow(); else big.addEventListener("load", fitWindow);
     stage.addEventListener("wheel", function (e) {
       e.preventDefault();
       var r = stage.getBoundingClientRect();
@@ -1175,15 +1446,37 @@ footer { color: var(--muted); font-size: 0.85rem; }
     close.focus();
   }
   document.addEventListener("click", function (e) {
-    var img = e.target.closest && e.target.closest("figure img");
-    if (img) { e.preventDefault(); openZoom(img); }
+    var img = e.target.closest && e.target.closest("figure img, .pic");
+    if (img && !(img.classList.contains("pic") && !img.querySelector("svg"))) { e.preventDefault(); openZoom(img); }
   });
   document.addEventListener("keydown", function (e) {
-    if ((e.key === "Enter" || e.key === " ") && e.target.matches && e.target.matches("figure img")) {
+    if ((e.key === "Enter" || e.key === " ") && e.target.matches && e.target.matches("figure img, .pic")) {
       e.preventDefault();
       openZoom(e.target);
     }
   });
+  function openLive(doc, alt, from, opener) {  // a demo, large, in a fresh sealed frame
+    var frame = el("iframe", { sandbox: "allow-scripts", title: alt, referrerpolicy: "no-referrer" });
+    var close = el("button", { type: "button", text: "\u2715", "aria-label": T.zoom_close, title: T.zoom_close });
+    var box = el("div", { class: "zoom live-zoom", role: "dialog", "aria-modal": "true", "aria-label": alt },
+      el("div", { class: "bar" }, el("span", { class: "cap", text: alt }), close), el("div", { class: "stage" }, frame));
+    var card = from.closest("[data-q]"), host = from.closest("[data-read]");
+    var choice = card && cards[card.getAttribute("data-q")] ? current(card.getAttribute("data-q")).choice : host ? host.getAttribute("data-read") : null;
+    frame.addEventListener("load", function () { tell(frame, choice); });
+    frame.srcdoc = doc;
+    function keys(e) { if (e.key === "Escape") { e.preventDefault(); shut(); } }
+    function shut() {
+      document.removeEventListener("keydown", keys, true);
+      box.remove();
+      document.documentElement.style.overflow = "";
+      opener.focus({ preventScroll: true });
+    }
+    close.addEventListener("click", shut);
+    document.addEventListener("keydown", keys, true);
+    document.body.append(box);
+    document.documentElement.style.overflow = "hidden";
+    close.focus();
+  }
 
   // ---------- comment threads on the local page
   function rootOf(c, byId) {
@@ -1211,6 +1504,11 @@ footer { color: var(--muted); font-size: 0.85rem; }
         messages(t.querySelector(".msgs"), groups[r.id]);
       });
       box.hidden = !box.children.length;
+      if (!box.hidden && !box.shownOnce) {
+        box.shownOnce = true;
+        var fold = box.closest("details.evidence");
+        if (fold) fold.open = true;
+      }
     });
     paintAsk();
   }
@@ -1382,8 +1680,8 @@ footer { color: var(--muted); font-size: 0.85rem; }
           }
         },
         save: function (id, doc) { return db.doc("answers/" + id).set(doc); },
-        comment: function (target, range) {
-          var where = range ? { range: range } : { element: places[target] || places.page };
+        comment: function (target, range, quote, node) {
+          var where = range ? { range: range } : { element: node || places[target] || places.page };
           return Promise.resolve(cm.openComposer(where)).catch(function (e) {
             if (e && off.indexOf(e.code) >= 0) document.querySelectorAll("[data-comment]").forEach(function (b) { b.hidden = true; });
           });

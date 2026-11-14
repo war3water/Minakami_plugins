@@ -8,7 +8,7 @@ Use it when the user asks for one and the Artifact tools are available (Claude C
 
 1. Load the Artifact design and capabilities guidance first (the Artifact tool's quickstart gives it).
 2. Run `brief.py build <q> --mode artifact`. Fix every error it prints and act on each warning.
-3. Publish `page.html` with capabilities `{db:{}, user:{}, comments:{}}` and every image as a supporting file, using the paths the build prints (`shots/...`). The build also lists the archive's round files (`archive/...json`) once earlier rounds exist; publish those too.
+3. Publish `page.html` with capabilities `{db:{}, user:{}, comments:{}}` and every picture (images, drawings and demos) as a supporting file, using the paths the build prints. The build also lists the archive's round files (`archive/...json`) once earlier rounds exist; publish those too.
 4. After the first publish, list the `answers` collection once with ArtifactData to confirm the page's store answers. It is empty until the user picks something.
 
 Never `Artifact read` the published page: its source is `page.html` in the task folder, and its earlier rounds are in `archive/` (see `brief.py history`).
@@ -26,6 +26,6 @@ To republish, update the existing Artifact rather than creating a new one, so th
 Use it when the server cannot start or does not outlive your command: some sandboxes forbid opening a port or end background processes.
 
 - Build with `brief.py build <q> --mode static` and give the user the path of `page.html`.
-- The page keeps answers in the browser and has no comments. It offers Download answers.json (ask the user to save it next to `page.html`) and Copy answers (to paste into the chat).
+- The page carries its drawings and demos inside it; keep its images next to it. It keeps answers in the browser and has no comments. It offers Download answers.json (ask the user to save it next to `page.html`) and Copy answers (to paste into the chat).
 - Read back with `brief.py read <q> --answers <the downloaded file>`, or read what the user pasted.
 - To republish, rebuild.
