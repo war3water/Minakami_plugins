@@ -287,6 +287,26 @@ article ul.cap-rows > li { max-width: none; margin: 10px 0 0; font-size: 14px; l
 .st-panel dd { margin: 0; min-width: 0; overflow-wrap: anywhere; }
 .st-hint { max-width: none; margin: 8px 2px 0; font: 400 12px/1.4 var(--ui); color: var(--muted); }
 article details.flowfold { margin-top: 0; }
+/* the system at work: the parts picture set into the page, each box a button; the chosen part's row under it */
+.partsmap { margin: 1.2em 0 1em; }
+.pt-fig { overflow-x: auto; padding: 14px; border: 1px solid var(--line); border-radius: var(--radius); background: #fff; text-align: center; scrollbar-width: thin; }
+.pt-fig svg { display: inline-block; vertical-align: top; }
+.pt-box { cursor: pointer; outline: none; }
+.pt-box:hover > .label-container, .pt-box:focus-visible > .label-container { stroke: #0a8a5a !important; stroke-width: 3px !important; }
+.pt-box.on > .label-container { stroke: #0a8a5a !important; stroke-width: 4px !important; }
+.pt-extra { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; margin-top: 8px; font: 400 12px/1.4 var(--ui); color: var(--muted); }
+.pt-extra:empty { display: none; }
+.pt-chip { font: 500 12px/1.3 var(--ui); color: var(--ink); padding: 4px 9px; border: 1px solid var(--line); border-radius: 12px; background: var(--panel); cursor: pointer; }
+.pt-chip:hover { border-color: var(--ink-2); }
+.pt-chip.on { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent); }
+.pt-zoom { font: inherit; color: var(--accent); background: none; border: 0; padding: 0; cursor: pointer; text-decoration: underline; text-underline-offset: 3px; }
+.pt-panel { margin-top: 10px; padding: 12px 14px; border: 1px solid var(--line-2); border-left: 3px solid var(--accent); border-radius: var(--radius); background: var(--panel); font-size: 14px; line-height: 1.55; }
+.pt-panel dl { display: grid; grid-template-columns: 118px minmax(0, 1fr); gap: 5px 12px; margin: 0; }
+.pt-panel dt { font: 500 10.5px/2 var(--mono); letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
+.pt-panel dd { margin: 0; min-width: 0; overflow-wrap: anywhere; }
+article .pt-panel details.pt-mods { margin: 10px 0 0; }
+article .pt-panel details.pt-mods > .table-wrap { margin-block: 10px; }
+@media (max-width: 620px) { .pt-panel dl { grid-template-columns: 1fr; gap: 0; } .pt-panel dd { margin-bottom: 6px; } }
 @media (max-width: 620px) { .st-panel dl { grid-template-columns: 1fr; gap: 0; } .st-panel dd { margin-bottom: 6px; } .st-band { grid-template-columns: 1fr; } .st-phase { margin: 2px 3px 4px; } }
 /* a complete call list, drawn as a tree: each function once, the functions it calls hanging under it */
 article ul.calltree, article ul.calltree ul { list-style: none; margin: 0; padding: 0; }
@@ -701,6 +721,120 @@ function build(p) {
     img.addEventListener("click", open);
     img.addEventListener("keydown", e => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); open(); } });
   });
+  // The system at work. A picture marked `%% parts` is the page's index: each box is a row of the parts table under
+  // it. The picture is set into the page itself, so a box can be chosen; choosing one shows its row (what it does, what
+  // it is built on, where its code starts) and, folded, the modules its name links on the map. The picture stays light
+  // and the detail is one step away; the table folds under it.
+  el.querySelectorAll("details").forEach(d => {
+    const code = d.querySelector("code.language-mermaid");
+    if (!code || !/^\s*%%\s*parts\s*$/m.test(code.textContent)) return;
+    const cap = d.previousElementSibling, para = cap && cap.classList.contains("zoom-hint") ? cap.previousElementSibling : null;
+    const img = para && para.querySelector("img[data-diagram]");
+    let t = d.nextElementSibling;
+    while (t && t.tagName !== "TABLE" && !/^H[12]$/.test(t.tagName)) t = t.nextElementSibling;
+    if (!img || !t || t.tagName !== "TABLE") return;
+    const heads = [...t.querySelectorAll("thead th")].map(th => th.textContent.trim());
+    if (!heads.length || heads[0].toLowerCase() !== "part") return;
+    const norm = s => s.replace(/\s+/g, " ").trim().toLowerCase();
+    const rows = new Map();
+    t.querySelectorAll("tbody tr").forEach(tr => { const c = [...tr.children]; if (c.length === heads.length) rows.set(norm(c[0].textContent), c); });
+    const path = img.dataset.diagram, doc = new DOMParser().parseFromString(W.svgs[path], "image/svg+xml");
+    doc.querySelectorAll("script, foreignObject").forEach(n => n.remove());
+    const svg = document.importNode(doc.documentElement, true);
+    if (!svg || svg.localName !== "svg") return;
+    const vb = svg.viewBox && svg.viewBox.baseVal;
+    svg.removeAttribute("height"); svg.removeAttribute("width"); svg.setAttribute("class", (svg.getAttribute("class") || "") + " partsfig");
+    svg.style.maxWidth = "100%"; svg.style.height = "auto"; if (vb && vb.width) svg.style.width = Math.round(vb.width) + "px";
+    svg.setAttribute("role", "group"); svg.setAttribute("aria-label", img.alt || "The parts of the system");
+    const wrap = document.createElement("div"); wrap.className = "partsmap"; wrap.dataset.ui = "";
+    const fig = document.createElement("div"); fig.className = "pt-fig"; fig.append(svg);
+    const panels = document.createElement("div"); panels.className = "pt-panels";
+    const extra = document.createElement("div"); extra.className = "pt-extra";
+    const buttons = [];
+    const pick = name => {
+      buttons.forEach(([n, b]) => { const on = n === name; b.classList.toggle("on", on); b.setAttribute("aria-pressed", String(on)); });
+      panels.querySelectorAll(".pt-panel").forEach(p => {
+        p.hidden = p.dataset.part !== name;
+        const mods = !p.hidden && p.querySelector(".pt-mods:not([data-done])");
+        if (!mods) return;
+        // the part's modules, from the section of the map its name links (that page may not be built yet)
+        const sect = document.getElementById(sectionId(mods.dataset.page));
+        if (!sect) return;
+        mods.dataset.done = "1";
+        const head = sect && [...sect.querySelectorAll("article :is(h2, h3, h4)")].find(h => h.dataset.slug === mods.dataset.sec);
+        let n = head && head.nextElementSibling;
+        while (n && !n.matches("table, .table-wrap") && !/^H[1-4]$/.test(n.tagName)) n = n.nextElementSibling;
+        if (!n || !n.matches("table, .table-wrap")) { mods.remove(); return; }
+        const copy = n.cloneNode(true), count = copy.querySelectorAll("tbody tr").length;
+        mods.querySelector("summary").textContent = `${count} module${count === 1 ? "" : "s"} in this part, each with the function to open first`;
+        const wrapT = document.createElement("div"); wrapT.className = "table-wrap"; wrapT.append(copy.matches("table") ? copy : copy.querySelector("table"));
+        mods.append(wrapT);
+        copy.querySelectorAll("a[href]").forEach(a => a.addEventListener("click", e => {
+          if (a.classList.contains("code-link") && !a.classList.contains("inert")) return;
+          e.preventDefault();
+          if (a.classList.contains("code-link")) return;
+          const [pp, frag] = (a.getAttribute("href") || "").split("#");
+          show(pp ? resolve(mods.dataset.page, pp) : mods.dataset.page, frag ? slugify(decodeURIComponent(frag)) : "");
+        }));
+      });
+    };
+    const control = (node, name) => {
+      node.setAttribute("role", "button"); node.setAttribute("tabindex", "0"); node.setAttribute("aria-pressed", "false");
+      node.addEventListener("click", () => pick(name));
+      node.addEventListener("keydown", e => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); pick(name); } });
+      buttons.push([name, node]);
+    };
+    const drawn = new Set();
+    let keyName = null;
+    const keyNode = (code.textContent.match(/^\s*%%\s*key:\s*([\w-]+)/m) || [])[1];
+    svg.querySelectorAll("g.node").forEach(g => {
+      const first = g.querySelector("tspan.text-outer-tspan") || g.querySelector("text");
+      const name = first ? norm(first.textContent) : "";
+      if (!rows.has(name)) return;
+      drawn.add(name); g.classList.add("pt-box");
+      g.setAttribute("aria-label", `${rows.get(name)[0].textContent.trim()}: what it does and where its code starts`);
+      control(g, name);
+      if (keyNode && new RegExp(`^flowchart-${keyNode}-\\d+$`).test(g.id)) keyName = name;
+    });
+    if (!drawn.size) return;
+    rows.forEach((cells, name) => {
+      const panel = document.createElement("div"); panel.className = "pt-panel"; panel.hidden = true; panel.dataset.part = name;
+      const title = document.createElement("b"); title.className = "st-ph"; title.textContent = cells[0].textContent.trim();
+      const dl = document.createElement("dl");
+      heads.forEach((h, c) => {
+        if (!c || !cells[c].textContent.trim()) return;
+        const dt = document.createElement("dt"), dd = document.createElement("dd");
+        dt.textContent = h; dd.append(...[...cells[c].childNodes].map(n => n.cloneNode(true)));
+        dl.append(dt, dd);
+      });
+      panel.append(title, dl);
+      const link = cells[0].querySelector("a[href*='.md#'], a[href^='#']");
+      if (link) {
+        const [pp, frag] = link.getAttribute("href").split("#");
+        const mods = document.createElement("details"); mods.className = "pt-mods";
+        mods.dataset.page = pp ? resolve(id, pp) : id; mods.dataset.sec = slugify(decodeURIComponent(frag || ""));
+        const sum = document.createElement("summary"); sum.textContent = "The modules in this part";
+        mods.append(sum); panel.append(mods);
+      }
+      panels.append(panel);
+      if (!drawn.has(name)) {  // a part the picture leaves out is still one step away
+        const b = document.createElement("button"); b.type = "button"; b.className = "pt-chip"; b.textContent = cells[0].textContent.trim();
+        control(b, name); extra.append(b);
+      }
+    });
+    if (extra.children.length) extra.prepend(Object.assign(document.createElement("span"), { textContent: "Not in the picture:" }));
+    const hint = document.createElement("p"); hint.className = "st-hint";
+    hint.textContent = "Choose a part of the picture for what it does and where its code starts. ";
+    const zb = document.createElement("button"); zb.type = "button"; zb.className = "pt-zoom"; zb.textContent = "Zoom the picture";
+    zb.addEventListener("click", () => openZoom(path, img.alt)); hint.append(zb);
+    wrap.append(fig, hint, extra, panels);
+    para.replaceWith(wrap); cap.remove();
+    d.classList.add("diagram-src"); d.hidden = true;  // the Mermaid text is for whoever edits the page
+    const fold = document.createElement("details"); fold.className = "flowfold";
+    const sum = document.createElement("summary"); sum.textContent = `All ${rows.size} parts as a table`;
+    t.before(fold); fold.append(sum, t);
+    if (keyName) setTimeout(() => pick(keyName), 0);  // once every page is built, so the part's modules are there
+  });
   // The steps of a flow, as a track. A step table (`# | Step | Method | Code | In the example`) is the page's
   // reference; a reader meeting the flow wants one place to start and one thing to notice. Each step is a station
   // with its number, its name, the function that does it (a link into the code) and its value from the example.
@@ -811,7 +945,7 @@ function build(p) {
       a.classList.add("page-link");
       a.addEventListener("click", e => { e.preventDefault(); show(target, frag ? slugify(decodeURIComponent(frag)) : ""); });
     } else {
-      const line = frag && W.symbols[target + "#" + frag];
+      const line = W.symbols[target + "#" + (frag || a.textContent.trim().replace(/\(\)$/, ""))];
       const url = editorUrl(target, line);
       a.className = "code-link" + (url ? "" : " inert"); a.title = (url ? "Open in editor: " : "In the repository: ") + target + (line ? ":" + line : "");
       if (url) a.href = url; else a.addEventListener("click", e => e.preventDefault());

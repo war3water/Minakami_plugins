@@ -30,14 +30,17 @@ The index opens with the route: the order to read the pages in, one line for eac
 
 `concepts/overview.md`, titled "How {project} fits together", comes first under "How it works": the whole system on one page. Its sections:
 
-1. **What it can do.** One capability card (§Capability cards) for each thing a user can ask of the project, grouped the way the project groups them. When the cards run past a screen or two, they move to their own page, `reference/capabilities.md`, titled "What {project} can do", and this section keeps the groups, one line each, linking it.
-2. **The parts.** A table `Part | What it does | Built on | Where it lives | How you reach it`. A part is what a newcomer would name: the command line, the API server, the web app, the database, the worker. "Built on" names the framework, library or method that does the part's work (FastAPI, PostgreSQL full-text search, an ISO standard), so a reader knows what to look up.
-3. **How they fit.** One picture of the parts and what passes between them, such as an HTTP request, SQL, a file or a queue message, in the form this system has (§Pictures, tables and charts).
-4. **One request, end to end.** A typical use followed across the parts in a few numbered steps, each linking the how-it-works page that owns its detail.
-5. **The code to know first.** A table `Code | What it decides | Open it when`, under a lead sentence that links the main flow's how-it-works page. Each `Code` cell links the function's file. Rank the rows by how much of the result each function decides: first the functions that compute or decide the project's main result, then the function that runs the flow end to end, then the entry point. Application setup, registries and error plumbing are left out. Readers, agents most of all, name exactly the functions in this table and read it from the top, so each step of the main flow that decides part of the result has one of its functions here, and the table is not grown to hold the rest. When the lint lists a step with none, put its deciding function in place of a row that decides less, or keep the gap with its reason (§What the lint checks).
-6. **Where to go next.** Links by task: set it up, debug it, find the code behind a report (the map), change it.
+1. **The system at work.** The page opens with one picture of the whole system doing its job, and the table of its parts under it. A newcomer reads the picture once to see what happens between what comes in and what goes out. After that it is their index: every box is a part, and the part's row is the way into its code.
+   - **The picture** (§Diagrams, "The parts picture") follows the project's main thing (a request, a document, a message, a reading) from where it enters to where the result leaves, through each part that does something to it, with what passes on every arrow. Parts that stand beside that path (a command line, host scripts, a scorer) are in it too, in a group of their own: a part left out of the picture is a part the newcomer does not know to ask about. A box holds the part's name and a few words on what it does to the thing passing through; code names stay in the table. The form is this system's (§Pictures, tables and charts): stages inside the processes that run them, layers, services around one store.
+   - **The table**: `Part | What it does | Built on | Open first | Where it lives | How you reach it`, one row for each box under the same name. A part is what a newcomer would name: the command line, the API server, the web app, the database, the worker. "Built on" names the framework, library or method that does the part's work (FastAPI, PostgreSQL full-text search, an ISO standard), so a reader knows what to look up. "Open first" links the function where the part's work starts. The part's name links the section of the map that lists its modules (`[Pricing](../reference/map.md#pricing)`), so a reader goes from the box to the part, and from the part to every file in it.
 
-The test: a newcomer who reads only this page can say what each part does, which part to open for a task, and which few functions to read first.
+   The viewer joins the two: choosing a box shows its row and its modules, so the picture stays light and the detail is one click away. A plain Markdown viewer shows the picture, then the table.
+2. **One request, end to end.** A typical use followed across the parts in a few numbered steps, each linking the how-it-works page that owns its detail.
+3. **What it can do.** One capability card (§Capability cards) for each thing a user can ask of the project, grouped the way the project groups them. When the cards run past a screen or two, they move to their own page, `reference/capabilities.md`, titled "What {project} can do", and this section keeps the groups, one line each, linking it.
+4. **The code to know first.** A table `Code | What it decides | Open it when`, under a lead sentence that links the main flow's how-it-works page. Each `Code` cell links the function's file. Rank the rows by how much of the result each function decides: first the functions that compute or decide the project's main result, then the function that runs the flow end to end, then the entry point. Application setup, registries and error plumbing are left out. Readers, agents most of all, name exactly the functions in this table and read it from the top, so each step of the main flow that decides part of the result has one of its functions here, and the table is not grown to hold the rest. When the lint lists a step with none, put its deciding function in place of a row that decides less, or keep the gap with its reason (§What the lint checks).
+5. **Where to go next.** Links by task: set it up, debug it, find the code behind a report (the map), change it.
+
+The test: a newcomer who reads only this page can say what happens to the main thing from start to end, what each part does, which part to open for a task, and which few functions to read first.
 
 ## Capability cards
 
@@ -79,7 +82,7 @@ The test: from this page alone, a newcomer can name each step, its method and it
 
 `reference/map.md`, titled "Map of the code", started from `templates/map.md.tmpl`. The other pages go deep on the core flows; this one is wide. Every part of the code has a row, so a reader with a report about anything finds the file to open, including the code no other page covers. Its sections:
 
-1. **Every module, one row.** One table for each part of the overview, `Where | What it does | Open first`:
+1. **Every module, one row.** One table for each part of the overview, under a heading that is the part's name (the overview's parts table links it), `Where | What it does | Open first`:
    - **Where**: the file or folder, as a path from the repository root in code marks.
    - **What it does**: in the words a user would put in a report, such as the screen, command, endpoint, file or message it is responsible for. Code another page explains gets a few words and a link to that page, not a second telling.
    - **Open first**: the function where that behaviour starts, as a link whose text is the symbol and whose target is its file. A folder row links one too: a row that says only "the component named in the report" leaves the reader in a folder.
@@ -98,6 +101,12 @@ The test: take anything a user can see or any message the program prints; a read
 `reference/limits.md`, titled "Limits and defaults": every named number the code decides by (a wait, a cap, a window, a threshold, a default), with the functions that read it and the code's own comment on it. `python <tools folder>/wiki.py limits --write` writes it from the code, so it costs no writing; list it in the index under Reference. A user's "where does that number come from" lands there, for any part of the code.
 
 The table between its two markers is the tool's: change nothing in it. What a number means for a user goes where the reader meets it, in the map row of its module or on its flow's page. A number the code uses without a name (a literal in a condition, a slice) is in no table: the map row or the step that applies it says it.
+
+## Index of functions
+
+`reference/functions.md`, titled "Index of functions": every function, method and class outside the tests, by folder, with the first sentence the code says about it. `python <tools folder>/wiki.py functions --write` writes it from the code. The map leads a reader to a file, and the function it names there is the entry, seldom the helper a report is about; this page finds the helper by a word from the report. List it in the index under Reference and link it from the map's lead.
+
+The table is the tool's: do not write in it, and do not read it to learn the project, since it says only what the code's comments say. A function whose row says nothing is a comment the code lacks, which is the user's to add.
 
 ## Sources page
 
@@ -195,7 +204,8 @@ flowchart TB
 
 - **Draw what a reader needs to see, in words.** A box names a part ("API server") or a step ("wait, then retry"); an edge says what passes or when ("HTTP JSON", "on a 429"). Worth drawing: the parts and what flows between them (the overview), a flow's steps and its call map (its how-it-works page), the steps of a decision or a loop, who waits for whom, the states something goes through. Each function-level map is drawn once; other pages link to it.
 - **Syntax that parses.** In a flowchart, every node label and edge label in double quotes, with no `;`, `<`, `>` or `#` apart from `<br/>` between the lines of a box. No node id named `end`. In a chart, the title and axis names are quoted (`title "…"`, `x-axis "…" ["a", "b"]`); a `pie` title is not, and each slice is `"label" : value`.
-- **A box that names code ends with `file: function`** on its last line, as in `"3 Price the order<br/>pricing.py: price_order"`. The path may be shortened to any tail that names one file, and `a.py: f and g` names two functions.
+- **A box that names code ends with `file: function`** on its last line, as in `"3 Price the order<br/>pricing.py: price_order"`. The parts picture is the exception: its boxes name parts, and the table gives each part's code. The path may be shortened to any tail that names one file, and `a.py: f and g` names two functions.
+- **The parts picture.** A diagram whose second line is `%% parts` is the overview's picture of the system at work. Each box starts with the name of a row of the parts table under it, then a few words on what the part does there: `PRICE["Pricing<br/>turns a basket into a total"]`. What comes in and what goes out are rounded boxes, `IN(["an order"])`, and need no row. Groups (`subgraph`) say where the parts run or what they share: a process, a machine, a layer. The lint names a box with no row, since choosing it in the viewer would show nothing, and a row with no box.
 - **Call maps.** A diagram whose second line is `%% calls` is a call map: each box is `file: function`, and each solid arrow says the first function calls the second. An indirect call (a registry lookup, a callback, a call into another process, a method reached through an object whose type the reader must know) is drawn dotted, `-.->`, with how it is reached on the arrow.
 - **Phases.** Group the steps of a longer flow into a few named phases, each a `subgraph` whose title says what the phase achieves ("Read the input", "Score the candidates"). Draw the input and the output as rounded boxes, `IN(["…"])`, so the start and the end stand out. Join phase to phase, not box to box (`P1 -->|"what passes"| P2`), and give each phase `direction LR`: Mermaid then sets the steps of a phase side by side and stacks the phases, which fits a Markdown column. When one step decides the example's result, it is the picture's `%% key:`.
 
@@ -340,6 +350,8 @@ This is the page developers need most. Start from `templates/run-and-debug.md.tm
 | | a flowchart of many boxes with no `%% key:`, a key that names no box, colours written by hand, thick arrows the legend does not name; a formula of several lines without `\tag` numbers |
 | a figure not given its look by `render` | a figure with colours written by hand; a figure no page shows |
 | a limits table older than the code | named limits in the code on no page, when the wiki has no limits page |
+| an index of functions older than the code | a wiki with no index of functions |
+| | an overview with no picture marked `%% parts`; a box of that picture with no row in the parts table, or a part in no box; a parts table without `Open first`; a part with code that does not link its section of the map |
 
 It also reports the pictures by kind, the words a reader has to read and the longest pages, so growth is visible; there is no limit, and a page is as long as its facts need.
 

@@ -32,11 +32,11 @@ In a temporary copy of the repository, run the commands you will document that n
 **What to write now.** Write what a newcomer needs first:
 
 - the README as the front page, following `readme.md`;
-- `concepts/overview.md`, following `pages.md` §The overview page: every part of the system, not only the primary path, and a card for every capability (§Capability cards), not only the one the wiki works through;
+- `concepts/overview.md`, following `pages.md` §The overview page: it opens with the picture of the system at work and the parts table under it, with every part of the system, not only the primary path, and a card for every capability (§Capability cards), not only the one the wiki works through;
 - a how-it-works page for each core flow, starting with the primary path, following `pages.md` §How-it-works pages: the everyday picture, the steps, the call map and the rules that decide the result;
 - `howto/run-and-debug.md`, following `pages.md` §Run and debug, pointing into the call maps instead of drawing them again;
 - `reference/map.md`, following `pages.md` §The map of the code: one row for every module, so the code the pages above do not explain still has a way in. Every wiki has one; on a small project it is a short page;
-- `reference/limits.md`, which the tool writes from the code (`pages.md` §Limits and defaults);
+- `reference/limits.md` and `reference/functions.md`, which the tool writes from the code (`pages.md` §Limits and defaults, §Index of functions);
 - `reference/sources.md` when the code follows any external source, following `pages.md` §Sources page, with every mention on the other pages and in the README linked to it or to the repository's own chapter;
 - reference pages for what readers will look up while working: each subsystem the primary path passes through, the public API, the command-line flags, the configuration, the data formats, as far as the code has them;
 - how-to pages for the changes the code invites: an extension point, a registry or a plugin interface suggests "Add a …";
@@ -75,7 +75,7 @@ Write only what was approved:
 2. `SCHEMA.md` from `templates/SCHEMA.md.tmpl`. Fill in this repository's source layers, where captured evidence lives, the design documents pages must agree with, and the chosen folders in the commands.
 3. `index.md` and `log.md` from their templates. The log's first entry is `build`.
 4. The pages, following `pages.md`. Set `updated:` to today's date.
-5. `python <skill folder>/tools/wiki.py limits --write`, and its page listed in the index.
+5. `python <skill folder>/tools/wiki.py limits --write` and `python <skill folder>/tools/wiki.py functions --write`, and their two pages listed in the index.
 6. The README edits, the rules block, and the approved extras.
 
 Replace every `{{…}}` placeholder; lint warns about any that are left.
