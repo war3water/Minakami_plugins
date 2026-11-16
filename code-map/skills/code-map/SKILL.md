@@ -26,7 +26,7 @@ Three rules bind every step, in priority order when they collide:
 
 ## Step 1 — Parse arguments
 
-The invocation arguments are: `$ARGUMENTS`
+The invocation arguments are: `$ARGUMENTS` (where the runtime leaves that placeholder as written, they are the words after the skill's name in the user's message)
 
 They may contain, in any order:
 

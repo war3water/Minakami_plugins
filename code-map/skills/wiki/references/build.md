@@ -1,6 +1,6 @@
 # First build
 
-The goal: from the README and the wiki alone, a newcomer can set the project up, run it and debug it, say what each part of it does, follow each core flow step by step to the method and the function behind it, and find the file to open for a report about any part of the code. Each fact is read once, and every claim can be checked against the code. Steps 1 to 3 write nothing in the repository; step 4 writes only what the user approved.
+The goal: from the README and the wiki alone, a newcomer can set the project up, run it and debug it, say what each part of it does, follow each core flow step by step to the method and the function behind it, and find the file and the function to open for a report about any part of the code. Each fact is read once, and every claim can be checked against the code. Steps 1 to 3 write nothing in the repository; step 4 writes only what the user approved.
 
 ## 1. Discover
 
@@ -46,7 +46,7 @@ In a temporary copy of the repository, run the commands you will document that n
 
 Before writing, decide where each fact lives (`pages.md`, "One home per fact, said once"). The README already holds the project's own tables and steps. Where a page would repeat one in full, either link to the README or propose moving the full table to the page and leaving the README the part a newcomer needs to start. Do the same for README sections a page will cover in full, such as a long debugging, configuration or architecture section: propose the short replacement (what a newcomer needs, and a link), so the reader is not given the same fact twice in different words.
 
-Everything else the code would support is listed at the end of `index.md`, under "Not written yet", as one line per topic, so the plan is visible and nothing is dropped silently. The test for "enough": could a newcomer set up, run and debug the project, say what each part does, explain each core flow down to its methods and functions, and name the file to open for a report about any other part, using only what is written? If not, write what is missing now. When the repository is larger than one wiki can explain well in one pass, explain the overview and the primary path, give every other module its row on the map, list the pages still worth writing as not written yet, and say in the report how to extend it.
+Everything else the code would support is listed at the end of `index.md`, under "Not written yet", as one line per topic, so the plan is visible and nothing is dropped silently. The test for "enough": could a newcomer set up, run and debug the project, say what each part does, explain each core flow down to its methods and functions, and name the file and the function to open for a report about any other part, using only what is written? If not, write what is missing now. When the repository is larger than one wiki can explain well in one pass, explain the overview and the primary path, give every other module its row on the map, list the pages still worth writing as not written yet, and say in the report how to extend it.
 
 ## 3. Propose (approval gate)
 

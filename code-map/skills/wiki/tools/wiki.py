@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Mechanical upkeep of a code wiki: lint, affected pages, viewer, tool copy.
+"""Mechanical upkeep of a code wiki: lint, affected pages, viewer, pages written from the code, tool copy.
 
 Shipped by the code-map plugin's `wiki` skill and copied into the repository it documents, so anyone (a person, CI,
 any coding agent) can run it without the plugin. Standard library only, Python 3.9 or later. The wiki's rules live in
