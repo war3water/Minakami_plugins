@@ -1,6 +1,6 @@
 # First build
 
-The goal: from the README and the wiki alone, a newcomer can set the project up, run it and debug it, say what each part of it does, follow each core flow step by step to the method and the function behind it, and find the file to open for a report about any part of the code. Each fact is read once, and every claim can be checked against the code. Steps 1 to 3 write nothing in the repository; step 4 writes only what the user approved.
+The goal: from the README and the wiki alone, a newcomer can set the project up, run it and debug it, say what each part of it does, follow each core flow step by step to the method and the function behind it, and find the file and the function to open for a report about any part of the code. Each fact is read once, and every claim can be checked against the code. Steps 1 to 3 write nothing in the repository; step 4 writes only what the user approved.
 
 ## 1. Discover
 
@@ -32,25 +32,28 @@ In a temporary copy of the repository, run the commands you will document that n
 **What to write now.** Write what a newcomer needs first:
 
 - the README as the front page, following `readme.md`;
-- `concepts/overview.md`, following `pages.md` §The overview page: every part of the system, not only the primary path;
-- a how-it-works page for each core flow, starting with the primary path, following `pages.md` §How-it-works pages: the picture, the pipeline, the call map and the rules that decide the result;
+- `concepts/overview.md`, following `pages.md` §The overview page: it opens with the picture of the system at work and the parts table under it, with every part of the system, not only the primary path, and a card for every capability (§Capability cards), not only the one the wiki works through;
+- a how-it-works page for each core flow, starting with the primary path, following `pages.md` §How-it-works pages: the everyday picture, the steps, the call map and the rules that decide the result;
 - `howto/run-and-debug.md`, following `pages.md` §Run and debug, pointing into the call maps instead of drawing them again;
-- `reference/map.md`, following `pages.md` §The map of the code: one row for every module, so the code the pages above do not explain still has a way in. A project small enough that those pages already link every code file needs no map;
+- `reference/map.md`, following `pages.md` §The map of the code: one row for every module, so the code the pages above do not explain still has a way in. Every wiki has one; on a small project it is a short page;
+- `reference/limits.md` and `reference/functions.md`, which the tool writes from the code (`pages.md` §Limits and defaults, §Index of functions);
 - `reference/sources.md` when the code follows any external source, following `pages.md` §Sources page, with every mention on the other pages and in the README linked to it or to the repository's own chapter;
 - reference pages for what readers will look up while working: each subsystem the primary path passes through, the public API, the command-line flags, the configuration, the data formats, as far as the code has them;
 - how-to pages for the changes the code invites: an extension point, a registry or a plugin interface suggests "Add a …";
 - a tutorial only when one guided walk through the code would help a newcomer more than the pages above.
 
+**The pictures.** For the overview and for each core flow, decide what a newcomer cannot picture from words, and the form that shows it (`pages.md` §Pictures, tables and charts). The outline says where a picture goes; the project decides what it is. Look first for what the project can show of itself: a real input beside its output, a screen, a figure in its documents, a plot the program writes.
+
 Before writing, decide where each fact lives (`pages.md`, "One home per fact, said once"). The README already holds the project's own tables and steps. Where a page would repeat one in full, either link to the README or propose moving the full table to the page and leaving the README the part a newcomer needs to start. Do the same for README sections a page will cover in full, such as a long debugging, configuration or architecture section: propose the short replacement (what a newcomer needs, and a link), so the reader is not given the same fact twice in different words.
 
-Everything else the code would support is listed at the end of `index.md`, under "Not written yet", as one line per topic, so the plan is visible and nothing is dropped silently. The test for "enough": could a newcomer set up, run and debug the project, say what each part does, explain each core flow down to its methods and functions, and name the file to open for a report about any other part, using only what is written? If not, write what is missing now. When the repository is larger than one wiki can explain well in one pass, explain the overview and the primary path, give every other module its row on the map, list the pages still worth writing as not written yet, and say in the report how to extend it.
+Everything else the code would support is listed at the end of `index.md`, under "Not written yet", as one line per topic, so the plan is visible and nothing is dropped silently. The test for "enough": could a newcomer set up, run and debug the project, say what each part does, explain each core flow down to its methods and functions, and name the file and the function to open for a report about any other part, using only what is written? If not, write what is missing now. When the repository is larger than one wiki can explain well in one pass, explain the overview and the primary path, give every other module its row on the map, list the pages still worth writing as not written yet, and say in the report how to extend it.
 
 ## 3. Propose (approval gate)
 
 Present, in this order:
 
 1. One line: the stack and the files that show it.
-2. A table of what will be written: `# | File | New or changed | Purpose`. It covers the wiki pages, `SCHEMA.md`, `index.md`, `log.md`, the copied tools, and the README.
+2. A table of what will be written: `# | File | New or changed | Purpose`. It covers the wiki pages, `SCHEMA.md`, `index.md`, `log.md`, the copied tools, and the README. Under it, the pictures the pages will carry, `Page | What it shows | Form`, so the user can ask for another.
 3. The exact README text to add or replace (see `readme.md`), the README content you will keep unchanged, and each proposed trim with the section's words before and after, so the user sees what a reader is spared.
 4. The rules block from `templates/rules-block.md.tmpl`, with the file it goes in. Put it in `AGENTS.md`, which Codex reads and Claude Code reads when the repository has no `CLAUDE.md`. When a `CLAUDE.md` exists and does not import `AGENTS.md`, also propose a one-line `@AGENTS.md` import in `CLAUDE.md`. When neither file exists, propose creating `AGENTS.md` with only this block.
 5. The command blocks that will carry `<!-- check:run -->`, with exactly what each runs and what it installs and where. They run in a temporary clean checkout, so the user's working tree is not touched.
@@ -72,7 +75,8 @@ Write only what was approved:
 2. `SCHEMA.md` from `templates/SCHEMA.md.tmpl`. Fill in this repository's source layers, where captured evidence lives, the design documents pages must agree with, and the chosen folders in the commands.
 3. `index.md` and `log.md` from their templates. The log's first entry is `build`.
 4. The pages, following `pages.md`. Set `updated:` to today's date.
-5. The README edits, the rules block, and the approved extras.
+5. `python <skill folder>/tools/wiki.py limits --write` and `python <skill folder>/tools/wiki.py functions --write`, and their two pages listed in the index.
+6. The README edits, the rules block, and the approved extras.
 
 Replace every `{{…}}` placeholder; lint warns about any that are left.
 
@@ -80,7 +84,7 @@ Replace every `{{…}}` placeholder; lint warns about any that are left.
 
 Run each check from the repository root and fix what it finds before the next one:
 
-1. `python <skill folder>/tools/wiki_browser.py render`. A diagram that does not parse, or that it names as too wide, is fixed in the page (`pages.md` §Diagrams), never dropped. Exit code 3 means there is no browser or no Mermaid file: keep the Mermaid source in the page, and say so in the report.
+1. `python <skill folder>/tools/wiki_browser.py render`. A diagram that does not parse, or that it names as too wide, is fixed in the page (`pages.md` §Diagrams), never dropped. It writes a PNG of each picture and says where: open every one, as the reader will see it, and fix what you see there (`pages.md` §Pictures, tables and charts, the two checks). Exit code 3 means there is no browser or no Mermaid file: keep the Mermaid source in the page, and say so in the report.
 2. `python <skill folder>/tools/wiki.py lint`. Fix every problem, and read every warning: fix it, or keep it with its reason on the page (`pages.md` §What the lint checks, "A warning that stays"). Its last line counts the code files on pages, under map rows and on none. A map row that stands for many files hides them: give the files in it that hold logic their own rows.
 3. `python <skill folder>/tools/wiki.py lint --run --strict --clean-env --capture <a temporary folder outside the repository>`. This is the proof that a reader can follow the pages without changing anything:
    - The approved command blocks run, README first, in one temporary clean checkout, with only system environment variables. A step that relies on something the page does not state, such as a variable set on your machine, an installed tool, or a file outside git, fails here.
@@ -91,7 +95,7 @@ Run each check from the repository root and fix what it finds before the next on
    - A failing block means the documentation is wrong or the step needs something it does not state. Fix the text, for example a missing prerequisite, an environment variable to set, or a per-OS form; never weaken, skip or unmark a block to make it pass.
    - A block whose tool is not installed on this machine (for example no Go toolchain) is reported as not verified here. Make sure the page names that prerequisite, and report the block as unverified.
 4. `python <skill folder>/tools/wiki.py viewer`, then `python <skill folder>/tools/wiki_browser.py check-viewer <viewer file>`. The check needs Python Playwright; without it, say that the viewer was not opened. A formula it reports as not typesetting is fixed in the page (`pages.md` §Formulas).
-5. **Read it as a newcomer.** Open the overview, then each page from the sidebar, and hold each page to its test in `pages.md`: the overview, the how-it-works pages, the map, "One home per fact, said once", and §Pictures, tables and charts. Then check what only a read-through finds:
+5. **Read it as a newcomer.** Open the overview, then each page from the sidebar, and hold each page to the five tests at the top of `pages.md`, then to its own test there: the overview, the capability cards, the how-it-works pages, the map, "One home per fact, said once", and §Pictures, tables and charts. Then check what only a read-through finds:
    - Can you go from every standard, handbook or paper a page names, and from every step's method, to its source in one click, landing on its row or clause?
    - Pick three things a user could report from code no page explains: a screen, a command's message, a file the program writes. Does the map lead from each to the right file, in the user's words?
    - Someone who starts the entry point the obvious way (the default interpreter, nothing else running) gets some message. Is that message in the symptom table, with its fix?
@@ -99,6 +103,8 @@ Run each check from the repository root and fix what it finds before the next on
 
    Fix what fails, and compare the word count the lint reports before and after this pass.
 6. **Audit the claims.** List every concrete claim a reader will act on: commands, versions, defaults, limits, flags, ports, environment variables, exit codes, error messages, file locations, the methods and formulas named on how-it-works pages, and the behaviour of requests and responses. Verify each one, either by a `check:run` block (with `check:output` where the page shows output) or by the line of code it comes from. A claim you can verify neither way is removed, or labelled as unverified with what would verify it. Report the counts: verified by running, verified in the code, unverified.
+
+   An author reads what they meant to write. Where the runtime has subagents, give every page that makes claims about the code (the how-it-works pages, the capability cards, the tables of run-and-debug, the map's "not what it seems" table) to a fresh agent that has the code and did not see you write them. Ask it for what is wrong or imprecise, starting with the sentences that close a door (`pages.md`, Rules), and with what each diagram's source says. Fix what it finds on every page that says the same, and report how many claims it checked and how many it changed.
 
 ## 6. Report
 

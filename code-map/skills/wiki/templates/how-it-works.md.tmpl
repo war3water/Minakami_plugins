@@ -7,7 +7,7 @@ updated: {{date}}
 
 # How {{the flow}} works
 
-{{One or two sentences: what goes in, what comes out, and the method at the core, in plain words.}}
+{{One or two sentences: what goes in, what comes out, and the method at the core, in plain words. When other capabilities run through the same skeleton, one sentence naming them and the steps they share.}}
 
 ## Think of it as {{an everyday picture}}
 
@@ -17,18 +17,17 @@ updated: {{date}}
 |---|---|---|
 | {{a part of the picture}} | [{{the step}}](#{{pipeline heading slug}}) | {{the difference a reader must not carry over, or nothing}} |
 
-## {{The pipeline heading: the steps from the input to the output}}
+## {{The steps heading: what happens from the input to the output}}
 
-![{{what the diagram shows}}](../diagrams/{{pipeline id}}.svg)
+{{The picture of this flow, in the form the flow has (pages.md §Pictures, tables and charts): a flowchart in phases for steps that branch (§Diagrams, "Phases"), a sequence diagram where parts wait on each other, a state diagram for the life of one thing, the example's value at each stage where data is reshaped. A straight line of a few steps needs none. Each diagram as its image and, folded under it, its source:}}
+
+![{{what the picture shows}}](../diagrams/{{id}}.svg)
 
 <details><summary>Diagram source</summary>
 
 ```mermaid
-%% id: {{pipeline id}}
-flowchart TB
-    IN["{{the input, in words}}"] -->|"{{what passes, with its type or shape}}"| S1["{{1. what the step does, in a few words}}"]
-    S1 -->|"{{what passes}}"| S2["{{2. the next step}}"]
-    S2 -->|"{{what passes}}"| OUT["{{the output, in words}}"]
+%% id: {{id}}
+{{the diagram}}
 ```
 </details>
 
@@ -61,7 +60,7 @@ flowchart TB
 
 ## {{The rules that decide the result, as a heading that states them}}
 
-{{Formulas, thresholds and decision rules, each with its function. When one part of the example's result decides the verdict, the build-up as a table of the captured values.}}
+{{Formulas, thresholds and decision rules, each with its function and its source; under a formula of several lines, how the lines follow. When one part of the example's result decides the verdict, the build-up as a table of the captured values.}}
 
 ## {{Why it is built this way, as a heading that states the decision}}
 

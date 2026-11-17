@@ -5,7 +5,11 @@
 The goal: every page tells the truth about the code as it is now, and the change that alters the code also carries the page updates. Edit only the wiki: pages, the README, diagrams, the index and the log.
 
 1. **Tools.** Run `python <skill folder>/tools/wiki.py copy-tools <tools folder> --check`. If the repository's copy is older than the plugin's, refresh it with the same command without `--check`. A file someone edited in the repository is kept and reported; say so in your report.
-   - **A wiki built by an older version.** New tools come with new page rules, and `wiki.py lint` then warns about what the wiki lacks under them, such as code files on no page (the map, `pages.md` §The map of the code) or a step table that repeats its diagram. Bring the wiki up to them in this update: read the templates the fixes need, write what is missing, and replace the rules block in `AGENTS.md` and the rules of `SCHEMA.md` with the current templates' text, keeping this repository's own values. Name each such change in the report.
+   - **A wiki built by an older version.** New tools come with new page rules. Read every page against its section of `pages.md` and bring it up to the current rules in this update. `wiki.py lint` warns about part of what a wiki lacks under them, such as code files on no page or a step table that repeats its diagram, but not all of it. The rules that have changed most so far, to start with: the index's route and task table, the overview's picture of the system at work and its parts table, the capability cards, the form of each picture (§Pictures, tables and charts: does it show what this project has, in the form that thing has?), `Try it` on an API page, run-and-debug, and the map.
+     - **The map.** A row cannot show what it leaves out, and opening every module again costs about what writing the map did. Do that when the user asked for the wiki to be brought up to date; in an update for a code change, fix the rows that change touches and say in the report that the rest of the map predates the rule.
+     - **What is missing.** Read the templates the fixes need and write it: the limits page and the index of functions are one command each, `wiki.py limits --write` and `wiki.py functions --write`. Replace the rules block in `AGENTS.md` and the rules of `SCHEMA.md` with the current templates' text, keeping this repository's own values.
+     - **The second reader.** A wiki whose claims no second reader has checked gets that check now, once: where the runtime has subagents, a fresh agent with the code reads every page that makes claims about the code (the how-it-works pages, the capability cards, the tables of run-and-debug, the map's "not what it seems" table) for what is wrong or imprecise, as `build.md` §5 step 6 describes; fix what it finds and say in the log that the check was done.
+     - Name each such change in the report.
 2. **Find what the change touches.** Run `python <skill folder>/tools/wiki.py affected`, adding `--since <ref>` when the user named a starting point. Each page is compared with its own last commit:
    - "Pages to update": a source file or symbol the page names changed after the page's last commit, a file it links to changed, or, for the README, setup, run or debug files changed;
    - "Pages already edited in this change": confirm their edits cover the listed reasons;
@@ -15,8 +19,17 @@ The goal: every page tells the truth about the code as it is now, and the change
    The extras the first build wrote are part of the wiki and are updated the same way: CodeTour steps (the lint checks that each `pattern` still matches), debug configurations, and the rules block.
 4. **Uncovered code.** For each changed file no page names, decide: an existing page should cover it (add it to that page's `sources:` and text), it needs a new page (write it and add it to `index.md`), or it needs only a way in (a row on `reference/map.md`). A change that makes a row of the map untrue, in either of its tables, updates the row. A topic in the index's "Not written yet" list that the change now makes necessary is written now. A new part of the system (a service, a command group, a package) is added to the overview page.
 5. **Log.** Append one entry at the end of `log.md`: `## [YYYY-MM-DD] change | <title>`, then one to three lines on what changed. Name, by path, the pages updated and the pages checked and still true, for example `Updated: README.md, howto/run-and-debug.md. Checked: reference/cache.md.`
-6. **Verify.** Render the diagrams you edited (`wiki_browser.py render`) and run `wiki.py lint --strict`. When setup, commands, command blocks, or output shown as `check:output` may have changed, run `wiki.py lint --run --strict --clean-env --capture <folder>` and update the captured outputs. Rebuild the viewer if the repository keeps one. Fix what fails, as in `build.md` §5.
+6. **Verify.** Render the diagrams you edited (`wiki_browser.py render`), look at the PNG it writes of each, and run `wiki.py lint --strict`. When it says the limits table or the index of functions is older than the code, or that the wiki has none, run `wiki.py limits --write` or `wiki.py functions --write`. When setup, commands, command blocks, or output shown as `check:output` may have changed, run `wiki.py lint --run --strict --clean-env --capture <folder>` and update the captured outputs. Rebuild the viewer if the repository keeps one. Fix what fails, as in `build.md` §5.
 7. **Report.** List the pages updated and why, the pages confirmed unchanged, new pages, uncovered code left out and why, the lint result, and the command blocks run.
+
+## A reader's comment
+
+A comment on one place in the wiki, left in the hosted copy's review mode or said by the user, is about every place like it.
+
+1. Name the kind of thing it is about (how a diagram looks, the notes under a formula, a folded block, a card) and the test of `pages.md` it fails.
+2. Fix every instance of that kind in the wiki, not only the one the reader had open. Fix the Markdown and build again: a change made to the hosted copy alone is lost at the next build.
+3. A preference this wiki should keep (a term, an order, a depth) goes under Rules in `SCHEMA.md`, where the next update reads it.
+4. When the cause is how the tools draw or check something, or a rule of this skill, say so in the report: that fix belongs in the plugin, where every wiki gets it.
 
 ## Lint
 
@@ -52,9 +65,9 @@ The goal: questions people actually ask about this repository get answered once,
 
 1. `python <skill folder>/tools/wiki.py viewer [--editor <name>] [--out <file>]` writes one HTML file:
    - README first, then the sidebar in the index's order, under the labels Start here, How it works, Guides, Reference and Tutorials; `SCHEMA.md` and the log are linked from the footer;
-   - search, and links between pages;
+   - an outline of the page on show, search that lists the pages mentioning the words and where, previous and next page, and links between pages; either side bar folds away;
    - the code each page explains, behind one button, with links that open the editor at the symbol;
-   - diagrams that open in a zoom and pan view;
+   - code blocks with a copy button, and diagrams that open in a zoom and pan view;
    - above each command the check does not run, its reason;
    - on a page whose code is gone or changed since it was last checked, or whose links lead nowhere, a notice saying so. The rest of the lint report stays in the terminal.
 

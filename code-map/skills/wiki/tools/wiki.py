@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Mechanical upkeep of a code wiki: lint, affected pages, viewer, tool copy.
+"""Mechanical upkeep of a code wiki: lint, affected pages, viewer, pages written from the code, tool copy.
 
 Shipped by the code-map plugin's `wiki` skill and copied into the repository it documents, so anyone (a person, CI,
 any coding agent) can run it without the plugin. Standard library only, Python 3.9 or later. The wiki's rules live in
@@ -35,10 +35,11 @@ import urllib.parse
 from datetime import date
 from pathlib import Path
 
-TOOLS_VERSION = "0.3.0"
+TOOLS_VERSION = "0.4.0"
 HERE = Path(__file__).resolve().parent
-TOOL_FILES = ["wiki.py", "wiki_browser.py", "viewer_template.html", "vendor/marked.min.js", "vendor/marked-LICENSE.txt",
-              "vendor/katex.min.js", "vendor/katex.min.css", "vendor/katex-LICENSE.txt"]
+TOOL_FILES = ["wiki.py", "wiki_browser.py", "diagram_style.js", "viewer_template.html", "vendor/marked.min.js", "vendor/marked-LICENSE.txt",
+              "vendor/katex.min.js", "vendor/katex.min.css", "vendor/katex-LICENSE.txt",
+              "vendor/jetbrains-mono-latin.woff2", "vendor/jetbrains-mono-LICENSE.txt"]
 SPECIAL_PAGES = {"index.md": "index", "log.md": "log", "SCHEMA.md": "schema"}
 PAGE_KINDS = {"tutorial", "how-to", "reference", "explanation"}
 SKIP_DIRS = {".git", "node_modules", ".venv", "venv", "__pycache__", "diagrams", "vendor"}
@@ -547,6 +548,68 @@ def mermaid_blocks(page: Page) -> list[dict]:
     return out
 
 
+KIND = re.compile(r"^\s*(flowchart|graph|sequenceDiagram|stateDiagram(?:-v2)?|erDiagram|classDiagram(?:-v2)?|timeline|gantt|"
+                  r"xychart(?:-beta)?|pie|block(?:-beta)?|packet(?:-beta)?|mindmap|sankey(?:-beta)?|quadrantChart|journey|"
+                  r"gitGraph|architecture(?:-beta)?|requirementDiagram|C4\w+|kanban)\b", re.M)
+KIND_NAMES = {"graph": "flowchart", "sequenceDiagram": "sequence", "stateDiagram": "state", "stateDiagram-v2": "state",
+              "erDiagram": "entities", "classDiagram": "class", "classDiagram-v2": "class", "xychart-beta": "chart",
+              "xychart": "chart", "pie": "chart", "block-beta": "block", "packet-beta": "packet", "sankey-beta": "sankey"}
+
+
+def diagram_kind(source: str) -> str:
+    """flowchart, sequence, state, entities, class, timeline, chart, ...: the first keyword of a Mermaid source."""
+    found = KIND.search("\n".join(l for l in source.split("\n") if not l.lstrip().startswith("%%")))
+    return KIND_NAMES.get(found.group(1), found.group(1)) if found else "other"
+
+
+FLOW_SKIP = ("%%", "subgraph", "direction", "class ", "classDef", "style", "linkStyle", "click", "flowchart", "graph", "end")
+FLOW_BOX = re.compile(r'(?<![\w"])([A-Za-z_][\w-]*)\s*[\[({]')
+MANY_BOXES = 6  # from here on a picture needs one box marked as the one to notice
+
+
+def flow_boxes(source: str) -> set[str]:
+    """The ids of the boxes a flowchart defines with a label."""
+    ids: set[str] = set()
+    for line in source.split("\n"):
+        if not line.strip().startswith(FLOW_SKIP):
+            ids.update(FLOW_BOX.findall(re.sub(r'"[^"]*"', '""', line)))
+    return ids
+
+
+def picture_checks(page: Page, block: dict, warn) -> None:
+    """What a flowchart says about itself, which wiki_browser.py render then draws (pages.md, Diagrams)."""
+    source = block["source"]
+    if diagram_kind(source) != "flowchart":
+        return
+    where = f"[{block['id']}]"
+    if re.search(r"^\s*(style|classDef|linkStyle)\b", source, re.M):
+        warn(page, block["line"], f"{where} writes colours by hand (style, classDef or linkStyle), so render leaves it as it "
+                                  "is: say what the picture means and let render draw it (pages.md, Diagrams)")
+        return
+    boxes = flow_boxes(source)
+    key = re.search(r"^\s*%%\s*key:\s*([A-Za-z_][\w-]*)", source, re.M)
+    if key and key.group(1) == "none":
+        pass  # the page says that no box matters more than the others
+    elif key and key.group(1) not in boxes:
+        warn(page, block["line"], f"{where} `%% key: {key.group(1)}` names no box of the diagram")
+    elif not key and len(boxes) >= MANY_BOXES:
+        warn(page, block["line"], f"{where} {len(boxes)} boxes and no `%% key:` line: the picture gives a reader no one thing "
+                                  "to notice. Name the box to leave remembering, or write `%% key: none` when no box "
+                                  "matters more than the others (pages.md, Diagrams)")
+    legend = re.search(r"^\s*%%\s*legend:(.*)$", source, re.M)
+    if re.search(r'==>|==\s*"[^"]*"\s*==>', source) and not (legend and re.search(r"\bthick\s*=", legend.group(1))):
+        warn(page, block["line"], f"{where} thick arrows that `%% legend: thick = …` does not name: say what the heavy route is")
+
+
+def formula_checks(page: Page, warn) -> None:
+    """A formula of several lines numbers them, so the notes under it have something to point at."""
+    for m in re.finditer(r"^```math[^\n]*\n(.*?)^```", page.text, re.M | re.S):
+        if re.search(r"\\\\\s*$", m.group(1), re.M) and "\\tag{" not in m.group(1):
+            warn(page, page.text[:m.start()].count("\n") + 1,
+                 "a formula of several lines without \\tag numbers: end each line with \\tag{1}, \\tag{2}, in an align "
+                 "block, and number the notes under it the same (pages.md, Formulas)")
+
+
 def diagram_hash(source: str) -> str:
     norm = "\n".join(line.rstrip() for line in source.strip().split("\n"))
     return sha256(norm.encode("utf-8"))
@@ -719,7 +782,16 @@ def remove_checkout(repo: Path, tmp: Path, dest: Path) -> None:
         os.chmod(path, stat.S_IWRITE)
         func(path)
 
-    shutil.rmtree(tmp, onerror=unlock) if sys.version_info < (3, 12) else shutil.rmtree(tmp, onexc=unlock)
+    # Commands run in the checkout can install deep trees (pnpm's node_modules) whose paths pass Windows' 260-character
+    # limit, which plain paths cannot delete; the \\?\ form can. A checkout that still won't go is reported, not raised,
+    # so the lint report the run produced is not lost to its cleanup.
+    target = str(tmp)
+    if os.name == "nt" and not target.startswith("\\\\?\\"):
+        target = "\\\\?\\" + os.path.abspath(target)
+    try:
+        shutil.rmtree(target, onerror=unlock) if sys.version_info < (3, 12) else shutil.rmtree(target, onexc=unlock)
+    except OSError as e:
+        print(f"note: could not remove the temporary checkout {tmp}: {e}; delete it by hand", file=sys.stderr)
     git(repo, "worktree", "prune", check=False)
 
 
@@ -761,6 +833,22 @@ def stop_tree(proc: subprocess.Popen) -> None:
                 os.killpg(proc.pid, signal.SIGKILL)
             except ProcessLookupError:
                 pass
+
+
+def run_block(cmd: list[str], cwd: Path, env: dict, timeout: int) -> subprocess.CompletedProcess:
+    """subprocess.run with a timeout that holds: on a timeout the shell and everything it started are stopped. A plain
+    run() kills only the shell, and on Windows then waits for the output pipes, which a server or a stuck install the
+    shell started keeps open, so the timeout never fires and that process keeps running."""
+    kw = {"creationflags": subprocess.CREATE_NEW_PROCESS_GROUP} if os.name == "nt" else {"start_new_session": True}
+    proc = subprocess.Popen(cmd, cwd=cwd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, encoding="utf-8",
+                            errors="replace", env=env, **kw)
+    try:
+        out, err = proc.communicate(timeout=timeout)
+    except subprocess.TimeoutExpired:
+        stop_tree(proc)
+        proc.communicate()
+        raise
+    return subprocess.CompletedProcess(cmd, proc.returncode, out, err)
 
 
 def wait_ready(proc: subprocess.Popen, log: Path, ready, seconds: int) -> str | None:
@@ -831,7 +919,14 @@ def execute(blocks: list[dict], cwd: Path, timeout: int, capture: Path | None = 
                        f"$PSNativeCommandUseErrorActionPreference = {'$false' if want else '$true'}\n"
                        "if ($PSStyle) { $PSStyle.OutputRendering = 'PlainText' }\n"
                        + b["body"] + ("\nexit $LASTEXITCODE" if want else "")]
-            if b.get("background"):
+            ready = b.get("ready")
+            if b.get("background") and ready is not None and not (
+                    isinstance(ready, str) and (ready.startswith(("http://", "https://"))
+                                                or (len(ready) > 2 and ready.startswith("/") and ready.endswith("/")))):
+                # an unquoted pattern with spaces arrives cut at the first space and would wait out its whole time
+                res.update(status="failed", detail=f"ready={ready} is neither a URL nor a /regex/; a pattern with "
+                                                   f'spaces needs quotes: ready="/server listening/"')
+            elif b.get("background"):
                 log = logs / f"{k}.log"
                 fh = open(log, "w", encoding="utf-8", errors="replace")
                 handles.append(fh)
@@ -846,8 +941,7 @@ def execute(blocks: list[dict], cwd: Path, timeout: int, capture: Path | None = 
                 res["captured"] = save(b, "running", read(log), "")
             else:
                 try:
-                    r = subprocess.run(cmd, cwd=cwd, capture_output=True, text=True, encoding="utf-8", errors="replace",
-                                       timeout=timeout, env=env)
+                    r = run_block(cmd, cwd, env, timeout)
                     missing = re.search(r"(?m)([\w.+-]+): command not found\s*$", r.stderr or "")  # bash's message, any prefix
                     if r.returncode == 127 and missing:
                         # the block needs a tool this machine lacks: not evidence that the docs are wrong, but not verified either
@@ -886,7 +980,7 @@ def lint(repo: Path, wiki: Path, run: bool = False, in_place: bool = False, time
     warnings: list[dict] = []
     syms = Symbols(repo)
     report = {"repo": repo.name, "wiki": posix(wiki, repo) if wiki.exists() else str(wiki), "pages": len(pages),
-              "problems": problems, "warnings": warnings, "sources": {}, "diagrams": 0, "commands": [],
+              "problems": problems, "warnings": warnings, "sources": {}, "diagrams": 0, "kinds": {}, "figures": 0, "commands": [],
               "coverage": {"run": 0, "skip": 0, "unmarked": 0}, "words": {}, "map": {}, "accepted": []}
     files = None
     vocab = None  # the sources page's short names, read on first use
@@ -914,6 +1008,7 @@ def lint(repo: Path, wiki: Path, run: bool = False, in_place: bool = False, time
 
     anchor_cache: dict[Path, set[str]] = {}
     seen_ids: dict[str, str] = {}
+    seen_cards = 0
     all_blocks: list[dict] = []
     for page in pages:
         # front matter
@@ -922,8 +1017,8 @@ def lint(repo: Path, wiki: Path, run: bool = False, in_place: bool = False, time
                 bad(page, 1, f"kind is '{page.kind or '(none)'}'; use one of {', '.join(sorted(PAGE_KINDS))}")
             if not page.meta.get("title"):
                 warn(page, 1, "no title in front matter")
-            if not page.sources and page.kind in ("reference", "explanation", "how-to") and not any(
-                    "open first" in header for _, header, _ in table_rows(page)):  # the map's rows are checked one by one
+            if not page.sources and page.kind in ("reference", "explanation", "how-to") and not LIMITS_BLOCK.search(page.text) and not FUNCS_BLOCK.search(page.text) and not any(
+                    "open first" in header and header[0] != "part" for _, header, _ in table_rows(page)):  # the map's rows are checked one by one
                 warn(page, 1, "no sources: the page cannot be checked against the code")
             if page.path.resolve() not in indexed:
                 bad(page, 1, "not listed in index.md")
@@ -994,6 +1089,30 @@ def lint(repo: Path, wiki: Path, run: bool = False, in_place: bool = False, time
             found = [syms.find(f"{path}#{'.'.join(parts[k:])}") for k in range(len(parts))]
             if not any(r["ok"] for r in found):
                 bad(page, line, f"{col.capitalize()} {found[0]['ref']}: {found[0]['note']}")
+        # run and debug: a way to start every part under a debugger, not only the main flow
+        if page.wiki_rel == "howto/run-and-debug.md" and not any(
+                header and header[0] == "part" and any(h.startswith("start it") for h in header) for _, header, _ in table_rows(page)):
+            warn(page, 1, "no `Part | Start it under a debugger | Then break in` table: a report about a part outside the main flow "
+                          "has no way in (pages.md, Run and debug, Debug any part)")
+        # capability cards: every card answers the same questions, so every capability is met at the same depth
+        for line, heading, labels in cards(page):
+            seen_cards += 1
+            missing = [lab for lab in CARD_LABELS if lab.lower() not in labels]
+            if missing:
+                warn(page, line, f"the card '{heading}' has no {' or '.join(missing)} line: every capability card carries "
+                                 "Try it, How, Open first and Go deeper (pages.md, What it can do)")
+        # an API page starts with a request the reader can send
+        if page.wiki_rel and (Path(page.wiki_rel).stem == "api" or Path(page.wiki_rel).parent.name == "api") \
+                and not re.search(r"^#{2,4}\s+Try it\b", page.text, re.M | re.I):
+            warn(page, 1, "no `Try it` section: an API page starts with the shortest real use, a request for a service or "
+                          "a first call for a library, and its answer (pages.md, An API page)")
+        # a long pipeline is grouped into phases, so the reader sees its shape before its steps
+        for start, header, rows in table_rows(page):
+            flows = [b["source"] for b in mermaid_blocks(page) if "%% calls" not in b["source"]]
+            if header and header[0] == "#" and "step" in header and len(rows) > 6 and not any(
+                    diagram_kind(src) != "flowchart" or re.search(r"^\s*subgraph\b", src, re.M) for src in flows):
+                warn(page, start, f"{len(rows)} steps and no phases: group the boxes of the pipeline diagram into a few named "
+                                  "phases (pages.md, Diagrams, Phases)")
         # step tables: the pipeline diagram's arrows carry what passes between steps
         for start, header, _ in table_rows(page):
             if header and header[0] == "#" and "step" in header and ("takes" in header or "gives" in header):
@@ -1002,12 +1121,15 @@ def lint(repo: Path, wiki: Path, run: bool = False, in_place: bool = False, time
         # diagrams
         for block in mermaid_blocks(page):
             report["diagrams"] += 1
+            kind = diagram_kind(block["source"])
+            report["kinds"][kind] = report["kinds"].get(kind, 0) + 1
             if not block["id"]:
                 bad(page, block["line"], "mermaid block without a first line '%% id: <name>'")
                 continue
             if block["id"] in seen_ids:
                 bad(page, block["line"], f"diagram id '{block['id']}' also used in {seen_ids[block['id']]}")
             seen_ids[block["id"]] = page.label
+            picture_checks(page, block, warn)
             svg = wiki / "diagrams" / f"{block['id']}.svg"
             if not svg.exists():
                 bad(page, block["line"], f"diagrams/{block['id']}.svg not rendered (run wiki_browser.py render)")
@@ -1021,6 +1143,7 @@ def lint(repo: Path, wiki: Path, run: bool = False, in_place: bool = False, time
                                           "or squeezes it (run wiki_browser.py render again)")
             if f"diagrams/{block['id']}.svg" not in page.text:
                 warn(page, block["line"], f"the page does not show diagrams/{block['id']}.svg")
+        formula_checks(page, warn)
         # boxes that name code, and the calls a call map draws
         if "```mermaid" in page.text:
             if files is None:
@@ -1061,13 +1184,27 @@ def lint(repo: Path, wiki: Path, run: bool = False, in_place: bool = False, time
                 and not (page.wiki_rel and Path(page.wiki_rel).name == "sources.md")]
         if bare and page.kind != "index":  # the index lists the page itself
             warn(page, bare[0], f"{len(bare)} link(s) to the sources page name no entry: end each with the source's anchor "
-                                "(sources.md#dnv-cn-41-2), so the reader lands on that source's row, with its clauses and "
+                                "(sources.md#rfc-9457), so the reader lands on that source's row, with its clauses and "
                                 "public link, instead of the top of the table")
         # complete call lists (`Caller | Calls` tables): each row is a call in the caller's code
         if "| caller" in page.text.lower():
             if files is None:
                 files = code_files(repo)
             call_table_checks(repo, page, syms, files, bad, warn)
+
+    # figures: drawings kept as SVG files, which render gives the look of the diagrams
+    shown = "\n".join(p.text for p in pages)
+    for fig in sorted((wiki / "figures").glob("*.svg")) if (wiki / "figures").exists() else []:
+        report["figures"] += 1
+        text, label = read(fig), f"figures/{fig.name}"
+        own = re.sub(r'<style id="wiki-look">.*?</style>|<defs id="wiki-marks">.*?</defs>|<rect id="wiki-ground"[^>]*>', "", text, flags=re.S)
+        if 'id="wiki-look"' not in text:
+            problems.append({"page": label, "line": 0, "msg": "not rendered (run wiki_browser.py render)"})
+        if re.search(r"(?:fill|stroke)\s*[:=]\s*[\"']?\s*(?:#[0-9a-fA-F]{3,8}|rgb)", own):
+            warnings.append({"page": label, "line": 0, "msg": "writes colours by hand: give each shape a class (part, key, "
+                             "line, dim, axis, quiet) and let render colour it (pages.md, Figures)"})
+        if f"figures/{fig.name}" not in shown:
+            warnings.append({"page": label, "line": 0, "msg": "no page shows this figure; delete it or show it"})
 
     # diagrams nobody uses any more
     if (wiki / "diagrams").exists():
@@ -1080,12 +1217,19 @@ def lint(repo: Path, wiki: Path, run: bool = False, in_place: bool = False, time
                                     for _, t in links(readme.text)):
         warnings.append({"page": "README.md", "line": 0, "msg": "the README does not link to the wiki's index.md"})
 
+    overview = next((p for p in pages if p.wiki_rel == "concepts/overview.md"), None)
+    if overview and not seen_cards:
+        warnings.append({"page": overview.label, "line": 1, "msg": "no capability cards: what the project can do is not shown in one "
+                         "shape, one card for each capability (pages.md, What it can do)"})
+    parts_checks(pages, warnings)
     log_checks(repo, wiki, warnings)
     stale_checks(repo, wiki, pages, warnings)
     tour_checks(repo, warnings)
     repeat_checks(pages, warnings)
     first_read_checks(pages, warnings)
     report["map"] = coverage_checks(repo, wiki, pages, warnings)
+    report["limits"] = limit_checks(repo, wiki, pages, problems, warnings)
+    report["functions"] = function_checks(repo, wiki, pages, problems, warnings)
 
     report["commands"] = [dict(b, status="not run") for b in all_blocks]
     if run and all_blocks:
@@ -1189,6 +1333,8 @@ def tables(page: Page) -> list[tuple[int, set[str]]]:
     for start, rows in found:
         if len(rows) < 3 or not re.fullmatch(r"[\s|:-]+", rows[1]):
             continue
+        if re.match(r"\s*part\s*\|\s*start it", rows[0], re.I):
+            continue  # run-and-debug's way in for each part: it names the overview's parts on purpose
         keys = set()
         for row in rows[2:]:
             key = re.sub(r"[`*]", "", re.sub(r"\[([^\]]*)\]\([^)]*\)", r"\1", row.split("|")[0])).strip().lower()
@@ -1298,6 +1444,23 @@ def label_code(label: str) -> tuple[str, list[str]] | None:
     return m.group("path"), names
 
 
+KIN_CODE = re.compile(r'(?:^|<br\s*/?>|\bas\s+|:\s*)"?\s*([\w.\-/]+\.[A-Za-z0-9]+):\s*'
+                      r'([A-Za-z_][\w.]*(?:\s*(?:,|\band\b)\s*[A-Za-z_][\w.]*)*)\s*"?\s*(?=$|<br)', re.I)
+
+
+def kin_code_refs(source: str) -> list[tuple[str, list[str]]]:
+    """[(path, [names])] for each `path: function` a picture that is no flowchart names: under a participant of a
+    sequence diagram, in a state's description, in a note."""
+    out = []
+    for line in source.split("\n"):
+        if line.lstrip().startswith("%%"):
+            continue
+        for m in KIN_CODE.finditer(line.strip()):
+            if Path(m.group(1)).suffix.lower() in CODE_EXT:
+                out.append((m.group(1), [n.strip() for n in re.split(r"\s*(?:,|\band\b)\s*", m.group(2)) if n.strip()]))
+    return out
+
+
 def map_checks(repo: Path, page: Page, syms: Symbols, files: list[str], bad, warn) -> None:
     """Boxes written `path: function` must name code that exists, on any diagram. On a call map (a diagram with a
     `%% calls` line), each solid arrow between two such boxes says the first calls the second, so the callee's name
@@ -1308,8 +1471,10 @@ def map_checks(repo: Path, page: Page, syms: Symbols, files: list[str], bad, war
         where = f"diagram '{block['id'] or '?'}'"
         found: dict[str, list[tuple[str, dict]]] = {}
         unlisted = []
-        for node, label in labels.items():
-            ref = label_code(label)
+        refs = [(node, label_code(label)) for node, label in labels.items()]
+        if diagram_kind(block["source"]) != "flowchart":
+            refs = [(f"#{n}", ref) for n, ref in enumerate(kin_code_refs(block["source"]))]
+        for node, ref in refs:
             if not ref:
                 continue
             rel, note = resolve_code_path(ref[0], files)
@@ -1415,6 +1580,8 @@ def unlinked_citations(page: Page, vocab: list[tuple[re.Pattern, str]] = ()) -> 
     section passes. The sources page itself is exempt; it is where the links point."""
     if page.wiki_rel and Path(page.wiki_rel).name == "sources.md":
         return []
+    if "<!-- functions:begin" in page.text or "<!-- limits:begin" in page.text:
+        return []  # a table the tool wrote quotes the code's comments, and no one edits it to add a link
     out: list[tuple[int, str]] = []
     first: dict[str, tuple[int, str]] = {}
     linked: set[str] = set()
@@ -1585,10 +1752,12 @@ def first_read_checks(pages: list[Page], warnings: list[dict]) -> None:
             flows = []
             for _, target in links("\n".join(lines[top:end])):
                 path = target.partition("#")[0]
-                if is_external(target) or not re.search(r"how-[\w-]+-works\.md$", path):
+                if is_external(target) or not path.endswith(".md"):
                     continue
+                # a how-it-works page is known by its step table, whatever its file is called
                 other = by_path.get((page.path.parent / path).resolve())
-                if other and other not in flows:
+                if other and other is not page and other not in flows and any(
+                        h and h[0] == "#" and "step" in h and "code" in h for _, h, _ in table_rows(other)):
                     flows.append(other)
             if not flows:
                 warnings.append({"page": page.label, "line": start, "msg": "the code-to-know-first section links no how-it-works "
@@ -1610,19 +1779,108 @@ def first_read_checks(pages: list[Page], warnings: list[dict]) -> None:
                                              "readers take"})
 
 
+PARTS_MARK = re.compile(r"^\s*%%\s*parts\s*$", re.M)
+IN_OUT_BOX = re.compile(r'(?<![\w-])([A-Za-z_][\w-]*)\s*\(\[')
+
+
+def part_name(text: str) -> str:
+    """A part's name as a reader meets it: the first line of a box, or a table cell, without its marks."""
+    first = LABEL_BREAK.split(text)[0]
+    return re.sub(r"\s+", " ", re.sub(r"[`*]", "", re.sub(r"\[([^\]]*)\]\([^)]*\)", r"\1", first))).strip().lower()
+
+
+def parts_checks(pages: list[Page], warnings: list[dict]) -> None:
+    """The picture of the system at work (`%% parts`) and the parts table under it name the same parts. The viewer
+    shows a box's row when a reader chooses it, so a box without a row opens nothing, and a part without a box is one
+    a newcomer who reads the picture never meets. Each part with code names where it starts and links its modules."""
+    has_map = any(p.wiki_rel == "reference/map.md" for p in pages)
+    for page in pages:
+        blocks = [b for b in mermaid_blocks(page) if PARTS_MARK.search(b["source"])]
+        tables = [t for t in table_rows(page) if t[1] and t[1][0] == "part" and "what it does" in t[1]]
+        if page.wiki_rel == "concepts/overview.md" and not blocks:
+            warnings.append({"page": page.label, "line": tables[0][0] if tables else 1, "msg": "no picture of the system at work: "
+                             "the page opens with one picture that follows the project's main thing through its parts, marked "
+                             "`%% parts`, with the parts table under it (pages.md, The overview page)"})
+        for block in blocks:
+            where = f"[{block['id']}]"
+            table = next((t for t in tables if t[0] > block["line"]), None)
+            if table is None:
+                warnings.append({"page": page.label, "line": block["line"], "msg": f"{where} is marked `%% parts` and no parts "
+                                 "table follows it (`Part | What it does | Built on | Open first | Where it lives | How you "
+                                 "reach it`): its boxes lead nowhere"})
+                continue
+            start, header, rows = table
+            names = {part_name(cells[0]): (line, cells) for line, cells in rows if cells and part_name(cells[0])}
+            if "open first" not in header:
+                warnings.append({"page": page.label, "line": start, "msg": "the parts table has no `Open first` column: a reader "
+                                 "who chooses a part in the picture is not told where its code starts"})
+            if diagram_kind(block["source"]) == "flowchart":
+                labels, _ = flow_graph(block["source"])
+                in_out = set(IN_OUT_BOX.findall(re.sub(r'"[^"]*"', '""', block["source"])))
+                drawn = {part_name(label): node for node, label in labels.items() if node not in in_out}
+                for title, node in drawn.items():
+                    if title not in names:
+                        warnings.append({"page": page.label, "line": block["line"], "msg": f"{where} the box \"{title}\" has no row "
+                                         "in the parts table under it, so choosing it shows nothing: give the box the name of "
+                                         "its row, add the row, or draw what comes in or goes out as a rounded box, ([\"…\"])"})
+                for name, (line, _) in names.items():
+                    if name not in drawn:
+                        warnings.append({"page": page.label, "line": line, "msg": f"the part \"{name}\" is in no box of the picture "
+                                         f"{where}: a newcomer who reads the picture never meets it. Draw it; a part beside "
+                                         "the main path goes in a group of its own"})
+            if has_map and "open first" in header:
+                col = header.index("open first")
+                for name, (line, cells) in names.items():
+                    if col < len(cells) and CODE_LINK.search(cells[col]) and not re.search(r"\]\([^)]*\.md#[^)]+\)", cells[0]):
+                        warnings.append({"page": page.label, "line": line, "msg": f"the part \"{name}\" does not link its section of "
+                                         "the map: link the part's name to the heading that lists its modules "
+                                         "(`[Name](../reference/map.md#name)`), so a reader goes from the part to every file in it"})
+
+
 CHECKED_COLUMNS = ("open first", "code")
 
 
+CARD_LABELS = ("Try it", "How", "Open first", "Go deeper")
+CARD_LINE = re.compile(r"^\s*[-*]\s+\*\*(" + "|".join(CARD_LABELS) + r")\s*:?\*\*\s*:?\s*(.*)$", re.I)
+
+
+def cards(page: Page) -> list[tuple[int, str, dict[str, tuple[int, str]]]]:
+    """(1-based line, heading, {label in lower case: (line, text)}) for each capability card: the bullets that start
+    `**Try it:**`, `**How:**`, `**Open first:**` or `**Go deeper:**` under one heading."""
+    out, current, heading = [], None, ""
+    raw = page.text.split("\n")
+    for i, line in enumerate(prose_lines(page.text)):
+        h = re.match(r"^#{1,6}\s+(.*)$", line)
+        if h:
+            heading, current = re.sub(r"\s+", " ", raw[i].lstrip("#").strip()), None
+            continue
+        m = CARD_LINE.match(line)
+        if not m:
+            continue
+        label = m.group(1).lower()
+        if current is None or label in current[2]:
+            current = (i + 1, heading, {})
+            out.append(current)
+        current[2][label] = (i + 1, CARD_LINE.match(raw[i]).group(2) if CARD_LINE.match(raw[i]) else "")
+    return out
+
+
 def code_cells(page: Page) -> list[tuple[int, str, str, str]]:
-    """(1-based line, column, name, link target) for each code link in a table column named `Open first` or `Code`:
-    the map's rows, the overview's code to know first, a step table's code."""
+    """(1-based line, column, name, link target) for each code link in a table column named `Open first` or `Code`,
+    and in `What it does` on the map: the map's rows, the overview's code to know first, a step table's code."""
     out = []
     for _, header, rows in table_rows(page):
-        cols = [i for i, h in enumerate(header) if h in CHECKED_COLUMNS]
+        # on the map (a table with `Open first`), `What it does` links the function behind each thing it names
+        cols = [i for i, h in enumerate(header) if h in CHECKED_COLUMNS or (h == "what it does" and "open first" in header)]
         for line, cells in rows:
             for c in cols:
                 for text, target in CODE_LINK.findall(cells[c]) if c < len(cells) else []:
                     out.append((line, header[c], re.sub(r"\(\)$", "", text.strip()), target))
+    for _, _, labels in cards(page):  # a card's Open first names the function where the capability starts
+        if "open first" in labels:
+            line, text = labels["open first"]
+            for name, target in CODE_LINK.findall(text):
+                out.append((line, "open first", re.sub(r"\(\)$", "", name.strip()), target))
     return out
 
 
@@ -1639,15 +1897,337 @@ def tracked_code(repo: Path, wiki: Path) -> list[str]:
         skip.append(posix(HERE, repo) + "/")
     except ValueError:
         pass
+    # a copy of these tools (copy-tools writes tools.json beside wiki.py) is the wiki's, wherever it was put
+    listed = set(names)
+    skip += [f[:-len("wiki.py")] for f in names if f.endswith("/wiki.py") and f[:-len("wiki.py")] + "tools.json" in listed]
+    skip += [f.rpartition("/")[0] + "/" for f in names if f.endswith("/tools.json") and (repo / f).parent.joinpath("wiki_browser.py").exists()]
     return [f for f in names if Path(f).suffix.lower() in CODE_EXT - CONFIG_EXT and not f.endswith(".d.ts")
             and not any(part in SKIP_DIRS for part in Path(f).parts) and not any(f.startswith(s) for s in skip)]
+
+
+def holds_nothing(path: Path) -> bool:
+    """A code file with nothing to lead a reader to: empty, or only comments and a docstring (a package marker)."""
+    try:
+        if path.stat().st_size > 4000:
+            return False
+        text = read(path)
+    except OSError:
+        return False
+    text = re.sub(r'^\s*("""|\'\'\')(.*?)\1', "", text, count=1, flags=re.S)
+    return not any(line.strip() and not line.strip().startswith(("#", "//")) for line in text.split("\n"))
+
+
+# ---------------------------------------------------------------- limits and defaults
+
+# A named number at the top level of a code file: RETRY_AFTER_S = 3600.0, export const MAX_ROWS = 1000, MAX_GAP=2.
+LIMIT_LINE = re.compile(r"^(?:export\s+)?(?:(?:const|final|static|let|var|public|private|readonly|val)\s+)*\$?"
+                        r"([A-Z][A-Z0-9]*(?:_[A-Z0-9]+)+|[A-Z]{4,})\b\s*(?::\s*[\w\[\], .|]+)?\s*=\s*(.+?)\s*;?\s*"
+                        r"(?:(?:#|//)\s*(.*))?$")
+LIMIT_VALUE = re.compile(r"^[-+]?[\d_.]+(?:e[-+]?\d+)?[a-zA-Z]{0,2}(?:\s*[-+*/]\s*[\w.]+)*$|^\(?[\w.]+\s*[*/]\s*[\d_.]+\)?$")
+TEST_PARTS = {"tests", "test", "__tests__", "spec", "specs", "testing", "fixtures", "spikes", "examples"}
+LIMITS_BEGIN = "<!-- limits:begin (written by wiki.py limits --write from the code; change the code, not this table) -->"
+LIMITS_END = "<!-- limits:end -->"
+LIMITS_BLOCK = re.compile(r"<!-- limits:begin[^>]*-->\n(.*?)<!-- limits:end -->", re.S)
+
+
+def named_limits(repo: Path, wiki: Path) -> list[dict]:
+    """The named numbers the code decides by: a wait, a cap, a window, a threshold, a default. Top-level constants
+    with a numeric value, outside tests, each with the comment the code gives it (on its line, else the line above).
+    A user who asks where a number comes from is asking for one of these."""
+    out = []
+    for f in tracked_code(repo, wiki):
+        path = Path(f)
+        if any(part.lower() in TEST_PARTS for part in path.parts) or re.search(r"(^|[._-])(test|spec)s?[._-]", path.name.lower()):
+            continue
+        try:
+            lines = read(repo / f).split("\n")
+        except OSError:
+            continue
+        for i, line in enumerate(lines):
+            m = None if line[:1] in " \t" else LIMIT_LINE.match(line)
+            if not m or not LIMIT_VALUE.match(m.group(2)) or len(m.group(2)) > 40:
+                continue
+            note = (m.group(3) or "").strip()
+            above = lines[i - 1].strip() if i else ""
+            if not note and above.startswith(("#", "//")) and not above.startswith(("#!", "# -*-", "// eslint", "# type:", "# noqa", "# pylint")):
+                note = above.lstrip("#/ ").strip()
+            out.append({"path": f, "name": m.group(1), "value": m.group(2), "note": note[:160], "line": i + 1})
+    return out
+
+
+NOT_A_NAME = {"if", "else", "for", "while", "switch", "case", "catch", "try", "return", "do", "with", "function", "new"}
+
+
+def limit_users(repo: Path, syms: Symbols, item: dict) -> list[str]:
+    """The functions of the limit's own file that read it, innermost first found: where the number takes effect."""
+    path = repo / item["path"]
+    try:
+        _, defs = syms.defs(path)
+        lines = read(path).split("\n")
+    except (OSError, ValueError):
+        return []
+    name = re.compile(rf"(?<![\w$]){re.escape(item['name'])}(?![\w])")
+    users: list[str] = []
+    for n, line in enumerate(lines, 1):
+        if n == item["line"] or not name.search(line):
+            continue
+        # outside Python the definitions are found by pattern, which can take a statement for one
+        inside = [d for d in defs if d[1] <= n <= (d[2] or d[1]) and d[0].split(".")[-1] not in NOT_A_NAME]
+        if inside:
+            best = max(inside, key=lambda d: d[1])[0]
+            if best not in users and best != item["name"]:
+                users.append(best)
+    return users[:3]
+
+
+def limits_block(repo: Path, wiki: Path) -> str:
+    """The table of named_limits, one section for each folder, as reference/limits.md carries it."""
+    found = named_limits(repo, wiki)
+    if not found:
+        return ""
+    by_dir: dict[str, list[dict]] = {}
+    for item in found:
+        by_dir.setdefault(item["path"].rpartition("/")[0] or ".", []).append(item)
+    page_dir = wiki / "reference"
+    syms = Symbols(repo)
+    out = []
+    for folder in sorted(by_dir):
+        out += [f"### `{folder}/`", "", "| Limit | Value | Read in | The code's note | File |", "|---|---|---|---|---|"]
+        for item in sorted(by_dir[folder], key=lambda x: (x["path"], x["line"])):
+            link = os.path.relpath(repo / item["path"], page_dir).replace(os.sep, "/")
+            note = item["note"].replace("|", "\\|").replace("`", "'")
+            users = ", ".join(f"`{u}`" for u in limit_users(repo, syms, item))
+            out.append(f"| `{item['name']}` | `{item['value']}` | {users} | {note} | [`{Path(item['path']).name}`]({link}) |")
+        out.append("")
+    return "\n".join(out)
+
+
+def write_limits(repo: Path, wiki: Path) -> str:
+    """Write or refresh reference/limits.md. Only the block between its two markers is the tool's; the words around
+    it stay as the page has them."""
+    block = limits_block(repo, wiki)
+    page = wiki / "reference" / "limits.md"
+    if not block:
+        return "no named limits found in the code; nothing written"
+    body = f"{LIMITS_BEGIN}\n{block}{LIMITS_END}"
+    if page.exists():
+        text = read(page)
+        new = LIMITS_BLOCK.sub(lambda _: body, text, count=1) if LIMITS_BLOCK.search(text) else text.rstrip("\n") + "\n\n" + body + "\n"
+    else:
+        new = ("---\ntitle: Limits and defaults\nkind: reference\nupdated: " + date.today().isoformat() + "\n---\n"
+               "# Limits and defaults\n\n"
+               "Every named number the code decides by: a wait, a cap, a window, a threshold, a default. When someone asks "
+               "where a number comes from, search this page for the number or the word, then open its file. The table is "
+               "written from the code by `wiki.py limits --write`, with the code's own comment on each line; the lint fails "
+               "when it is older than the code. A number the code uses without a name is not here: the page of its flow, or "
+               "the map row of its module, says it. `Read in` names the functions of the same file that use the number: "
+               "start there.\n\n" + body + "\n")
+    if not page.exists() or new != read(page):
+        page.parent.mkdir(parents=True, exist_ok=True)
+        page.write_text(new, encoding="utf-8", newline="\n")
+        state = "written"
+    else:
+        state = "already current"
+    return (f"{posix(page, repo)} {state}: {len(named_limits(repo, wiki))} limits in {block.count('### ')} folders. "
+            "List it in index.md under Reference.")
+
+
+def limit_checks(repo: Path, wiki: Path, pages: list[Page], problems: list[dict], warnings: list[dict]) -> dict:
+    found = named_limits(repo, wiki)
+    if not found:
+        return {}
+    text = "\n".join(p.text for p in pages)
+    unnamed = [x for x in found if not re.search(rf"(?<![\w]){re.escape(x['name'])}(?![\w])", text)]
+    page = next((p for p in pages if p.wiki_rel and p.wiki_rel.replace("\\", "/") == "reference/limits.md"), None)
+    block = LIMITS_BLOCK.search(page.text) if page else None
+    if block:
+        if block.group(1).strip() != limits_block(repo, wiki).strip():
+            problems.append({"page": page.label, "line": 1, "msg": "the limits table is older than the code (run wiki.py limits --write)"})
+    elif unnamed:
+        files: dict[str, int] = {}
+        for x in unnamed:
+            files[x["path"]] = files.get(x["path"], 0) + 1
+        top = ", ".join(f"{f} ({n})" for f, n in sorted(files.items(), key=lambda kv: (-kv[1], kv[0]))[:5])
+        warnings.append({"page": "index.md", "line": 0, "msg": f"{len(unnamed)} of {len(found)} named limits in the code are on no "
+                         f"page ({top}{', …' if len(files) > 5 else ''}): a reader asked where a number comes from finds no way "
+                         "in. `wiki.py limits --write` writes them as reference/limits.md, from the code and at no cost in "
+                         "writing; list that page in the index"})
+    return {"named": len(found), "on_pages": len(found) - len(unnamed)}
+
+
+# ---------------------------------------------------------------- index of functions
+
+FUNCS_BEGIN = "<!-- functions:begin (written by wiki.py functions --write from the code; change the code, not this table) -->"
+FUNCS_END = "<!-- functions:end -->"
+FUNCS_BLOCK = re.compile(r"<!-- functions:begin[^>]*-->\n(.*?)<!-- functions:end -->", re.S)
+COMMENT_START = ("#", "//", "/*", "*", "--", ";;", "%")
+# outside Python the definitions are found by pattern: keep the lines that open a function or a class, and leave out
+# fields, type aliases and constants, which a reader does not search for by what they do
+FUNC_LIKE = re.compile(r"\bfunction\b|=>|\b(?:class|struct|impl|trait|object|module|namespace|protocol|record|defmodule)\b|"
+                       r"\b(?:func|fn|def|sub|proc|fun)\b|[\w>\]]\s*\([^;]*\)\s*(?::[^={;]+)?\{\s*$")
+COMMENT_NOISE = re.compile(r"^(@\w+|eslint|noqa|pylint|type:|istanbul|prettier|ts-|pragma|TODO\b|FIXME\b|-{3,}|={3,}|\*+/?$)", re.I)
+
+
+def is_test_path(f: str) -> bool:
+    path = Path(f)
+    return any(part.lower() in TEST_PARTS for part in path.parts) or bool(re.search(r"(^|[._-])(test|spec)s?[._-]", path.name.lower()))
+
+
+def first_words(text: str) -> str:
+    """The first sentence of a comment or docstring, on one line, short enough for a table cell."""
+    line = re.sub(r"\s+", " ", text).strip()
+    cut = re.search(r"(?<=[.!?])\s", line)
+    if cut and cut.start() >= 12:
+        line = line[:cut.start()]
+    return line if len(line) <= 180 else line[:177].rsplit(" ", 1)[0] + "…"
+
+
+def comment_above(lines: list[str], at: int) -> str:
+    """The comment block that ends on the line above index `at`: its first line that says something."""
+    block = []
+    i = at - 1
+    while i >= 0 and lines[i].strip().startswith(("@", "#[")) and not lines[i].strip().startswith("#[allow"):
+        i -= 1  # decorators and attributes sit between a comment and its function
+    while i >= 0 and lines[i].strip().startswith(COMMENT_START) and not lines[i].startswith("#!"):
+        block.append(lines[i].strip())
+        i -= 1
+    for raw in reversed(block):
+        text = re.sub(r"^(///?|//!|/\*+|\*+/?|#+|--|;;|%+)\s?", "", raw).rstrip("*/ ").strip()
+        if text and not COMMENT_NOISE.match(text):
+            return first_words(text)
+    return ""
+
+
+def indexed_functions(repo: Path, wiki: Path) -> list[dict]:
+    """Every function, method and class of the project's code outside its tests, each with the first sentence the code
+    itself says about it (its docstring, else the comment above it). A reader led to the right file by the map still has
+    to find the function in it; this is the list they search."""
+    out = []
+    for f in tracked_code(repo, wiki):
+        if is_test_path(f):
+            continue
+        path = repo / f
+        try:
+            text = read(path)
+        except OSError:
+            continue
+        lines = text.split("\n")
+        found: list[tuple[str, int, str]] = []
+        if path.suffix.lower() in (".py", ".pyi"):
+            try:
+                tree = ast.parse(text)
+            except (SyntaxError, ValueError):
+                continue
+
+            def walk(node, prefix: str, depth: int):
+                for n in ast.iter_child_nodes(node):
+                    if isinstance(n, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)):
+                        if not (n.name.startswith("__") and n.name.endswith("__")):
+                            doc = ast.get_docstring(n) or ""
+                            found.append((prefix + n.name, n.lineno, first_words(doc) if doc else comment_above(lines, n.lineno - 1)))
+                        if isinstance(n, ast.ClassDef) and depth == 0:
+                            walk(n, prefix + n.name + ".", depth + 1)
+                    elif isinstance(n, (ast.If, ast.Try, ast.With)) and depth == 0:
+                        walk(n, prefix, depth)
+
+            walk(tree, "", 0)
+        else:
+            by_line: dict[int, str] = {}
+            for name, start, _ in pattern_defs(path, text):
+                line = lines[start - 1] if start - 1 < len(lines) else ""
+                if name.split(".")[-1] in NOT_A_NAME or LIMIT_LINE.match(line) or not FUNC_LIKE.search(line):
+                    continue
+                if start not in by_line or len(name) > len(by_line[start]):
+                    by_line[start] = name
+            found = [(name, start, comment_above(lines, start - 1)) for start, name in sorted(by_line.items())]
+            # a helper defined inside another function is listed when the code says what it is for
+            found = [x for x in found if x[2] or "." in x[0] or lines[x[1] - 1][:1] not in " \t"]
+        out += [{"path": f, "name": name, "line": line, "says": says} for name, line, says in found]
+    return out
+
+
+def functions_block(repo: Path, wiki: Path) -> str:
+    """The table of indexed_functions, one section for each folder, as reference/functions.md carries it. It holds no
+    line numbers, so it changes only when a function comes, goes, is renamed or is described anew."""
+    found = indexed_functions(repo, wiki)
+    if not found:
+        return ""
+    by_dir: dict[str, list[dict]] = {}
+    for item in found:
+        by_dir.setdefault(item["path"].rpartition("/")[0] or ".", []).append(item)
+    page_dir = wiki / "reference"
+    out = []
+    for folder in sorted(by_dir):
+        out += [f"### `{folder}/`", "", "| Function | In | What the code says about it |", "|---|---|---|"]
+        quiet: dict[str, list[str]] = {}
+        for item in sorted(by_dir[folder], key=lambda x: (x["path"], x["line"])):
+            if not item["says"]:
+                quiet.setdefault(item["path"], []).append(item["name"])
+                continue
+            link = urllib.parse.quote(os.path.relpath(repo / item["path"], page_dir).replace(os.sep, "/"))
+            says = re.sub(r"`+", "'", item["says"]).replace("|", "\\|").replace("<", "&lt;")
+            out.append(f"| [`{item['name']}`]({link}) | `{Path(item['path']).name}` | {says} |")
+        for path, names in quiet.items():  # the functions the code does not comment: by name, one row for each file
+            link = urllib.parse.quote(os.path.relpath(repo / path, page_dir).replace(os.sep, "/"))
+            listed = ", ".join(f"`{n}`" for n in dict.fromkeys(names))
+            out.append(f"| {listed} | [`{Path(path).name}`]({link}) | |")
+        out.append("")
+    return "\n".join(out)
+
+
+def write_functions(repo: Path, wiki: Path) -> str:
+    """Write or refresh reference/functions.md. Only the block between its two markers is the tool's."""
+    block = functions_block(repo, wiki)
+    page = wiki / "reference" / "functions.md"
+    if not block:
+        return "no functions found in the code; nothing written"
+    body = f"{FUNCS_BEGIN}\n{block}{FUNCS_END}"
+    if page.exists():
+        text = read(page)
+        new = FUNCS_BLOCK.sub(lambda _: body, text, count=1) if FUNCS_BLOCK.search(text) else text.rstrip("\n") + "\n\n" + body + "\n"
+    else:
+        the_map = "The [map](map.md)" if (page.parent / "map.md").exists() else "The map of the code"
+        new = ("---\ntitle: Index of functions\nkind: reference\nupdated: " + date.today().isoformat() + "\n---\n"
+               "# Index of functions\n\n"
+               "Every function, method and class of the code outside its tests, by folder, with the first sentence the code "
+               "says about it (its docstring, or the comment above it). " + the_map + " leads to the right file; this page "
+               "finds the function in it. Search it for a word from a report or from a message, or for a name, then open "
+               "the file. The table is written from the code by `wiki.py functions --write`, so it claims nothing the code "
+               "does not say; the lint fails when it is older than the code. A row that lists several names holds the "
+               "functions of one file that the code does not comment.\n\n" + body + "\n")
+    if not page.exists() or new != read(page):
+        page.parent.mkdir(parents=True, exist_ok=True)
+        page.write_text(new, encoding="utf-8", newline="\n")
+        state = "written"
+    else:
+        state = "already current"
+    found = indexed_functions(repo, wiki)
+    return (f"{posix(page, repo)} {state}: {len(found)} functions in {len({x['path'] for x in found})} files, "
+            f"{sum(bool(x['says']) for x in found)} with a comment of their own. List it in index.md under Reference.")
+
+
+def function_checks(repo: Path, wiki: Path, pages: list[Page], problems: list[dict], warnings: list[dict]) -> dict:
+    found = indexed_functions(repo, wiki)
+    if not found:
+        return {}
+    page = next((p for p in pages if p.wiki_rel and p.wiki_rel.replace("\\", "/") == "reference/functions.md"), None)
+    block = FUNCS_BLOCK.search(page.text) if page else None
+    if block:
+        if block.group(1).strip() != functions_block(repo, wiki).strip():
+            problems.append({"page": page.label, "line": 1, "msg": "the index of functions is older than the code (run wiki.py functions --write)"})
+    else:
+        warnings.append({"page": "index.md", "line": 0, "msg": f"the wiki has no index of functions: the map leads a reader to a "
+                         f"file, and the {len(found)} functions in the code are found only by reading each file. `wiki.py "
+                         "functions --write` writes reference/functions.md from the code, at no cost in writing; list that page "
+                         "in the index"})
+    return {"functions": len(found), "indexed": bool(block)}
 
 
 def coverage_checks(repo: Path, wiki: Path, pages: list[Page], warnings: list[dict]) -> dict:
     """How much of the code the wiki leads to. A code file counts when a page links it or names it in `sources:`, or
     when a row of the map (a table with an `Open first` column) names it, or a folder above it, in its first cell.
     The files left over are where a reader with a user's report finds no way in, so they are reported, by folder."""
-    code = tracked_code(repo, wiki)
+    code = [f for f in tracked_code(repo, wiki) if not holds_nothing(repo / f)]
     if not code:
         return {}
     root = repo.resolve()
@@ -1660,13 +2240,15 @@ def coverage_checks(repo: Path, wiki: Path, pages: list[Page], warnings: list[di
 
     linked, rows, map_page, unlinked = set(), {}, None, {}
     for page in pages:
+        if FUNCS_BLOCK.search(page.text):
+            continue  # the index of functions lists every file; it is no page about any of them
         for ref in page.sources:
             linked.add(ref.partition("#")[0])
         for _, target in links(page.text):
             if not is_external(target) and not target.startswith("#"):
                 linked.add(rel(page.path.parent, target.partition("#")[0]))
         for _, header, trows in table_rows(page):
-            if "open first" not in header:
+            if "open first" not in header or header[0] == "part":  # the overview's parts table is not the map
                 continue
             map_page = map_page or page
             col = header.index("open first")
@@ -1726,7 +2308,8 @@ def apply_accepts(pages: list[Page], problems: list[dict], warnings: list[dict])
         lines = page.text.split("\n")
         in_code = {k for start, end, _ in fences(lines) for k in range(start, end + 1)}
         for i, line in enumerate(lines):
-            for text, reason in ACCEPT.findall(line) if i not in in_code else []:
+            # a marker quoted in code marks is an example of one, as in SCHEMA.md's own rule
+            for text, reason in ACCEPT.findall(re.sub(r"`[^`]*`", "", line)) if i not in in_code else []:
                 if not reason.strip():
                     problems.append({"page": page.label, "line": i + 1, "msg": f'lint:accept "{text}" gives no reason="…"'})
                     continue
@@ -2066,7 +2649,11 @@ def print_lint(report: dict) -> None:
 
 def summary(report: dict) -> str:
     ran = [c for c in report["commands"] if c["status"] in ("ok", "failed", "unavailable")]
-    parts = [f"{report['pages']} pages", f"{len(report['sources'])} sources", f"{report['diagrams']} diagrams"]
+    kinds = sorted((report.get("kinds") or {}).items(), key=lambda kv: (-kv[1], kv[0]))
+    drawn = f"{report['diagrams']} diagrams" + (" (" + ", ".join(f"{n} {k}" for k, n in kinds) + ")" if kinds else "")
+    if report.get("figures"):
+        drawn += f", {report['figures']} figures"
+    parts = [f"{report['pages']} pages", f"{len(report['sources'])} sources", drawn]
     if ran:
         na = sum(c["status"] == "unavailable" for c in ran)
         checked = sum(c.get("detail") == "output checked" for c in ran)
@@ -2085,6 +2672,12 @@ def summary(report: dict) -> str:
     if cmap:
         parts.append(f"{cmap['code_files']} code files: {cmap['on_pages']} on pages, {cmap['under_map_rows']} under map rows, "
                      f"{len(cmap['on_none'])} on none" + "".join(f" (widest map row: {r}/, {n} files)" for r, n in cmap["largest_rows"][:1]))
+    lim = report.get("limits") or {}
+    if lim:
+        parts.append(f"{lim['named']} named limits, {lim['on_pages']} on a page")
+    fns = report.get("functions") or {}
+    if fns:
+        parts.append(f"{fns['functions']} functions, " + ("all in the index" if fns["indexed"] else "no index of them"))
     kept = len(report.get("accepted") or [])
     return (", ".join(parts) + f": {len(report['problems'])} problems, {len(report['warnings'])} warnings"
             + (f", {kept} kept with a reason" if kept else ""))
@@ -2369,7 +2962,7 @@ def editor_template(name: str) -> str:
     return name
 
 
-IMAGE_TYPES = {".png": "image/png", ".jpg": "image/jpeg", ".jpeg": "image/jpeg", ".gif": "image/gif", ".webp": "image/webp"}
+IMAGE_TYPES = {".svg": "image/svg+xml", ".png": "image/png", ".jpg": "image/jpeg", ".jpeg": "image/jpeg", ".gif": "image/gif", ".webp": "image/webp"}
 EMBED_LIMIT = 2_000_000  # bytes: an image up to this size travels inside the one-file viewer; larger ones are linked
 
 
@@ -2452,12 +3045,15 @@ def viewer(repo: Path, wiki: Path, out: Path, editor: str, title: str | None, ar
         svgs = {posix(svg, repo): SVG_STAMP.sub("", read(svg)).strip() for svg in sorted((wiki / "diagrams").glob("*.svg"))}
     template = editor_template(editor)
     images = page_images(repo, pages, link_large=bool(template))
+    # where each function starts, so a link whose text is a function's name opens its file at that line
+    symbols = {f"{x['path']}#{x['name']}": x["line"] for x in indexed_functions(repo, wiki)}
+    symbols.update({k: v["line"] for k, v in report["sources"].items() if v.get("ok")})
     data = {
         "repo": repo.name, "wiki": posix(wiki, repo), "generated": date.today().isoformat(), "toolsVersion": TOOLS_VERSION,
         "editor": template, "repoRoot": repo.resolve().as_posix() if template else "",
         "notices": reader_notices(pages, report),
         "pages": data_pages, "svgs": svgs, "images": images,
-        "symbols": {k: v["line"] for k, v in report["sources"].items() if v.get("ok")},
+        "symbols": symbols,
     }
     shell = read(HERE / "viewer_template.html")
     marked = read(HERE / "vendor" / "marked.min.js").replace("</script", "<\\/script")
@@ -2467,7 +3063,12 @@ def viewer(repo: Path, wiki: Path, out: Path, editor: str, title: str | None, ar
     katex_css = read(HERE / "vendor" / "katex.min.css").replace("</style", "<\\/style") if has_math else ""
     blob = json.dumps(data, ensure_ascii=False).replace("</", "<\\/")
     name = title or (index.title if index and index.meta.get("title") else f"{repo.name} wiki")
+    # the viewer's own face for headings, labels and code (40 kB); without the file the system's monospace stands in
+    import base64
+    font = HERE / "vendor" / "jetbrains-mono-latin.woff2"
+    mono =base64.b64encode(font.read_bytes()).decode("ascii") if font.is_file() else ""
     page = (shell.replace("__WIKI_TITLE__", html.escape(name))
+                 .replace("/*FONT_MONO*/", mono)
                  .replace("/*MARKED*/", marked)
                  .replace("/*KATEX_CSS*/", katex_css)
                  .replace("/*KATEX*/", katex_js)
@@ -2573,6 +3174,14 @@ def main(argv: list[str] | None = None) -> int:
     f.add_argument("--repo", type=Path)
     f.add_argument("--wiki", type=Path)
     f.add_argument("--max-lines", type=int, default=40, help="keep the first and last lines of longer output")
+    li = sub.add_parser("limits", help="the named numbers the code decides by, as a table for reference/limits.md")
+    li.add_argument("--repo", type=Path)
+    li.add_argument("--wiki", type=Path)
+    li.add_argument("--write", action="store_true", help="write or refresh reference/limits.md instead of printing the table")
+    fu = sub.add_parser("functions", help="every function of the code with what its comment says, as a table for reference/functions.md")
+    fu.add_argument("--repo", type=Path)
+    fu.add_argument("--wiki", type=Path)
+    fu.add_argument("--write", action="store_true", help="write or refresh reference/functions.md instead of printing the table")
     c = sub.add_parser("copy-tools")
     c.add_argument("dest", type=Path)
     c.add_argument("--force", action="store_true")
@@ -2610,6 +3219,12 @@ def main(argv: list[str] | None = None) -> int:
             print("clean environment left out: " + ", ".join(report["env_left_out"]))  # names only, never values
         print(json.dumps(report, indent=2, ensure_ascii=False)) if a.json else print_lint(report)
         return 1 if report["problems"] else 0
+    if a.cmd == "functions":
+        print(write_functions(repo, wiki) if a.write else (functions_block(repo, wiki) or "no functions found in the code"))
+        return 0
+    if a.cmd == "limits":
+        print(write_limits(repo, wiki) if a.write else (limits_block(repo, wiki) or "no named limits found in the code"))
+        return 0
     if a.cmd == "fill":
         res = fill(repo, wiki, a.capture.resolve(), a.max_lines)
         for r in res["filled"]:
