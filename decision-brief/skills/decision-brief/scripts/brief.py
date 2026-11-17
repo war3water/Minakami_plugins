@@ -574,8 +574,80 @@ def label_boxes(root) -> list:
     return out
 
 
+def shape_boxes(root) -> tuple[list, list, bool]:
+    """(rects, shapes, sure): each as (x0, y0, x1, y1), read from positions without a browser. `sure` is False when
+    some shape's place cannot be read this way (a rotation or scale, a path with relative commands or arcs, an
+    image), so the drawing's real edges are unknown."""
+    rects, shapes, sure = [], [], True
+
+    def nums(s):
+        return [float(v) for v in re.findall(r"-?\d*\.?\d+(?:[eE][-+]?\d+)?", s or "")]
+
+    def walk(node, dx, dy):
+        nonlocal sure
+        tag = str(node.tag).split("}")[-1]
+        if tag in ("defs", "marker", "clipPath", "mask", "pattern", "symbol", "title", "desc", "style", "text"):
+            return
+        t = node.get("transform") or ""
+        if re.search(r"rotate|scale|matrix|skew", t):
+            sure = False
+            return
+        m = re.search(r"translate\(\s*(-?[\d.]+)(?:[\s,]+(-?[\d.]+))?", t)
+        if m:
+            dx, dy = dx + float(m.group(1)), dy + float(m.group(2) or 0)
+        xs, ys = [], []
+        if tag == "rect":
+            if "%" in (node.get("width") or "") + (node.get("height") or ""):
+                sure = False
+            else:
+                x, y = _num(node.get("x")), _num(node.get("y"))
+                xs, ys = [x, x + _num(node.get("width"))], [y, y + _num(node.get("height"))]
+                rects.append((dx + xs[0], dy + ys[0], dx + xs[1], dy + ys[1]))
+        elif tag == "line":
+            xs, ys = [_num(node.get("x1")), _num(node.get("x2"))], [_num(node.get("y1")), _num(node.get("y2"))]
+        elif tag in ("circle", "ellipse"):
+            cx, cy = _num(node.get("cx")), _num(node.get("cy"))
+            rx, ry = _num(node.get("rx") or node.get("r")), _num(node.get("ry") or node.get("r"))
+            xs, ys = [cx - rx, cx + rx], [cy - ry, cy + ry]
+        elif tag in ("polygon", "polyline"):
+            p = nums(node.get("points"))
+            xs, ys = p[0::2], p[1::2]
+        elif tag == "path":
+            d = node.get("d") or ""
+            if re.search(r"[a-yA]", d):
+                sure = False
+            else:
+                for cmd, args in re.findall(r"([MLCSQTHVZ])([^MLCSQTHVZ]*)", d):
+                    p = nums(args)
+                    if cmd == "H":
+                        xs += p
+                    elif cmd == "V":
+                        ys += p
+                    else:
+                        xs, ys = xs + p[0::2], ys + p[1::2]
+        elif tag in ("image", "use"):
+            sure = False
+        if xs and ys:
+            shapes.append((dx + min(xs), dy + min(ys), dx + max(xs), dy + max(ys)))
+        for kid in node:
+            walk(kid, dx, dy)
+
+    walk(root, 0.0, 0.0)
+    return rects, shapes, sure
+
+
 def label_problems(root) -> list:
     boxes = label_boxes(root)
+    rects, shapes, sure = shape_boxes(root)
+    tight = []  # a label centred in a box it is wider than
+    for text, x0, y0, x1, y1 in boxes:
+        cx, cy = (x0 + x1) / 2, (y0 + y1) / 2
+        around = [r for r in rects if r[0] <= cx <= r[2] and r[1] <= cy <= r[3]]
+        if around:
+            r = min(around, key=lambda r: (r[2] - r[0]) * (r[3] - r[1]))
+            slack = 4 + 0.05 * (x1 - x0)
+            if x0 < r[0] - slack or x1 > r[2] + slack:
+                tight.append(f'"{text[:30]}"')
     problems = []
     for i, a in enumerate(boxes):
         for b in boxes[i + 1:]:
@@ -595,6 +667,17 @@ def label_problems(root) -> list:
     if off:
         out.append("may have labels running off its edge: " + ", ".join(off[:6]) + (f" and {len(off) - 6} more" if len(off) > 6 else "")
                    + " (widen the viewBox or move them)")
+    if tight:
+        out.append("may have labels wider than the box they sit in: " + ", ".join(tight[:6])
+                   + (f" and {len(tight) - 6} more" if len(tight) > 6 else "")
+                   + " (estimated; widen the box, shorten the label or break it into two lines)")
+    if len(vb) == 4 and sure and (boxes or shapes):
+        ys = [b[2] for b in boxes] + [s[1] for s in shapes], [b[4] for b in boxes] + [s[3] for s in shapes]
+        above, below = min(ys[0]) - vb[1], vb[1] + vb[3] - max(ys[1])
+        for gap, side in ((above, "above"), (below, "below")):
+            if gap > max(40, 0.15 * vb[3]):
+                out.append(f"leaves about {gap / vb[3]:.0%} of its height empty {side} what it draws: trim the viewBox, "
+                           "so the card stays short")
     return out
 
 

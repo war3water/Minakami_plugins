@@ -4,7 +4,7 @@ One JSON file per task drives the page. `brief.py build` checks it and names eve
 
 The page sorts the cards into tabs. **Waiting for you** holds every question whose `state` is `open`, under a heading per `group`; a report's follow-up questions without a `group` get "From: `<report title>`". **Work status** holds the progress reports that are not `archived`. **Decided** holds the questions whose `state` is `answered` and the archived reports, under a heading per `round`, then the earlier rounds from `archive/`. **Glossary** holds the terms. A tab with nothing in it is left out, except Waiting for you.
 
-`brief.py mark` with a new `--round` moves older rounds out of this file into `archive/` next to it: `index.json` lists each round's decisions in one line each, and `<round>.json` keeps its full cards and reports. Do not edit or read those files; `brief.py history` prints them. `mark` also records the time in `marked_at`.
+`brief.py mark` with a new `--round` moves older rounds out of this file into `archive/` next to it: `index.json` lists each round's decisions in one line each, and `<round>.json` keeps its full cards and reports. `brief.py` writes those files, and `brief.py history` prints them. `mark` also records the time in `marked_at`.
 
 ## Top level
 
@@ -26,7 +26,7 @@ The page sorts the cards into tabs. **Waiting for you** holds every question who
 
 | Field | Required | What it holds |
 |---|---|---|
-| `term` | yes | The short name as readers meet it, such as `OD-1 ... OD-16` or `T6, T651` |
+| `term` | yes | The short name as readers meet it, such as `DEC-1 ... DEC-16` or `T6, T651` |
 | `meaning` | yes | Its plain meaning (markup allowed) |
 | `sources` | no | Where it comes from: a list of `{"label": ..., "url": "https://..."}` (each link checked before publishing), or `{"path": "docs/spec.md"}` for a file in the project; add `"note"` for text after it. Without `sources`, the page shows the project file the term first appears in, found when the page is built |
 | `aka` | no | Other spellings the page uses, so the abbreviation check counts them as explained |
@@ -43,7 +43,7 @@ On the cards, the first use of each term (and of each `aka`) is underlined: poin
 | `title` | yes | The question, in plain words |
 | `ref` | no | The project's own number for the question, such as a ticket or decision id, shown after the title so the user can match the card to its source (explain the numbering in the glossary) |
 | `group` | no | The heading the card sits under on Waiting for you, such as "New questions from the sync work" |
-| `plain` | yes | The background in plain words, two or three sentences: what is true today and why it needs a choice (markup) |
+| `plain` | yes | The background in plain words, in as few sentences as tell it: what is true today, why, and why it needs a choice (markup) |
 | `more` | no | What would push the card past one screen, folded under "More": the example's working, more cases, how an option is built, history. Nothing that could change the choice (markup) |
 | `table` | no | `{"head": [...], "rows": [[...], ...]}`; cells take inline markup, and a column of numbers lines up on the right. A row that belongs to one option is `{"cells": [...], "option": "<option id>"}`: it stands out when that option is chosen |
 | `figures` | no | Pictures shown after the background: images, drawings or live demos (see "Figures") |

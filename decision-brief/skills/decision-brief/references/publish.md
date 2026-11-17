@@ -11,7 +11,7 @@ Use it when the user asks for one and the Artifact tools are available (Claude C
 3. Publish `page.html` with capabilities `{db:{}, user:{}, comments:{}}` and every picture (images, drawings and demos) as a supporting file, using the paths the build prints. The build also lists the archive's round files (`archive/...json`) once earlier rounds exist; publish those too.
 4. After the first publish, list the `answers` collection once with ArtifactData to confirm the page's store answers. It is empty until the user picks something.
 
-Never `Artifact read` the published page: its source is `page.html` in the task folder, and its earlier rounds are in `archive/` (see `brief.py history`).
+The published page is the `page.html` you built in the task folder; the answers are in the `answers` collection, and earlier rounds in `archive/` (see `brief.py history`).
 
 Answers go to the `answers` collection, one document per question id: `choice` (an option id, `"other"`, or `null` after Clear), `other`, `note`, `at` and `by`.
 
