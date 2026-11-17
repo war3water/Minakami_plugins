@@ -58,7 +58,8 @@ replace_block() {  # replace_block FILE BODY: replace the lines between the gene
     !skip { print }
   ' "$file" | tr -d '\r' > "$tmp"
   # keep the file's line endings: Git for Windows checks the installers out with CRLF
-  if grep -q $'\r' "$file"; then
+  # (-U: without it, grep in Git Bash drops the CR before matching and never finds one)
+  if grep -qU $'\r' "$file"; then
     awk '{ printf "%s\r\n", $0 }' "$tmp" > "$file"
   else
     cat "$tmp" > "$file"
