@@ -1,20 +1,20 @@
 ---
-name: decision-brief
+name: decision-page
 description: Put every open decision of the current task on one page the user answers in one pass, then read all the answers back at once. Each question gets a short card in plain words — what happens today, the options and what each changes, a recommendation, and an example, table or picture only where words leave the choice unclear; every short name is explained in a glossary, and the user can comment, add a note or write their own answer. Use when a task has several decisions only the user can make (their preferences or priorities, facts outside the repository, choices costly to reverse) and they would rather answer them together than one by one in the chat; not for a single quick question. A local page in Claude Code, Codex CLI, Grok Build and pi; a claude.ai Artifact on request. Runs only when the user invokes it by name.
 disable-model-invocation: true
 allowed-tools: Read(${CLAUDE_SKILL_DIR}/**)
 ---
 
-You are running `decision-brief`: put every open question of the current task on one page that the user answers in one pass, talk with them in its comment threads while they answer, read everything back, act on it, and update the page.
+You are running `decision-page`: put every open question of the current task on one page that the user answers in one pass, talk with them in its comment threads while they answer, read everything back, act on it, and update the page.
 
-The files named below sit next to this SKILL.md; resolve them from this file's folder (`${CLAUDE_SKILL_DIR}` in Claude Code). Read `references/questions-format.md` before you write a questions file: it is the data format, with a worked example in `assets/example/`. Run the helper with Python 3.8 or later (`python`, `python3` or `py -3`, whichever exists): `python <skill-folder>/scripts/brief.py <command> ...`, standard library only. If none of them exists, tell the user the page needs Python 3.8 or later, and stop. Below, `brief.py` means that command and `<q>` the task's `questions.json`.
+The files named below sit next to this SKILL.md; resolve them from this file's folder (`${CLAUDE_SKILL_DIR}` in Claude Code). Read `references/questions-format.md` before you write a questions file: it is the data format, with a worked example in `assets/example/`. Run the helper with Python 3.8 or later (`python`, `python3` or `py -3`, whichever exists): `python <skill-folder>/scripts/page.py <command> ...`, standard library only. If none of them exists, tell the user the page needs Python 3.8 or later, and stop. Below, `page.py` means that command and `<q>` the task's `questions.json`.
 
 What the user typed after the skill name decides where to start:
 
 - nothing, or a task: collect that task's open questions (step 1);
 - a list of questions or a topic: those questions (step 1, without the search);
 - that they answered or are done: read back (step 5);
-- "example", "demo" or "try": `brief.py example .decision-brief/example` in the project, then publish it (step 3);
+- "example", "demo" or "try": `page.py example .decision-page/example` in the project, then publish it (step 3);
 - "artifact", "local" or "static": the backend to use in step 3.
 
 ## 1. Collect the open questions
@@ -53,13 +53,13 @@ Compute every figure from the project's own code or data with a command (for exa
 
 State facts you checked plainly, and mark everything else as a guess, with what it rests on ("probably about a week: the export took four days"). That an option fixes the problem behind the question is a claim too: try the option on the case that was reported, and say what you found, or that you could not try it.
 
-Explain every short name and technical word before the reader meets it: abbreviations (everyday ones such as EUR, UI or CSV too), technical words (rollback, transaction), ticket numbers, and the codenames you or the project coined along the way (lane and phase names, internal tool and module names, a plan's nickname). Each goes in the glossary with its plain meaning, or is spelled out where it appears. Give a term from outside the project the `url` it comes from; for a term from the project's own files, the page names the file it appears in, and a `path` source is needed only to point elsewhere. The page underlines a glossary term's first use on each card and shows its meaning in place. Write them all into the glossary in your first draft: `brief.py build` warns about all-capital short names missing from it, and each fix afterwards costs a round. The check cannot see codenames in ordinary words; the newcomer's read before publishing (step 3) catches those.
+Explain every short name and technical word before the reader meets it: abbreviations (everyday ones such as EUR, UI or CSV too), technical words (rollback, transaction), ticket numbers, and the codenames you or the project coined along the way (lane and phase names, internal tool and module names, a plan's nickname). Each goes in the glossary with its plain meaning, or is spelled out where it appears. Give a term from outside the project the `url` it comes from; for a term from the project's own files, the page names the file it appears in, and a `path` source is needed only to point elsewhere. The page underlines a glossary term's first use on each card and shows its meaning in place. Write them all into the glossary in your first draft: `page.py build` warns about all-capital short names missing from it, and each fix afterwards costs a round. The check cannot see codenames in ordinary words; the newcomer's read before publishing (step 3) catches those.
 
-Use only links you opened and checked in this session: the page exists and says what the card claims. `brief.py links <q>` lists every link in the file. Drop a link you cannot verify. A file in the repository gets a link only through the project's real remote; otherwise give its path (as code on a card, as a `path` source in the glossary).
+Use only links you opened and checked in this session: the page exists and says what the card claims. `page.py links <q>` lists every link in the file. Drop a link you cannot verify. A file in the repository gets a link only through the project's real remote; otherwise give its path (as code on a card, as a `path` source in the glossary).
 
 Write the cards in the language the user uses with you, and set `lang` to match: the page's own labels come in English and Chinese, and `ui` translates them for any other language. Keep code identifiers, file names and standard names as they are, and explain them in the user's language. Put no secrets, credentials, tokens, personal data (the user's e-mail address included) or private addresses in the page or the task folder.
 
-Give the page a specific `title` that names the project and topic ("Pantry storage decisions"). Keep the `intro` to a sentence or two: what the answers unblock, and which questions were left out because they are settled. A finding about one question goes on its card. In the project root, run `brief.py new <task-slug> --images <screenshots and mockups to show>`: it creates `.decision-brief/<task-slug>/` with a `shots/` folder holding copies of those images (use the `shots/...` paths it prints), and a `.gitignore` that keeps these working files out of commits. Write `questions.json` there, and `context.md` next to it: a few lines on the task, what is decided, and where the relevant code and docs are, for a helper agent that answers comments without this conversation. Answers are stored by question id, so an id stays with its question when you edit the card, and a reused id would carry an old answer to a new question.
+Give the page a specific `title` that names the project and topic ("Pantry storage decisions"). Keep the `intro` to a sentence or two: what the answers unblock, and which questions were left out because they are settled. A finding about one question goes on its card. In the project root, run `page.py new <task-slug> --images <screenshots and mockups to show>`: it creates `.decision-page/<task-slug>/` with a `shots/` folder holding copies of those images (use the `shots/...` paths it prints), and a `.gitignore` that keeps these working files out of commits. Write `questions.json` there, and `context.md` next to it: a few lines on the task, what is decided, and where the relevant code and docs are, for a helper agent that answers comments without this conversation. Answers are stored by question id, so an id stays with its question when you edit the card, and a reused id would carry an old answer to a new question.
 
 ## 3. Publish
 
@@ -67,30 +67,30 @@ Each way of publishing first checks questions.json: fix every error it prints an
 
 Before you send the link, read the page as the newcomer, with only the page in front of you, pictures included (`references/pictures.md` says how to look at them). Could you choose well on each card from what it shows, and would anything you learned later make you feel the card had misled you, by leaving out something that matters to you or by claiming more than its evidence shows? Fix the card wherever you would have to guess, or could later feel misled, and cut what you skipped or read twice. These checks are your work; leave them out of what you tell the user.
 
-- **The local page (the default, in every runtime)**: `brief.py serve <q>` starts a server in the background on 127.0.0.1, prints the address, and keeps answers, comment threads and the "I'm done" signal in `answers.json`. It renders from questions.json on every load, so editing the file and reloading republishes. To have comments answered while you are away, add `--ask <runtime>` (see `references/live.md`).
+- **The local page (the default, in every runtime)**: `page.py serve <q>` starts a server in the background on 127.0.0.1, prints the address, and keeps answers, comment threads and the "I'm done" signal in `answers.json`. It renders from questions.json on every load, so editing the file and reloading republishes. To have comments answered while you are away, add `--ask <runtime>` (see `references/live.md`).
 - **A claude.ai Artifact**, when the user asks for one and the Artifact tools are available. In Claude Code, offer it once, in one line, when you give the local link. Follow `references/publish.md`.
-- **A static file**, when the server cannot start or does not outlive your command: `brief.py build <q> --mode static`. See `references/publish.md`.
+- **A static file**, when the server cannot start or does not outlive your command: `page.py build <q> --mode static`. See `references/publish.md`.
 
 Then send the user one short message in plain words: the link or path, how many questions there are, which are urgent if any, how comments get answered (you reading along, Ask now, or later), and that they press the page's done button or tell you when they are done. Name buttons and tabs exactly as the page shows them: `serve` and `build` print the page's own words (I'm done is 我答完了 on a Chinese page). A finding about the project (a figure in the code that contradicts a comment, say) belongs on the card it concerns, and in one line here. Do not repeat the cards in the chat.
 
 ## 4. Stay connected while the user answers
 
-When the user is answering now, read along so their comments get answers on the page: follow `references/live.md` (`brief.py wait`, then `brief.py reply` for each comment). On an Artifact, answer comments sent with Send to Claude in their thread with ArtifactComments.
+When the user is answering now, read along so their comments get answers on the page: follow `references/live.md` (`page.py wait`, then `page.py reply` for each comment). On an Artifact, answer comments sent with Send to Claude in their thread with ArtifactComments.
 
 ## 5. Read back, in one pass
 
-When the user presses I'm done or says they have answered, read everything at once: `brief.py read <q>` prints the answers and this round's comment threads together. For an Artifact or a static page, `references/publish.md` says how to get the answers to `read`.
+When the user presses I'm done or says they have answered, read everything at once: `page.py read <q>` prints the answers and this round's comment threads together. For an Artifact or a static page, `references/publish.md` says how to get the answers to `read`.
 
 Summarize briefly in the chat: what was decided (by card title, and whether it was your recommendation), notes in the user's words where they change the meaning, open comment threads, and what is still open. A cleared choice is open. `read` lists the answers written under Other: restate each in one line as you read it. When one can be read more than one way, ask one direct question that names the readings, and leave that card open. A chosen option is the answer even when its note seems to pull another way: act on it and mention the note, and ask only when the note asks for something the option does not do. When two answers conflict, ask about that point. When a reading or a question gives a figure, such as what an answer comes to on a card's example, compute it with a command before you write it, as on a card: the user picks a reading by its numbers.
 
 ## 6. Act, mark, republish
 
 - Carry out the decided answers within the task's scope, and record each decision where the project keeps decisions (a decision log, the spec, the handoff notes).
-- `brief.py mark <q> --ids <the ids you acted on> --round "<round name and date>"` moves those cards to Decided and keeps the answer you read. Add an `outcome` to each, saying what you did. If the user later changes one of those answers, its card says so and `read` lists it.
-- Marking a new round moves the older rounds out of questions.json into `archive/`, so the file you edit holds only the open cards and the newest round. The page lists earlier rounds and loads one when the user opens it. `brief.py history <q>` prints one line per earlier decision, and `--id <id>` one card in full.
-- For built work the user should check, add or update a progress report with before and after screenshots. When the user has checked it, or nothing is left to do, archive it with `brief.py mark <q> --reports <ids> --round "..."`.
+- `page.py mark <q> --ids <the ids you acted on> --round "<round name and date>"` moves those cards to Decided and keeps the answer you read. Add an `outcome` to each, saying what you did. If the user later changes one of those answers, its card says so and `read` lists it.
+- Marking a new round moves the older rounds out of questions.json into `archive/`, so the file you edit holds only the open cards and the newest round. The page lists earlier rounds and loads one when the user opens it. `page.py history <q>` prints one line per earlier decision, and `--id <id>` one card in full.
+- For built work the user should check, add or update a progress report with before and after screenshots. When the user has checked it, or nothing is left to do, archive it with `page.py mark <q> --reports <ids> --round "..."`.
 - Add cards for new questions that came up, with a `group` that says where they came from ("New questions from the sync work").
-- Republish to the same place (local: tell the user to reload). Leave unanswered cards open. When nothing is open and nothing needs checking, say so and stop the local server: `brief.py stop <q>`.
+- Republish to the same place (local: tell the user to reload). Leave unanswered cards open. When nothing is open and nothing needs checking, say so and stop the local server: `page.py stop <q>`.
 
 ## Rules
 

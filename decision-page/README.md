@@ -1,4 +1,4 @@
-# decision-brief
+# decision-page
 
 Agents raise questions in their own shorthand: ticket numbers, codenames they coined an hour ago, and options
 with no example of what each one would change. This plugin turns a task's open questions into one page that a
@@ -52,17 +52,22 @@ The [repository README](../README.md) has a one-command installer that sets this
 below. By hand:
 
 ```bash
-claude plugin install decision-brief@minakami-plugins   # Claude Code
-codex plugin add decision-brief@minakami-plugins        # Codex CLI
+claude plugin install decision-page@minakami-plugins   # Claude Code
+codex plugin add decision-page@minakami-plugins        # Codex CLI
 ```
 
 Grok Build loads the plugins installed in Claude Code (its Claude compatibility is on by default), so the
 Claude Code install covers it. Without Claude Code, install it in Grok directly:
-`grok plugin install war3water/Minakami_plugins#decision-brief --trust`. In pi, install the marketplace
+`grok plugin install war3water/Minakami_plugins#decision-page --trust`. In pi, install the marketplace
 repository as a package, which brings every plugin in it: `pi install git:github.com/war3water/Minakami_plugins`.
 
 The page's helper needs Python 3.8 or later on the computer that runs the agent. It uses only the standard
 library.
+
+**Renamed from decision-brief in 0.7.0.** Running the installer again installs decision-page and removes
+decision-brief. By hand, remove the old copy with `claude plugin uninstall decision-brief@minakami-plugins` or
+`codex plugin remove decision-brief@minakami-plugins`. Pages you already made keep working: a project that has a
+`.decision-brief/` folder keeps its pages there, and a page you saved as a file keeps your answers.
 
 ## Start it
 
@@ -72,26 +77,26 @@ The skill never loads by itself: it runs only when you name it. Claude Code, Gro
 
 | Runtime | Start the request with |
 |---|---|
-| Claude Code | `/decision-brief:decision-brief` |
-| Codex CLI | `$decision-brief` (interactive sessions only: `codex exec` doesn't load plugin skills) |
-| Grok Build | `/decision-brief:decision-brief`, or `/decision-brief` when no other skill has that name |
-| pi | `/skill:decision-brief` |
+| Claude Code | `/decision-page:decision-page` |
+| Codex CLI | `$decision-page` (interactive sessions only: `codex exec` doesn't load plugin skills) |
+| Grok Build | `/decision-page:decision-page`, or `/decision-page` when no other skill has that name |
+| pi | `/skill:decision-page` |
 
 The examples below use the Claude Code form.
 
 | You want | Type |
 |---|---|
-| All open questions of the task you are working on, on one page | `/decision-brief:decision-brief` |
-| Particular questions | `/decision-brief:decision-brief Ask me about <topic one>, <topic two> and <topic three>.` |
+| All open questions of the task you are working on, on one page | `/decision-page:decision-page` |
+| Particular questions | `/decision-page:decision-page Ask me about <topic one>, <topic two> and <topic three>.` |
 | Answers to your comments even while the agent is busy | add `Turn on Ask now.` to the request |
 | A claude.ai link instead of the local page (Claude Code) | add `artifact` to the request |
 | The agent to read your answers | press **I'm done** on the page, or say `I answered` in the chat |
-| To see what a page looks like | `/decision-brief:decision-brief example` |
+| To see what a page looks like | `/decision-page:decision-page example` |
 
 ## Try it
 
 In any project folder, start the skill with `example` in the runtime's form (for instance
-`/skill:decision-brief example` in pi). The agent copies a worked example into `.decision-brief/example/`,
+`/skill:decision-page example` in pi). The agent copies a worked example into `.decision-page/example/`,
 serves it on `http://127.0.0.1:8377/` (or another port when that one is busy), and reads along. The example is
 a made-up shopping-list app with three questions and one progress report. Answer a card, try **Other** and
 **Clear**, point at an underlined term, select a sentence and comment on it, then press **I'm done**.
@@ -99,20 +104,20 @@ a made-up shopping-list app with three questions and one progress report. Answer
 Without an agent, from a checkout of this repository:
 
 ```bash
-python decision-brief/skills/decision-brief/scripts/brief.py example ../brief-try
-python decision-brief/skills/decision-brief/scripts/brief.py serve ../brief-try/questions.json --open
-python decision-brief/skills/decision-brief/scripts/brief.py reply ../brief-try/questions.json q-storage "A note from the agent"
-python decision-brief/skills/decision-brief/scripts/brief.py read ../brief-try/questions.json
-python decision-brief/skills/decision-brief/scripts/brief.py stop ../brief-try/questions.json
+python decision-page/skills/decision-page/scripts/page.py example ../brief-try
+python decision-page/skills/decision-page/scripts/page.py serve ../brief-try/questions.json --open
+python decision-page/skills/decision-page/scripts/page.py reply ../brief-try/questions.json q-storage "A note from the agent"
+python decision-page/skills/decision-page/scripts/page.py read ../brief-try/questions.json
+python decision-page/skills/decision-page/scripts/page.py stop ../brief-try/questions.json
 ```
 
 ## Where the page runs
 
 | Backend | Used when | Answers and comments are kept | The agent reads them with |
 |---|---|---|---|
-| Local page | the default, in every runtime | `answers.json` in the task folder | `brief.py read`, and `brief.py wait` while it reads along |
+| Local page | the default, in every runtime | `answers.json` in the task folder | `page.py read`, and `page.py wait` while it reads along |
 | claude.ai Artifact | you ask for it in Claude Code with the claude.ai Artifact tools | the Artifact's own storage and comment threads | the ArtifactData and ArtifactComments tools, in one turn |
-| Static file | the local server cannot run (a sandbox that forbids opening a port) | your browser; you press **Download answers.json** or **Copy answers** | `brief.py read --answers <file>`, or your pasted text |
+| Static file | the local server cannot run (a sandbox that forbids opening a port) | your browser; you press **Download answers.json** or **Copy answers** | `page.py read --answers <file>`, or your pasted text |
 
 Each answer holds your choice (an option, `other`, or nothing after Clear), your Other text, your note, and the
 time. When you answer under **Other**, the agent tells you in one line how it read your words before it acts on
@@ -122,8 +127,8 @@ file has no comments.
 
 ### Talking with the agent on the local page
 
-- **The agent reads along.** After it gives you the link, the agent runs `brief.py wait`, which returns as soon
-  as you comment or press **I'm done**. It answers in the thread with `brief.py reply`, and the answer appears
+- **The agent reads along.** After it gives you the link, the agent runs `page.py wait`, which returns as soon
+  as you comment or press **I'm done**. It answers in the thread with `page.py reply`, and the answer appears
   on your page within a second. The page says when the agent is reading along. Claude Code runs the wait in
   the background, so the chat stays free; Codex CLI, Grok Build and pi run it in the foreground and wait again
   after each answer, so their chat is busy while you work on the page.
@@ -143,10 +148,10 @@ file has no comments.
 
 ### The task folder
 
-The agent keeps each task's page in `.decision-brief/<task>/` in your project:
+The agent keeps each task's page in `.decision-page/<task>/` in your project:
 
 ```text
-.decision-brief/
+.decision-page/
 ├── .gitignore          one line, "*": these working files stay out of commits
 └── <task>/
     ├── questions.json  the page's content; the agent edits this, never the HTML
@@ -172,7 +177,7 @@ The decisions themselves end up where your project records decisions, once the a
   policy forbids requests to any other address.
 - It makes no outside connections of its own; only **Ask now**, when you started it with `--ask`, runs the agent
   you chose. It writes only in the task folder, and runs in the background until the agent or you stop it with
-  `brief.py stop`.
+  `page.py stop`.
 
 ## Language
 
@@ -375,7 +380,7 @@ cards, 21 for the picture viewer and 25 for the archive of earlier rounds) cover
   read-only mode. The `codex` settings answered a test prompt. Grok accepted its settings but was not signed in
   on the test machine; pi was not installed there.
 - **The claude.ai Artifact**: the example was published with its images, its answer store accepted an answer
-  in the page's exact shape, and `brief.py read` read it back from both saved forms. The page's calls to the
+  in the page's exact shape, and `page.py read` read it back from both saved forms. The page's calls to the
   platform (saving, live updates, the comment composer, Send to Claude for **I'm done**) were checked against
   the platform's published interface and a stand-in in the browser test, not by clicking in claude.ai.
 - **Explicit invocation**: in Claude Code 2.1.311 with the plugin loaded, a headless session did not list the
@@ -391,15 +396,15 @@ headless), clicking through the published Artifact, the tabs inside claude.ai, m
 
 | File | Role |
 |---|---|
-| `skills/decision-brief/SKILL.md` | the runbook: collect, write cards for a newcomer, publish, read along, read back in one pass, act, mark and republish |
-| `skills/decision-brief/references/questions-format.md` | the questions.json format, the markup, the labels |
-| `skills/decision-brief/references/answers-format.md` | how answers and comment threads are stored, for debugging; `brief.py read` reads them |
-| `skills/decision-brief/references/publish.md` | the Artifact and static backends, read only when one is used |
-| `skills/decision-brief/references/live.md` | reading along with `wait` and `reply`, and Ask now, read only when the user answers now |
-| `skills/decision-brief/assets/page.html` | the one page template: the three looks, tabs, rendering, threads, and the three answer stores |
-| `skills/decision-brief/scripts/brief.py` | `new`, `build`, `serve`, `wait`, `reply`, `read`, `mark`, `history`, `stop`, `links`, `example`; standard library only |
-| `skills/decision-brief/assets/example/` | the worked example `example` copies |
-| `skills/decision-brief/agents/openai.yaml` | Codex: explicit invocation only |
+| `skills/decision-page/SKILL.md` | the runbook: collect, write cards for a newcomer, publish, read along, read back in one pass, act, mark and republish |
+| `skills/decision-page/references/questions-format.md` | the questions.json format, the markup, the labels |
+| `skills/decision-page/references/answers-format.md` | how answers and comment threads are stored, for debugging; `page.py read` reads them |
+| `skills/decision-page/references/publish.md` | the Artifact and static backends, read only when one is used |
+| `skills/decision-page/references/live.md` | reading along with `wait` and `reply`, and Ask now, read only when the user answers now |
+| `skills/decision-page/assets/page.html` | the one page template: the three looks, tabs, rendering, threads, and the three answer stores |
+| `skills/decision-page/scripts/page.py` | `new`, `build`, `serve`, `wait`, `reply`, `read`, `mark`, `history`, `stop`, `links`, `example`; standard library only |
+| `skills/decision-page/assets/example/` | the worked example `example` copies |
+| `skills/decision-page/agents/openai.yaml` | Codex: explicit invocation only |
 
 `SKILL.md` declares `allowed-tools: Read(${CLAUDE_SKILL_DIR}/**)` so that Claude Code reads the bundled files
 without a permission prompt; other runtimes ignore the field.
@@ -410,7 +415,7 @@ without a permission prompt; other runtimes ignore the field.
   small subset (paragraphs, lists, bold, code, links) rendered without HTML, so project text cannot break the
   page.
 - **One template, three stores.** The page uses the claude.ai storage when it runs inside an Artifact, the
-  local server when `brief.py serve` served it, and the browser otherwise. A store that fails falls back to the
+  local server when `page.py serve` served it, and the browser otherwise. A store that fails falls back to the
   browser, with Copy (and Download outside claude.ai) shown.
 - **Live without a framework.** The page's update request waits on the server until an answer or comment
   changes or the agent starts or stops reading along; `wait`, `reply` and the server share `answers.json`
@@ -438,9 +443,9 @@ without a permission prompt; other runtimes ignore the field.
 - **History out of the way.** A long-running page would otherwise grow with every round. Marking a new round
   moves the older ones out of `questions.json` into `archive/`, so each round the agent reads and edits only the
   open cards and the latest round. The page fetches an earlier round only when you open it. The agent reaches
-  history through `brief.py history`, one line per decision or one card at a time. On claude.ai it never reads the
+  history through `page.py history`, one line per decision or one card at a time. On claude.ai it never reads the
   published page back, and asks the answer store only for answers given since the last round.
 - **No review rules.** The skill asks for no reviewer and no second model; a review happens when you ask.
 
 The notebook look is set in IBM Plex, which ships with the plugin under the SIL Open Font License
-(`skills/decision-brief/assets/fonts/OFL.txt`).
+(`skills/decision-page/assets/fonts/OFL.txt`).

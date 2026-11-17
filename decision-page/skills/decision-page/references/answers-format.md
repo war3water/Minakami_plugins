@@ -1,6 +1,6 @@
 # Answers and comments format
 
-`brief.py read` reads all of this for you; this file is for debugging, and for reading answers without the helper.
+`page.py read` reads all of this for you; this file is for debugging, and for reading answers without the helper.
 
 Every backend stores one answer per question id:
 
@@ -15,7 +15,7 @@ The local server writes `answers.json`; the static page's download has the same 
 
 ```json
 {
-  "app": "decision-brief",
+  "app": "decision-page",
   "format": 2,
   "rev": 14,
   "title": "Decisions waiting for you",
@@ -33,4 +33,4 @@ The local server writes `answers.json`; the static page's download has the same 
 - `target` is where the thread sits: `q-` plus a question id, `p-` plus a report id, `g-` plus a glossary anchor, or `page`.
 - `done` is set when the user presses I'm done.
 
-An Artifact keeps answers in its `answers` collection and comments in the platform's own threads. `brief.py read --answers` takes what an agent saved from it: the folder ArtifactData `list` writes with `out_dir` (one `<question id>.json` per answer), or the listing's text in a file (one `{"id": ..., "data": {...}}` object per line).
+An Artifact keeps answers in its `answers` collection and comments in the platform's own threads. `page.py read --answers` takes what an agent saved from it: the folder ArtifactData `list` writes with `out_dir` (one `<question id>.json` per answer), or the listing's text in a file (one `{"id": ..., "data": {...}}` object per line).
