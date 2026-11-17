@@ -306,9 +306,29 @@ Three slips came back in draft after draft. The last wording removed each of the
 - **How an option is built, where its effect should be.** Options for the pipeline described the fix instead of
   what it stops. They now say what stops, what continues and how long the work takes.
 
-Every figure on the tea-shop pages was recomputed from the order data, and all of them matched. No panel graded the
-final wording: it was measured on the page and read by a person. On these projects Sonnet now mostly chooses a small
-table where the draft drew a picture; Opus and Codex draw more often.
+Every figure on the tea-shop pages was recomputed from the order data, and all of them matched. On these projects
+Sonnet now mostly chooses a small table where the draft drew a picture; Opus and Codex draw more often.
+
+After that, the cards were changed to state a problem's cause as who does what and when, with a picture where the
+words would be slow to follow, and the runbook was cleaned up after a review of its instructions. A blind panel
+(Claude Opus 5.5 twice and gpt-6.1-sol) compared the final wording with the first, on five pairs: Sonnet 5.5 on the
+tile estimator, a newsletter tool, the order pipeline and the tea shop, and Codex on the tile estimator.
+
+| | Final wording | First wording |
+|---|---|---|
+| Panel preference | 9 of 15 verdicts, 4 of 5 pairs | 6 of 15 |
+| Pictures | 3.4 | 2.9 |
+| Examples | 4.7 | 4.5 |
+| Clear to a newcomer | 4.5 | 4.3 |
+| Options, consequences, reasoned recommendation | 4.4 | 4.2 |
+| Read-back | 4.3 | 4.8 |
+| Straightforward | 3.6 | 3.9 |
+
+The final cards are about a third longer, which costs some straightforwardness. The read-back lost because, asked
+what "never less than one spare box per room" would mean, one run wrote 7 boxes for a two-room order that needs 8.
+In four runs of that read-back, two gave a wrong figure, and none ran a command to work it out. The read-back step
+now has the agent compute any figure in a reading with a command before writing it. In three runs after that
+change, every read-back did, and every total was right.
 
 - **Where the gap comes from.** Without the skill, the pages were a Markdown checklist, a static form that
   overflowed a phone screen by 590 pixels, or nothing. Twice Codex could not write its file in the Windows
@@ -403,7 +423,8 @@ without a permission prompt; other runtimes ignore the field.
   sandboxed frame with no network, storage or access to the page. A static file carries both inside it.
 - **Checks the agent would otherwise skip.** `build` refuses duplicate ids, missing `alt` text, images outside
   the task folder, web images, links that are not http(s), and drawings that hold code or load outside files. It
-  warns when a drawing's labels look likely to overlap or run off its edge, estimated from their positions, since
+  warns when a drawing's labels look likely to overlap, spill out of their box or run off its edge, or when it
+  leaves a band of empty space above or below what it draws, estimated from their positions, since
   an agent cannot always look at the page. It also warns about all-capital short names missing
   from the glossary, cards without a recommendation, examples that do not say where they come
   from, and terms found neither in a source nor in the project's files. A term without a source shows the
