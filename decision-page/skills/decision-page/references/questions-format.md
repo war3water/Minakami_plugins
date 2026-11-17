@@ -1,10 +1,10 @@
 # questions.json format
 
-One JSON file per task drives the page. `brief.py build` checks it and names every problem; `assets/example/questions.json` is a complete example to copy from.
+One JSON file per task drives the page. `page.py build` checks it and names every problem; `assets/example/questions.json` is a complete example to copy from.
 
 The page sorts the cards into tabs. **Waiting for you** holds every question whose `state` is `open`, under a heading per `group`; a report's follow-up questions without a `group` get "From: `<report title>`". **Work status** holds the progress reports that are not `archived`. **Decided** holds the questions whose `state` is `answered` and the archived reports, under a heading per `round`, then the earlier rounds from `archive/`. **Glossary** holds the terms. A tab with nothing in it is left out, except Waiting for you.
 
-`brief.py mark` with a new `--round` moves older rounds out of this file into `archive/` next to it: `index.json` lists each round's decisions in one line each, and `<round>.json` keeps its full cards and reports. `brief.py` writes those files, and `brief.py history` prints them. `mark` also records the time in `marked_at`.
+`page.py mark` with a new `--round` moves older rounds out of this file into `archive/` next to it: `index.json` lists each round's decisions in one line each, and `<round>.json` keeps its full cards and reports. `page.py` writes those files, and `page.py history` prints them. `mark` also records the time in `marked_at`.
 
 ## Top level
 
@@ -49,10 +49,10 @@ On the cards, the first use of each term (and of each `aka`) is underlined: poin
 | `figures` | no | Pictures shown after the background: images, drawings or live demos (see "Figures") |
 | `example` | no | For a card whose background and options do not already make the choice plain: `{"text": ..., "source": ..., "label": ..., "table": ..., "figures": [...]}`. `source` says where the example comes from, in the page's language: a file and line, a ticket, a log, or that it was made up to illustrate; the build warns when an open question's example has none. `label` replaces the heading "Example" |
 | `options` | yes | At least one; see below. The page adds Other, Clear, Add a note and Comment |
-| `state` | no | `open` (default) or `answered`, which moves the card to Decided; `brief.py mark` sets it |
-| `round` | no | The heading the card sits under on Decided, such as "Round 1, decided 20 October"; `brief.py mark --round` sets it |
+| `state` | no | `open` (default) or `answered`, which moves the card to Decided; `page.py mark` sets it |
+| `round` | no | The heading the card sits under on Decided, such as "Round 1, decided 20 October"; `page.py mark --round` sets it |
 | `outcome` | no | "What I did" after the answer, shown on answered cards (markup) |
-| `read` | no | Written by `brief.py mark`: the answer as you read it. The card shows it when no newer answer is stored, and says when the user changed it |
+| `read` | no | Written by `page.py mark`: the answer as you read it. The card shows it when no newer answer is stored, and says when the user changed it |
 
 An option is `{"id": "...", "label": "...", "effect": "...", "recommended": true}`:
 
@@ -74,7 +74,7 @@ An option is `{"id": "...", "label": "...", "effect": "...", "recommended": true
 | `more` | no | How it was checked and other detail, folded under "More" (markup) |
 | `table`, `figures` | no | As on a question card; use before and after pairs |
 | `action` | no | One thing the user has to do, shown highlighted after "One action for you:"; the Work status tab counts these |
-| `archived` | no | `true` moves the report to Decided; `brief.py mark --reports` sets it |
+| `archived` | no | `true` moves the report to Decided; `page.py mark --reports` sets it |
 | `round` | no | The heading it sits under on Decided |
 | `questions` | no | Follow-up question cards; they go on Waiting for you (or Decided, once answered) |
 
@@ -118,4 +118,4 @@ The keys and their English text are at the top of the script in `assets/page.htm
 
 ## Answers and comments
 
-`brief.py read` reads every answer and comment thread for you. Their stored format is in `references/answers-format.md`, for debugging.
+`page.py read` reads every answer and comment thread for you. Their stored format is in `references/answers-format.md`, for debugging.

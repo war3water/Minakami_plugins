@@ -2,7 +2,7 @@
 <meta name="claude:viewport-fit-sides" content="cover">
 <!-- brief:fonts -->
 <style>
-/* decision-brief page. One reading column; the accent marks what needs the reader's answer.
+/* Decision page. One reading column; the accent marks what needs the reader's answer.
    Light and dark follow the system; [data-theme] on the root element forces one. Four looks, picked by "style" in
    questions.json: notebook (the default: IBM Plex on a grey-green paper), ledger (paper and navy, serif headings),
    rose (warm pink) and slate (cool grey, teal). --s1 to --s4 are the colours pictures draw options and series in,
@@ -282,7 +282,7 @@ footer { color: var(--muted); font-size: 0.85rem; }
   document.documentElement.setAttribute("data-style", String(DATA.style || "notebook"));
   if (/^(zh|ja|ko)/i.test(String(DATA.lang || ""))) document.documentElement.setAttribute("data-script", "cjk");  // sans headings, full-width colon
   // Detailed or compact cards: the reader's last pick in this browser, else the page's "density", else detailed.
-  var densityKey = "decision-brief-density";
+  var densityKey = "decision-page-density";
   function setDensity(d, remember) {
     document.documentElement.setAttribute("data-density", d);
     document.querySelectorAll(".view button").forEach(function (b) { b.setAttribute("aria-pressed", String(b.getAttribute("data-density") === d)); });
@@ -291,7 +291,7 @@ footer { color: var(--muted); font-size: 0.85rem; }
   }
   (function () {
     var d = null;
-    try { d = localStorage.getItem(densityKey); } catch (e) { /* no stored pick */ }
+    try { d = localStorage.getItem(densityKey) || localStorage.getItem("decision-brief-density"); } catch (e) { /* no stored pick */ }
     setDensity(d === "compact" || d === "detailed" ? d : DATA.density === "compact" ? "compact" : "detailed", false);
   })();
 
@@ -407,7 +407,7 @@ footer { color: var(--muted); font-size: 0.85rem; }
     picture_quote: "Picture: {what}",
     live_label: "Live demo: try it here",
     live_open: "Open large",
-    built_with: "Made with decision-brief"
+    built_with: "Made with decision-page"
   };
   var ZH = {
     eyebrow: "等你决定的问题",
@@ -519,7 +519,7 @@ footer { color: var(--muted); font-size: 0.85rem; }
     picture_quote: "图：{what}",
     live_label: "可操作的演示，可以直接试",
     live_open: "放大查看",
-    built_with: "由 decision-brief 生成"
+    built_with: "由 decision-page 生成"
   };
   var T = Object.assign({}, EN, String(DATA.lang || "en").toLowerCase().indexOf("zh") === 0 ? ZH : {}, DATA.ui || {});
   var fill = function (s, vars) { return String(s).replace(/\{(\w+)\}/g, function (m, k) { return vars[k] != null ? vars[k] : m; }); };
@@ -1299,7 +1299,7 @@ footer { color: var(--muted); font-size: 0.85rem; }
 
   // ---------- tabs (WAI-ARIA tabs pattern): arrow keys move between tabs, the last tab is remembered for this
   // page, and a link to a card or a term on another tab opens that tab.
-  var tabKey = "decision-brief-tab:" + DATA.page_id;
+  var tabKey = "decision-page-tab:" + DATA.page_id;
   function selectTab(key, focus) {
     Object.keys(ui.panels).forEach(function (k) {
       var on = k === key, t = ui.panels[k];
@@ -1329,7 +1329,7 @@ footer { color: var(--muted); font-size: 0.85rem; }
       });
     });
     var saved = null;
-    try { saved = localStorage.getItem(tabKey); } catch (e) { /* no stored tab */ }
+    try { saved = localStorage.getItem(tabKey) || localStorage.getItem("decision-brief-tab:" + DATA.page_id); } catch (e) { /* no stored tab */ }
     selectTab(ui.panels[saved] ? saved : "open", false);
   }
   document.addEventListener("click", function (e) {
@@ -1612,7 +1612,7 @@ footer { color: var(--muted); font-size: 0.85rem; }
   function answersDoc() {
     var out = {};
     order.forEach(function (id) { var a = current(id); a.at = stamps[id] || null; out[id] = a; });
-    return { app: "decision-brief", format: 2, title: DATA.title, page_id: DATA.page_id, saved: new Date().toISOString(), answers: out, comments: comments };
+    return { app: "decision-page", format: 2, title: DATA.title, page_id: DATA.page_id, saved: new Date().toISOString(), answers: out, comments: comments };
   }
   function answersText() {
     var lines = ["Answers from the decision page: " + DATA.title];
@@ -1746,8 +1746,8 @@ footer { color: var(--muted); font-size: 0.85rem; }
     }, function () { return { failed: T.status_local_down }; });
   }
   function staticStore() {
-    var key = "decision-brief:" + DATA.page_id, kept = { answers: {} }, lasting = true;
-    try { kept = JSON.parse(localStorage.getItem(key) || "null") || kept; } catch (e) { lasting = false; }
+    var key = "decision-page:" + DATA.page_id, kept = { answers: {} }, lasting = true;
+    try { kept = JSON.parse(localStorage.getItem(key) || localStorage.getItem("decision-brief:" + DATA.page_id) || "null") || kept; } catch (e) { lasting = false; }
     return {
       status: lasting ? T.status_static : T.status_static_volatile,
       canComment: false,

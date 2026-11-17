@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-"""decision-brief helper: build the decision page from questions.json, serve it on this computer with live
+"""decision-page helper: build the decision page from questions.json, serve it on this computer with live
 comment threads, connect the agent's session to it, and read every answer back.
 
 Standard library only, Python 3.8 or later. Network use: the local server, bound to 127.0.0.1, and, only when
@@ -7,17 +7,17 @@ started with --ask, a read-only headless agent (claude -p, codex exec, grok -p, 
 when the user presses "Ask now".
 
 Usage:
-    python scripts/brief.py new   SLUG [--images FILE ...] [--root DIR]
-    python scripts/brief.py build QUESTIONS [--mode artifact|static] [--out PAGE] [--inline-images]
-    python scripts/brief.py serve QUESTIONS [--ask claude|codex|grok|pi|COMMAND] [--port N] [--open] [--foreground]
-    python scripts/brief.py wait  QUESTIONS [--timeout SECONDS] [--answers-too] [--name AGENT]
-    python scripts/brief.py reply QUESTIONS TARGET [TEXT | - | --file FILE] [--name AGENT]
-    python scripts/brief.py read  QUESTIONS [--answers FILE] [--json]
-    python scripts/brief.py mark  QUESTIONS [--answers FILE] [--ids ID,ID] [--reports ID,ID] [--round TEXT] [--reopen]
-    python scripts/brief.py history QUESTIONS [--id ID] [--round TEXT] [--threads]
-    python scripts/brief.py stop  QUESTIONS
-    python scripts/brief.py links QUESTIONS
-    python scripts/brief.py example DIR
+    python scripts/page.py new   SLUG [--images FILE ...] [--root DIR]
+    python scripts/page.py build QUESTIONS [--mode artifact|static] [--out PAGE] [--inline-images]
+    python scripts/page.py serve QUESTIONS [--ask claude|codex|grok|pi|COMMAND] [--port N] [--open] [--foreground]
+    python scripts/page.py wait  QUESTIONS [--timeout SECONDS] [--answers-too] [--name AGENT]
+    python scripts/page.py reply QUESTIONS TARGET [TEXT | - | --file FILE] [--name AGENT]
+    python scripts/page.py read  QUESTIONS [--answers FILE] [--json]
+    python scripts/page.py mark  QUESTIONS [--answers FILE] [--ids ID,ID] [--reports ID,ID] [--round TEXT] [--reopen]
+    python scripts/page.py history QUESTIONS [--id ID] [--round TEXT] [--threads]
+    python scripts/page.py stop  QUESTIONS
+    python scripts/page.py links QUESTIONS
+    python scripts/page.py example DIR
 
 QUESTIONS is the task's questions.json (format: references/questions-format.md). Next to it live:
     page.html      the built page (build)
@@ -28,7 +28,7 @@ QUESTIONS is the task's questions.json (format: references/questions-format.md).
     server.log     the local server's log
     archive/       earlier rounds: index.json (one line per decision) and one <round>.json each (mark writes them)
 
-new      creates .decision-brief/SLUG/ with shots/ (copying the images named) and the .gitignore, in one step.
+new      creates .decision-page/SLUG/ with shots/ (copying the images named) and the .gitignore, in one step.
 build    checks questions.json and writes the page. Errors stop the build; warnings (short names missing from
          the glossary, a card without a recommendation, a term without an origin link) are for the agent to act on.
 serve    starts the local server in the background and prints its address. The page is rebuilt from
@@ -77,7 +77,10 @@ from urllib.parse import parse_qs, unquote, urlsplit
 HERE = Path(__file__).resolve().parent
 TEMPLATE = HERE.parent / "assets" / "page.html"
 FONTS = HERE.parent / "assets" / "fonts"
-APP = "decision-brief"
+APP = "decision-page"
+OLD_APPS = ("decision-brief",)   # the name before 0.7.0: its servers and answer files are still ours
+TASK_DIR = ".decision-page"
+OLD_TASK_DIR = ".decision-brief"  # projects started before 0.7.0 keep their task folders here
 FORMAT = 2
 DEFAULT_PORT = 8377           # tried first; a busy port falls back to one the system picks
 MAX_BODY = 1_000_000          # a request larger than this is not an answer
@@ -176,9 +179,10 @@ def task_files(questions: Path, answers: str | None = None) -> dict:
 
 
 def project_root(questions: Path) -> Path:
-    """The project the task belongs to: the folder holding .decision-brief/, else the task folder itself."""
+    """The project the task belongs to: the folder holding .decision-page/ (or .decision-brief/), else the task
+    folder itself."""
     for parent in questions.parents:
-        if parent.name == ".decision-brief":
+        if parent.name in (TASK_DIR, OLD_TASK_DIR):
             return parent.parent
     return questions.parent
 
@@ -727,7 +731,7 @@ def figure_list(data: dict) -> list:
 TEXT_FILES = {".md", ".txt", ".rst", ".adoc"}
 CODE_FILES = {".py", ".js", ".mjs", ".ts", ".tsx", ".jsx", ".go", ".rs", ".java", ".kt", ".rb", ".cs", ".php", ".swift",
               ".c", ".h", ".cpp", ".css", ".html", ".toml", ".yaml", ".yml", ".json", ".sql", ".sh", ".ps1"}
-SKIP_DIRS = {".git", ".decision-brief", "node_modules", ".venv", "venv", "__pycache__", "dist", "build", "target", ".next"}
+SKIP_DIRS = {".git", ".decision-page", ".decision-brief", "node_modules", ".venv", "venv", "__pycache__", "dist", "build", "target", ".next"}
 
 
 def term_pattern(name: str):
@@ -742,7 +746,7 @@ def term_pattern(name: str):
 
 def term_origins(data: dict, base: Path) -> dict:
     """For glossary entries without a source: the project file a term first appears in (documents before code,
-    shallow before deep), so the page can say where to look. Only for a task folder inside .decision-brief/."""
+    shallow before deep), so the page can say where to look. Only for a task folder inside .decision-page/."""
     root = project_root(base / "questions.json")
     wanted = {str(g.get("term")): [p for n in [g.get("term"), *(g.get("aka") or [])]
                                    for s in re.split(r"\s*(?:/|,|、|，)\s*", str(n or "")) if (p := term_pattern(s))]
@@ -1188,7 +1192,7 @@ def print_summary(s: dict) -> None:
     if s.get("earlier_threads"):
         n = len(s["earlier_threads"])
         print(f"\n{n} earlier comment thread{'' if n == 1 else 's'}, settled before this round, left out: "
-              "brief.py history --threads prints them.")
+              "page.py history --threads prints them.")
     if s.get("done"):
         note = (s["done"] or {}).get("note")
         print(f"\nThe user pressed I'm done at {s['done'].get('at')}" + (f": {note}" if note else "."))
@@ -1271,7 +1275,7 @@ def archive_rounds(questions: Path, data: dict, keep: str | None) -> list:
     if not names:
         return []
     index = read_archive(base)
-    index["about"] = ("Earlier rounds of this decision page. Read this file, or run brief.py history, before opening a "
+    index["about"] = ("Earlier rounds of this decision page. Read this file, or run page.py history, before opening a "
                       "round's file; the newest round and the open cards are in questions.json.")
     taken = {Path(r.get("file", "")).stem for r in index["rounds"]}
     (base / "archive").mkdir(exist_ok=True)
@@ -1311,11 +1315,11 @@ def cmd_history(a) -> int:
         for t in earlier:
             print_thread(t)
         if not earlier:
-            print("no earlier comment threads: brief.py read shows every thread")
+            print("no earlier comment threads: page.py read shows every thread")
         return 0
     rounds = read_archive(base)["rounds"]
     if not rounds:
-        print("no earlier rounds: everything decided is still in questions.json (brief.py read covers it)")
+        print("no earlier rounds: everything decided is still in questions.json (page.py read covers it)")
         return 0
     if a.id:
         entry = next((r for r in rounds if any(q.get("id") == a.id for q in r.get("questions") or [])), None)
@@ -1341,7 +1345,7 @@ def cmd_history(a) -> int:
             print(f"  {q['id']}: {q.get('title')}\n      -> {q.get('answer')}" + (f"\n      note: {q['note']}" if q.get("note") else ""))
         for p in r.get("reports") or []:
             print(f"  report {p['id']}: {p.get('title')}")
-    print("\nThe newest round and the open cards are in questions.json (brief.py read). One card in full: --id ID.")
+    print("\nThe newest round and the open cards are in questions.json (page.py read). One card in full: --id ID.")
     return 0
 
 
@@ -1398,7 +1402,7 @@ def cmd_mark(a) -> int:
     moved = archive_rounds(questions, data, a.round) if a.round and not a.reopen else []
     write_json(questions, data)
     if moved:
-        print("earlier rounds moved to archive/ (brief.py history lists them): " + "; ".join(moved))
+        print("earlier rounds moved to archive/ (page.py history lists them): " + "; ".join(moved))
     if changed:
         print(("reopened: " if a.reopen else "marked answered, now on the Decided tab: ") + ", ".join(changed))
     if archived:
@@ -1475,7 +1479,7 @@ def print_news(questions: Path, data: dict, store: dict, found: dict) -> None:
     for t in touched:
         print()
         print_thread(t, new_ids)
-        print(f"      answer with: brief.py reply {questions} {t['messages'][-1]['id']} \"<your answer>\"")
+        print(f"      answer with: page.py reply {questions} {t['messages'][-1]['id']} \"<your answer>\"")
     if found["answers"]:
         print()
         for e in s["answered"] + s["open"] + s["changed"]:
@@ -1484,7 +1488,7 @@ def print_news(questions: Path, data: dict, store: dict, found: dict) -> None:
                       + (f" (note: {e['note']})" if e.get("note") else ""))
     if found["done"]:
         note = found["done"].get("note")
-        print("\nThe user pressed I'm done" + (f": {note}" if note else "") + f". Read everything now: brief.py read {questions}")
+        print("\nThe user pressed I'm done" + (f": {note}" if note else "") + f". Read everything now: page.py read {questions}")
 
 
 def cmd_reply(a) -> int:
@@ -1908,7 +1912,7 @@ def ping(port: int) -> dict | None:
         r = conn.getresponse()
         body = json.loads(r.read().decode("utf-8")) if r.status == 200 else None
         conn.close()
-        return body if body and body.get("app") == APP else None
+        return body if body and body.get("app") in (APP, *OLD_APPS) else None
     except (OSError, ValueError):
         return None
 
@@ -2004,7 +2008,7 @@ def cmd_serve(a) -> int:
             print(f"serving {info['url']}  (pid {info['pid']}; answers: {files['answers']}"
                   + (f"; Ask now: {info['ask']}" if info.get("ask") else "") + ")")
             print(f"{describe(data)}. Reloading the page shows edits to questions.json. Stop it with: "
-                  f"brief.py stop {questions}")
+                  f"page.py stop {questions}")
             print(f"the page's words, to use as they are in your message: {page_words(data, info.get('ask'))}")
             if a.open:
                 import webbrowser
@@ -2012,7 +2016,7 @@ def cmd_serve(a) -> int:
             return 0
     tail = files["log"].read_text(encoding="utf-8", errors="replace")[-2000:] if files["log"].is_file() else ""
     print("error: the local server did not start. If this runs in a sandbox that forbids opening a port, build a "
-          "static page instead (brief.py build --mode static).", file=sys.stderr)
+          "static page instead (page.py build --mode static).", file=sys.stderr)
     if tail:
         print(tail, file=sys.stderr)
     return 1
@@ -2043,12 +2047,14 @@ def cmd_stop(a) -> int:
 
 
 def cmd_new(a) -> int:
-    """Set up a task folder in one step: .decision-brief/<slug>/ with shots/, the images copied in, and the
-    .gitignore that keeps .decision-brief/ out of commits."""
+    """Set up a task folder in one step: .decision-page/<slug>/ with shots/, the images copied in, and the
+    .gitignore that keeps .decision-page/ out of commits."""
     if not ID_RE.match(a.slug):
         sys.exit("error: the task name must be lowercase letters, digits and dashes, such as lane-b-estimator")
     root = Path(a.root).resolve()
-    base = root / ".decision-brief"
+    base = root / TASK_DIR
+    if not base.exists() and (root / OLD_TASK_DIR).is_dir():
+        base = root / OLD_TASK_DIR  # a project begun before the rename keeps one folder for all its pages
     task = base / a.slug
     (task / "shots").mkdir(parents=True, exist_ok=True)
     if not (base / ".gitignore").exists():
@@ -2076,7 +2082,7 @@ def cmd_example(a) -> int:
     if dest.exists() and any(dest.iterdir()):
         sys.exit(f"error: {dest} is not empty; pick a new folder")
     shutil.copytree(HERE.parent / "assets" / "example", dest, dirs_exist_ok=True)
-    print(f"copied the example to {dest}. Try: brief.py serve {dest / 'questions.json'} --open")
+    print(f"copied the example to {dest}. Try: page.py serve {dest / 'questions.json'} --open")
     return 0
 
 
@@ -2087,7 +2093,7 @@ def main() -> int:
             sys.stderr.reconfigure(encoding="utf-8", errors="replace")
         except AttributeError:
             pass
-    ap = argparse.ArgumentParser(description="Build, serve and read a decision-brief page.")
+    ap = argparse.ArgumentParser(description="Build, serve and read a decision page.")
     sub = ap.add_subparsers(dest="cmd", required=True)
     b = sub.add_parser("build", help="check questions.json and write the page")
     b.add_argument("questions")
