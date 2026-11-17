@@ -782,7 +782,16 @@ def remove_checkout(repo: Path, tmp: Path, dest: Path) -> None:
         os.chmod(path, stat.S_IWRITE)
         func(path)
 
-    shutil.rmtree(tmp, onerror=unlock) if sys.version_info < (3, 12) else shutil.rmtree(tmp, onexc=unlock)
+    # Commands run in the checkout can install deep trees (pnpm's node_modules) whose paths pass Windows' 260-character
+    # limit, which plain paths cannot delete; the \\?\ form can. A checkout that still won't go is reported, not raised,
+    # so the lint report the run produced is not lost to its cleanup.
+    target = str(tmp)
+    if os.name == "nt" and not target.startswith("\\\\?\\"):
+        target = "\\\\?\\" + os.path.abspath(target)
+    try:
+        shutil.rmtree(target, onerror=unlock) if sys.version_info < (3, 12) else shutil.rmtree(target, onexc=unlock)
+    except OSError as e:
+        print(f"note: could not remove the temporary checkout {tmp}: {e}; delete it by hand", file=sys.stderr)
     git(repo, "worktree", "prune", check=False)
 
 
@@ -824,6 +833,22 @@ def stop_tree(proc: subprocess.Popen) -> None:
                 os.killpg(proc.pid, signal.SIGKILL)
             except ProcessLookupError:
                 pass
+
+
+def run_block(cmd: list[str], cwd: Path, env: dict, timeout: int) -> subprocess.CompletedProcess:
+    """subprocess.run with a timeout that holds: on a timeout the shell and everything it started are stopped. A plain
+    run() kills only the shell, and on Windows then waits for the output pipes, which a server or a stuck install the
+    shell started keeps open, so the timeout never fires and that process keeps running."""
+    kw = {"creationflags": subprocess.CREATE_NEW_PROCESS_GROUP} if os.name == "nt" else {"start_new_session": True}
+    proc = subprocess.Popen(cmd, cwd=cwd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, encoding="utf-8",
+                            errors="replace", env=env, **kw)
+    try:
+        out, err = proc.communicate(timeout=timeout)
+    except subprocess.TimeoutExpired:
+        stop_tree(proc)
+        proc.communicate()
+        raise
+    return subprocess.CompletedProcess(cmd, proc.returncode, out, err)
 
 
 def wait_ready(proc: subprocess.Popen, log: Path, ready, seconds: int) -> str | None:
@@ -894,7 +919,14 @@ def execute(blocks: list[dict], cwd: Path, timeout: int, capture: Path | None = 
                        f"$PSNativeCommandUseErrorActionPreference = {'$false' if want else '$true'}\n"
                        "if ($PSStyle) { $PSStyle.OutputRendering = 'PlainText' }\n"
                        + b["body"] + ("\nexit $LASTEXITCODE" if want else "")]
-            if b.get("background"):
+            ready = b.get("ready")
+            if b.get("background") and ready is not None and not (
+                    isinstance(ready, str) and (ready.startswith(("http://", "https://"))
+                                                or (len(ready) > 2 and ready.startswith("/") and ready.endswith("/")))):
+                # an unquoted pattern with spaces arrives cut at the first space and would wait out its whole time
+                res.update(status="failed", detail=f"ready={ready} is neither a URL nor a /regex/; a pattern with "
+                                                   f'spaces needs quotes: ready="/server listening/"')
+            elif b.get("background"):
                 log = logs / f"{k}.log"
                 fh = open(log, "w", encoding="utf-8", errors="replace")
                 handles.append(fh)
@@ -909,8 +941,7 @@ def execute(blocks: list[dict], cwd: Path, timeout: int, capture: Path | None = 
                 res["captured"] = save(b, "running", read(log), "")
             else:
                 try:
-                    r = subprocess.run(cmd, cwd=cwd, capture_output=True, text=True, encoding="utf-8", errors="replace",
-                                       timeout=timeout, env=env)
+                    r = run_block(cmd, cwd, env, timeout)
                     missing = re.search(r"(?m)([\w.+-]+): command not found\s*$", r.stderr or "")  # bash's message, any prefix
                     if r.returncode == 127 and missing:
                         # the block needs a tool this machine lacks: not evidence that the docs are wrong, but not verified either
