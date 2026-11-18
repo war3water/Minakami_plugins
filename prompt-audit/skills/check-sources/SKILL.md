@@ -1,6 +1,6 @@
 ---
 name: check-sources
-description: Check whether the vendors' official prompting guidance has moved ahead of prompt-audit's reference files — lists each vendor's page index to find newly published model prompting pages, diffs every registered page against its recorded coverage and outline, and reports what changed per family, whether a reference-refresh release is warranted, and a ready-to-paste registry patch. Read-only; writes nothing. Runs only when the user invokes it by name ($prompt-audit skills in Codex, /prompt-audit:check-sources in Claude Code).
+description: Check whether the vendors' official prompting guidance has moved ahead of prompt-audit's reference files — lists each vendor's page index to find newly published model prompting pages, diffs every registered page against its recorded coverage and outline, and reports what changed per family, whether a reference-refresh release is warranted, and a registry patch it applies only when the user says yes. Runs only when the user invokes it by name ($prompt-audit skills in Codex, /prompt-audit:check-sources in Claude Code).
 disable-model-invocation: true
 ---
 

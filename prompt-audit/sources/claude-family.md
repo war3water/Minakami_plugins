@@ -1,0 +1,82 @@
+# Claude family — source detail
+
+Read by `check-sources` when it compares the Claude family. Each page section states what is distilled now and what is excluded; it is rewritten, never appended to, when the page changes (see "Keeping the registry bounded" in `SOURCES.md`).
+
+## Known matches at last discovery (2026-11-17)
+
+All under `https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/`: `overview`, `claude-prompting-best-practices`, `prompting-claude-fable-5`, `prompting-claude-fable-5-1`, `prompting-claude-fable-5-2`, `prompting-claude-haiku-5-5`, `prompting-claude-opus-4-8`, `prompting-claude-opus-5`, `prompting-claude-opus-5-5`, `prompting-claude-sonnet-5`, `prompting-claude-sonnet-5-5`. The hub table on the best-practices page lists the same nine model guides.
+
+## Seen, not registered
+
+- `overview` — the hub page for prompt engineering; no guidance of its own.
+
+## Claude prompting best practices
+
+The family-wide page for the evergreen test.
+
+- **Distilled:** structure and tags; rule priority for collisions; motivation improves adherence; describe tools rather than scripting call order; model self-knowledge (state model identity and ids when the task depends on them); blanket defaults replaced by targeted conditions; overeagerness and scope; autonomy boundaries (confirm destructive, irreversible, or visible actions); long-horizon state tracking; investigate-before-answering and general-solution rules are real levers, not no-ops; reasoning boilerplate is a no-op; asking for reasoning in `<thinking>` or similar tags can trigger the reasoning-extraction refusal (the reasoning-echo entry covers tag scaffolds); multishot examples presented as problem, method, and expected answer (consistent with the references, no entry needed). A prompt rule guides but does not enforce, so money-moving or irreversible tools need a person approving each call or a tool that queues the action for release, and a rule that narrows an earlier permission says it overrides it (`agentic.md` §Claude family, "Text guides; tools enforce"). "Say a check was done only if a tool result showed it" corroborates evidence-backed status in `agentic.md` §Universal.
+- **Excluded:** effort and thinking parameters, thinking-on-by-default API notes, prefill migration, LaTeX and document creation, vision and computer-use specifics, the Sonnet 5.5 migration subsection, and the verbatim text of the medication-dosing and payments blocks.
+- **Outline (H2 › H3):**
+  - Model-specific guidance
+  - General principles › Be clear and direct; Add context to improve performance; Use examples effectively; Structure prompts with XML tags; Give Claude a role; Long context prompting; Model self-knowledge
+  - Output and formatting › Communication style and verbosity; Control the format of responses; LaTeX output; Document creation; Migrating away from prefilled responses
+  - Tool use › Tool usage; Optimize parallel tool calling
+  - Thinking and reasoning › Overthinking and excessive thoroughness; Leverage thinking and interleaved thinking capabilities
+  - Agentic systems › Long-horizon reasoning and state tracking; Balancing autonomy and safety; Payments, account numbers, and financial records; Research and information gathering; Subagent orchestration; Chain complex prompts; Reduce file creation in agentic coding; Overeagerness; Avoid focusing on passing tests and hardcoding; Minimizing hallucinations in agentic coding
+  - Capability-specific tips › Improved vision capabilities; Frontend design; Medication dosing
+  - Migration considerations › Migrating to Claude Sonnet 5.5
+  - Next steps
+
+## Prompting Claude Opus 5
+
+- **Distilled:** generic instructed re-verification is a no-op (narrowed by Sonnet 5.5 and Haiku 5.5: a concrete check paragraph is a completion criterion); scope-expansion bounds; explicit length contract; narration cadence via positive examples; conservatism wording in review prompts lowers recall; full task specification up front; its "Reasoning in the response" section corroborates the reasoning-echo entry and its outlet (a short explanation or a summary of actions is fine).
+- **Excluded:** subagent-spawning caps (Opus 4.8 says the opposite), artifacts when thinking is disabled, effort recommendations.
+- **Outline (H2):** Capability improvements; Response length and verbosity; User-facing progress updates; Written deliverable length; Task scope and over-verification; Controlling subagent spawning; Self-correction; Running with thinking disabled; Reasoning in the response
+
+## Prompting Claude Fable 5.1
+
+- **Distilled:** forced narration scaffolding ("hold all findings for the final response") replaced by a described cadence; finish-the-whole-task and autonomous-run instructions as completion criteria; writing density over compression; keep changes and tests to what the task asks for; say what a compaction summary must preserve; the reasoning-extraction note with its outlet (corroboration).
+- **Excluded:** effort levels, append-only history, thinking-block and prefix-binding rules (API), the tool-call batching nudge (harness message), the quoting-sources example, search triggering at low effort, safeguard false positives, targeted edits, long-output token notes, the asynchronous subagent harness, vision tools, cache pricing.
+- **Outline (H2):** Consider all effort levels; Ask for user-facing progress updates; Batch independent tool calls in agent loops; Keep the conversation history append-only; Writing density; Formatting in chat; Quoting retrieved sources; Finish the whole task; Tell the model what to preserve in compaction summaries; Keep changes and tests to what the task asks for; Search triggering at low effort; Reduce safeguard false positives; Prefer targeted edits over whole-file rewrites; Leave room for long outputs at xhigh and max effort; Let the lead agent keep working while subagents run; Give vision work tools to crop and zoom
+
+## Prompting Claude Fable 5
+
+- **Distilled:** give the reason, not only the request; ground progress claims in tool results; state the boundaries; a brief instruction beats enumerating behaviors (older skills are too prescriptive); a notes or memory file as a place for state; reasoning-echo instructions trigger the reasoning-extraction refusal, and a short explanation is the outlet. Its final-summary readability (complete sentences, no working shorthand) is, with Fable 5.2 and Using GPT-6.2, the basis of `agentic.md` §Universal "A final report for a cold reader".
+- **Excluded:** effort, longer turns, early-stopping and context-budget reassurance snippets, the send-to-user tool, the memory bootstrapping prompt, verifier-subagent scaffolding, fallback retry rules for `reasoning_extraction`.
+- **Outline (H2):** Capability improvements; Longer turns by default; Consider all effort levels; Strong instruction following; Ground progress claims during long runs; State the boundaries; Parallel subagents; Construct a memory system; Rare cases of early stopping; Rare cases of context-budget concern; Give the reason, not only the request; Readability when communicating with the user; Create a send-to-user tool; Recommended scaffolding changes
+
+## Prompting Claude Sonnet 5
+
+- **Distilled:** literal instruction following (state an instruction's scope); positive examples over negative instructions for verbosity; forced interim status scaffolding removed; review harnesses ask for coverage, not filtering; task specification up front in interactive coding.
+- **Excluded:** effort and thinking calibration, tokenizer and token-limit notes, sampling parameters, design defaults, computer use.
+- **Outline (H2):** Response length and verbosity; Calibrating effort and thinking depth; Tool use triggering; User-facing progress updates; More literal instruction following; Tone and writing style; Design and frontend defaults; Interactive coding products; Code review harnesses; Computer use
+
+## Prompting Claude Opus 4.8
+
+- **Distilled:** corroborates the Sonnet 5 page section for section (literal following, verbosity via positive examples, review-harness coverage, task specification up front); its subagent direction contradicts Opus 5 and marks that topic version-specific.
+- **Excluded:** effort, thinking-off default, tone specifics, design house style, computer-use and browser tool versions.
+- **Outline (H2):** Response length and verbosity; Calibrating effort and thinking depth; Tool use triggering; User-facing progress updates; More literal instruction following; Tone and writing style; Controlling subagent spawning; Design and frontend defaults; Interactive coding products; Code review harnesses; Computer use
+
+## Prompting Claude Opus 5.5
+
+- **Distilled:** unattended runs need a completion checklist and evidence-based end-of-turn handling; reasoning-depth lines in chat prompts are removable (with Fable 5.2, Sonnet 5.5, and Haiku 5.5, the think-less no-op in `general.md`); the reasoning-echo refusal; generic prohibitions swap one default for another, so name the pattern; random-id tags for pasted text corroborate the delimiter rule in `general.md`.
+- **Excluded:** medium effort default, thinking always on, time-budget signals, the multi-app exploration sentence, progress-update display settings, safeguard categories, visual-input tools, the frontend snippet.
+- **Outline (H2):** Capabilities relevant to prompting; Calibrate effort; Prompts written for thinking disabled; Unattended agentic runs; Safeguard refusals; User-facing progress updates; Explore context in multiapp workflows; Time signals for multiagent harnesses; Thinking instructions in chat system prompts; Mark pasted text in user messages; Tools for complex visual inputs; Frontend design defaults
+
+## Prompting Claude Fable 5.2
+
+- **Distilled:** approval rules apply as written, so name the actions they cover; a rule containing "never" is read as absolute, so write the exception into the rule as an ask-first rule; a general "act more freely" is too vague, so list the routine steps the agent may take; narrow the stop conditions in validation steps; delete cautions that outlived their reason (all in `agentic.md` §Universal, "Approval and absolute rules, as written"). Persistence text separates ordinary obstacles from deliberate blockers and keeps the risky-action confirmation. Think-less lines are no-ops (`general.md`); the reasoning-echo refusal (corroboration); final-report readability (`agentic.md` §Universal, with Fable 5 and Using GPT-6.2).
+- **Excluded:** the code-ownership sentence and its test numbers, the cost-first subagent tool description and its test numbers, the "treat that answer as done" lines (contradicts Opus 5.5's advice), token budgets written into the prompt, hard numeric style limits (corroborates writing density), effort calibration, the progress-update subsections (harness reminder, opening-and-recap text, display settings), prefix binding.
+- **Outline (H2 › H3):** Calibrate effort; Finish the whole task › Approvals; Say who owns the code; Keep users informed during long turns › Modify your harness; Signal intent; Update system prompt instructions; Set expectations for subagents; Keep caution from piling up; Review prompts and harnesses designed for earlier models; Make reports easy to follow; Safeguard refusals; Where to start
+
+## Prompting Claude Sonnet 5.5
+
+- **Distilled:** a concrete coding-check paragraph is a completion criterion, not instructed re-verification (narrows the Opus 5 claim in `claude-family.md`); blanket tool-discouraging wording suppresses needed checks; the persistence plus scope-stop pair (corroborates the scope statement); think-less lines are no-ops; the reasoning-echo outlet; removing "hold all findings for the final response" (corroborates forced narration).
+- **Excluded:** the JSON "think the problem through" line and last-JSON-value parsing, `between_tools`, the extra-review-round stopper at xhigh and max, ideas-then-stop for open requests, mid-turn user-message placement (API), tolerant tool-call handling (harness), effort.
+- **Outline (H2):** Calibrate effort; Steer initiative and scope; Running without up-front thinking; Reasoning tasks with JSON output; User-facing progress updates; Tool use in chat and knowledge work; Mid-turn user messages; Verification on coding tasks; Tolerant tool-call handling; Tools for complex visual inputs; Safeguard refusals
+
+## Prompting Claude Haiku 5.5
+
+- **Distilled:** the same concrete coding-check paragraph as Sonnet 5.5; blanket search instructions over-trigger (with Sonnet 5.5, the tool-wording entry in `claude-family.md`); the persistence plus scope-stop pair; "answer directly" lines don't reduce thinking.
+- **Excluded:** the current date in the search tool and the search nudge (single model; Gemini 3 Flash has a similar clause), the chatbot system-prompt adherence text, the JSON-with-tools line, mid-turn user-message placement (API), effort.
+- **Outline (H2):** Use effort to control thinking; Accurate search results; Use adaptive thinking with JSON output and your own tools; Prevent early stopping in long agent prompts; Tell coding agents to verify their changes; Mid-turn user messages; Keep chatbots to their system prompt; Keep reasoning out of user-facing text; Safeguard refusals
