@@ -1,6 +1,6 @@
-# GPT–Codex family — source detail
+# OpenAI — source detail
 
-Read by `check-sources` when it compares the GPT–Codex family. Each page section states what is distilled now and what is excluded; it is rewritten, never appended to, when the page changes (see "Keeping the registry bounded" in `SOURCES.md`).
+Read by `check-sources` when it compares OpenAI's pages. Each page section states what is distilled now, at which scope, and what is excluded; it is rewritten, never appended to, when the page changes (see "Keeping the registry bounded" in `SOURCES.md`).
 
 ## Known matches at last discovery (2026-11-17)
 
@@ -16,9 +16,9 @@ Read by `check-sources` when it compares the GPT–Codex family. Each page secti
 
 ## GPT-5 prompting guide (Cookbook)
 
-The family-wide guide for the evergreen test, together with the API docs' Prompt engineering page.
+A provider-wide guide, together with the API docs' Prompt engineering page; its claims apply to all models.
 
-- **Distilled:** literal instruction-following, with explicit defaults and stop conditions; a single persistence stance; sensitivity to contradictions; literal format specs; tool preambles as a cadence lever.
+- **Distilled (all models):** literal instruction-following, with explicit defaults and stop conditions; a single persistence stance; sensitivity to contradictions; literal format specs; tool preambles as a cadence lever.
 - **Excluded:** reasoning-effort values, Responses API context reuse, frontend stack recommendations, the Cursor case study, the appendix prompts.
 - **Outline (H2 › H3 › H4):**
   - Agentic workflow predictability › Controlling agentic eagerness (H4: Prompting for less eagerness; Prompting for more eagerness); Tool preambles; Reasoning effort; Reusing reasoning context with the Responses API
@@ -28,19 +28,19 @@ The family-wide guide for the evergreen test, together with the API docs' Prompt
 
 ## GPT-5.1 Prompting Guide (Cookbook)
 
-- **Distilled:** persist end to end and treat ambiguous directives as permission to proceed (stance); tool descriptions carry explicit must and must-not usage rules; counted update cadences work in this family.
+- **Distilled (all models):** persist end to end and treat ambiguous directives as permission to proceed (stance); tool descriptions carry explicit must and must-not usage rules; counted update cadences work for these models.
 - **Excluded:** the none reasoning mode, the apply_patch and shell tool types, design-token enforcement, plan-tool mechanics, the metaprompting workflow.
 - **Outline (H2):** Introduction; Migrating to GPT-5.1; Agentic steerability; Optimizing intelligence and instruction-following; Maximizing coding performance from planning to execution; New tool types in GPT-5.1; How to metaprompt effectively; What's next
 
 ## GPT-5.2 Prompting Guide (Cookbook)
 
-- **Distilled:** explicit length targets; scope-drift prevention ("no extra features"); ambiguity handling (ask, or state the interpretation); updates clamped to outcome-based sentences.
+- **Distilled (all models):** explicit length targets; scope-drift prevention ("no extra features"); ambiguity handling (ask, or state the interpretation); updates clamped to outcome-based sentences.
 - **Excluded:** compaction, the outline-first long-context technique (single page), structured extraction and Office workflows, the web-research prompt.
 - **Outline (H2):** Introduction; Key behavioral differences; Prompting patterns; Compaction (Extending Effective Context); Agentic steerability & user updates; Tool-calling and parallelism; Structured extraction, PDF, and Office workflows; Prompt Migration Guide to GPT 5.2; Web search and research; Conclusion; Appendix
 
 ## Codex Prompting Guide (Cookbook)
 
-- **Distilled:** the starter-prompt section structure (autonomy and persistence, implementation, editing constraints, exploration, presenting work); meta-commentary "announce the plan" instructions cause premature stopping; a final-answer style contract; personality is a choice, not a default.
+- **Distilled (all models):** the starter-prompt section structure (autonomy and persistence, implementation, editing constraints, exploration, presenting work); meta-commentary "announce the plan" instructions cause premature stopping; a final-answer style contract; personality is a choice, not a default.
 - **Excluded:** tool schemas, compaction, the phase parameter, the new-features section, preamble cadence numbers.
 - **Outline (H2 › H3):**
   - Getting Started › Recommended Starter Prompt
@@ -53,16 +53,17 @@ The family-wide guide for the evergreen test, together with the API docs' Prompt
 
 The only archived copy predates registration, so this page's content is compared against its coverage note by reading it, and its outline against the snapshot.
 
-- **Distilled:** simplify prompts first; outcome-first prompts and stopping conditions; autonomy and approval boundaries; tool routing (what, when, what not); check work before finishing; the suggested prompt structure (role, personality, goal, success criteria, constraints, tools, output, stop rules).
+- **Distilled (all models):** simplify prompts first; outcome-first prompts and stopping conditions; autonomy and approval boundaries; tool routing (what, when, what not); check work before finishing; the suggested prompt structure (role, personality, goal, success criteria, constraints, tools, output, stop rules).
 - **Excluded:** the verbosity parameter, programmatic tool calling, retrieval budgets, the reasoning-effort sweep, the migration workflow.
 - **Outline (H2):** Simplify prompts first; Outcome-first prompts and stopping conditions; Personality, collaboration, and response length; Define autonomy and approval boundaries; Tool routing; Programmatic Tool Calling; Grounding, citations, and retrieval budgets; Long-running workflows and state; Reasoning effort; Frontend and visual tasks; Check work before finishing; Suggested prompt structure; Prompt migration workflow
 
 ## Using GPT-6
 
-Covers GPT-6 Astra, GPT-6.1 Sol, GPT-6.1 Terra, GPT-6 Sol, and GPT-6 Luna, and says its prompts are a starting point across the GPT-6 family (behavior observed on Astra), so its claims count as family-level for GPT-6. Only a `.md` capture exists in the Web Archive.
+Covers GPT-6 Astra, GPT-6.1 Sol, GPT-6.1 Terra, GPT-6 Sol, and GPT-6 Luna, and says its prompts are a starting point across the GPT-6 generation (behavior observed on Astra), so its scoped entries name all five. Only a `.md` capture exists in the Web Archive.
 
-- **Distilled:** bias to action with completion; user instructions take precedence over skill files (state the precedence); request the writing style explicitly (paragraphs versus lists); test scope for trivial reversible changes; delegation guidance for multi-agent harnesses.
-- **Excluded:** the none reasoning effort on Sol and Luna, per-model `none` support, the migration quickstart, the model-behavior list, the model intro and API notes.
+- **Distilled (all models):** bias to action with completion and the lean toward asking (§Agentic prompts, one persistence stance); user instructions take precedence over skill files; test scope for trivial reversible changes.
+- **Distilled (scoped, GPT-6 generation):** §Writing style (detailed, formatted default; specify prose when needed); §Subagent delegation (may delegate less; say when and how much).
+- **Excluded:** the none reasoning effort on Sol and Luna, per-model `none` support, the migration quickstart, the stock-phrase list and inter-agent legibility line (single-page snippets), the model intro and API notes.
 - **Outline (H2 › H3):**
   - What's new; Limitations
   - Prompting best practices › GPT-6 Astra behavior; Initiative and follow-through; Instruction following; Personality and writing style; Subagent delegation; Testing and verification
@@ -70,20 +71,21 @@ Covers GPT-6 Astra, GPT-6.1 Sol, GPT-6.1 Terra, GPT-6 Sol, and GPT-6 Luna, and s
 
 ## Using GPT-6.2
 
-Says its prompts are a starting point across the GPT-6.2 family (Astra and Sol).
+Says its prompts are a starting point across GPT-6.2 (Astra and Sol).
 
-- **Distilled:** the final answer stands alone for a reader who skipped the progress updates, with no working shorthand from reasoning, tool calls, or subagent instructions (with Claude Fable 5 and 5.2, `agentic.md` §Universal "A final report for a cold reader"); ending with a plan, a suggested next step, or a routine-decision request counts as stopping, and the only reasons to stop are a significant scope change, a concrete block, a decision only the user can make, or an irreversible action (`agentic.md` §GPT–Codex "One persistence stance"); stating reasonable reversible assumptions and continuing corroborates the runbook entry and GPT-5.2's ambiguity handling; skipping new tests unless asked, required, or needed for a specific regression corroborates Using GPT-6's test scope.
-- **Excluded:** concise-by-default writing ("revisit 'be concise'"), the rest of the coding-style block (reuse, readability, indirection), frontend imagery and typography, reasoning items dropped on prefix edits (API), the async question tool, reasoning effort and parameter migration.
+- **Distilled (all models):** the final answer stands alone for a reader who skipped the progress updates, with no working shorthand from reasoning, tool calls, or subagent instructions (with Claude Fable 5 and 5.2, `agentic.md` "A final report for a cold reader"); ending with a plan, a suggested next step, or a routine-decision request counts as stopping, and the only reasons to stop are a significant scope change, a concrete block, a decision only the user can make, or an irreversible action (§Agentic prompts, "One persistence stance"); stating reasonable reversible assumptions and continuing corroborates the runbook entry and GPT-5.2's ambiguity handling; skipping new tests unless asked, required, or needed for a specific regression corroborates Using GPT-6's test scope.
+- **Distilled (scoped, GPT-6.2 Astra and Sol):** §Writing style (concise by default; revisit "be concise"); §Frontend design (name imagery and typography).
+- **Excluded:** the rest of the coding-style block (reuse, readability, indirection; corroborates the scope and convention entries), reasoning items dropped on prefix edits (API), the `instructions` field order (API), the async question tool, reasoning effort and parameter migration.
 - **Outline (H2 › H3):**
   - What's new
   - Prompting best practices › GPT-6.2 Astra behavior; Writing style; Task completion; Coding style; Frontend design
   - Migration quickstart › Update API and model parameters
 
-## Prompt engineering (API docs, family-wide)
+## Prompt engineering (API docs, provider-wide)
 
-The family-wide page for the evergreen test, together with the GPT-5 Cookbook guide.
+The provider-wide page, together with the GPT-5 Cookbook guide; its claims apply to all models.
 
-- **Distilled:** the developer versus user role split (function definition versus arguments); headed sections for identity, instructions, examples, and context; reasoning models want high-level guidance where earlier GPT models wanted explicit steps; keep prompts in code with fixtures and tests (maintenance advice, Info level).
+- **Distilled (all models):** the developer versus user role split (function definition versus arguments); headed sections for identity, instructions, examples, and context; reasoning models want high-level guidance where earlier GPT models wanted explicit steps; keep prompts in code with fixtures and tests (maintenance advice, Info level).
 - **Excluded:** API parameter names, model-choice advice.
 - **Outline (H2 › H3 › H4):**
   - Choosing a model; Prompt engineering; Message roles and instruction following; Version prompts in code; Message formatting with Markdown and XML (H4: Save on cost and latency with prompt caching); Few-shot learning; Include relevant context information (H4: Planning for the context window)
@@ -94,6 +96,6 @@ The family-wide page for the evergreen test, together with the GPT-5 Cookbook gu
 
 Recorded as corroboration.
 
-- **Distilled:** over-specified skills; conditional file references in agent-instruction files; over-restrictive decision boundaries halt work; persistence with completion criteria.
+- **Distilled (all models):** over-specified skills; conditional file references in agent-instruction files; over-restrictive decision boundaries halt work; persistence with completion criteria.
 - **Excluded:** —
 - **Outline (H2):** Better skills; Up-to-date AGENTS.md; Decision boundaries; Persistence

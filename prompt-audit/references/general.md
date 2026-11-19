@@ -1,6 +1,6 @@
 # General reference — universal failure modes
 
-Family-independent guidance, cited as `[general]`. The runbook defines what a finding is; this file supplies the patterns and the severity calibration.
+Vendor-independent guidance, cited as `[general]`, generalized from every vendor's official prompting pages. The runbook defines what a finding is; this file supplies the patterns and the severity calibration. For a model whose vendor publishes no prompting guide, this file and `agentic.md` are the whole basis.
 
 ## Severity calibration
 
@@ -39,7 +39,7 @@ Family-independent guidance, cited as `[general]`. The runbook defines what a fi
 
 ## Known no-op patterns
 
-These restate what current coding models do unprompted: they cost tokens without changing behavior, and some narrow it. Aspirations with no lever ("do not hallucinate", "be accurate"); reasoning boilerplate ("think step by step", "think carefully before answering", "reason at length first", "outline your reasoning first") and its mirror, think-less lines ("answer directly without deliberating", "don't overthink this") — reasoning depth is a runtime setting (effort or thinking level) in both directions, and the family files record the one exception; generic expert personas with no real constraint attached; threats, bribes, and emotional appeals; repeated courtesy; and restated baseline competence ("write clean code", "follow best practices") with no project-specific content. A streamlining claim outside this list can still be made, tagged `[hypothesis]`.
+These restate what current coding models do unprompted: they cost tokens without changing behavior, and some narrow it. Aspirations with no lever ("do not hallucinate", "be accurate"); reasoning boilerplate ("think step by step", "think carefully before answering", "reason at length first", "outline your reasoning first") and its mirror, think-less lines ("answer directly without deliberating", "don't overthink this") — reasoning depth is set by the runtime setting (effort or thinking level) in both directions. A few models document a thinking line that does work; the provider model files (`providers/<provider>-models.md`) name them, and for those models such a line is not a no-op; generic expert personas with no real constraint attached; threats, bribes, and emotional appeals; repeated courtesy; and restated baseline competence ("write clean code", "follow best practices") with no project-specific content. A streamlining claim outside this list can still be made, tagged `[hypothesis]`.
 
 Not a no-op, for contrast: a rule tied to a concrete action — "read the file before describing it", "solve the general case, don't hard-code to the test inputs", "report incorrect tests instead of working around them", "report adjacent bugs instead of fixing them" — changes behavior and stays. The no-op is the bare aspiration; the lever is the action.
 

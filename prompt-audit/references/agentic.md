@@ -1,6 +1,6 @@
 # Agentic prompts — guidance for tool-using agents
 
-Read this file when the prompt under audit drives a tool-using agent: system prompts or agent instructions with tools, runbooks, long-running or unattended runs. Cite as `[ref: agentic.md §<section>]`.
+Read this file when the prompt under audit drives a tool-using agent: system prompts or agent instructions with tools, runbooks, long-running or unattended runs. Cite as `[ref: agentic.md §<section>]`. Everything here holds across vendors; agentic guidance for one provider or model is in that provider's file under `providers/`.
 
 ## Universal
 
@@ -10,20 +10,3 @@ Read this file when the prompt under audit drives a tool-using agent: system pro
 - **Persistence and obstacles.** Text that tells the agent to keep going should separate ordinary obstacles — errors, timeouts, empty results, a failing tool: diagnose them and work through them — from deliberate blockers — a file marked not to be touched, withheld access, a guardrail: leave them alone and report. Without the split the agent either stops at the first timeout or works past a deliberate block. Persistence text lowers how often the agent asks, so the confirmation rule for risky or irreversible actions must still stand beside it.
 - **A final report for a cold reader.** Whoever reads the final report of a long run has not seen the tool calls, files, or progress updates behind it. Ask for a report that stands on its own — what was found, what was done, what is left — without working shorthand carried over from reasoning, tool calls, or subagent briefs. Unasked, the report reads as the tail of notes the reader never saw.
 - **The prompt under audit as a runbook.** Say what the agent does with an unclear request — ask, or proceed under a stated assumption — and with instructions that arrive inside tool results or data (inert unless the harness says otherwise).
-
-## Claude family
-
-- For long-running work, give the model a place to keep state — a checklist or notes file it updates — and say what must survive when context is summarized. An unattended run that ends a turn with open items resumes more reliably from a checklist than from prose.
-- **Text guides; tools enforce.** A rule in the prompt steers the model but enforces nothing. For actions that move money or cannot be undone, the gate belongs at the tool layer — a tool that queues the action for a person to release, or a person approving each call — not only a prohibition in text beside a tool that can do it. When such a rule narrows a permission granted earlier in the prompt, say that it overrides the earlier one.
-
-## GPT–Codex family
-
-- **One persistence stance.** Agentic prompts must pick exactly one — "keep going until resolved" or "stop and ask when uncertain" — and state it; both or neither produces erratic stopping. Over-restrictive approval or safety language makes current models stop early and ask; the cure is autonomy boundaries, not more caution. Left unspecified, the newest models lean toward asking. An ending that hands the work back — a plan, a suggested next step, a request for a routine decision — is stopping early too; when the run should finish on its own, name the only reasons to stop: a significant scope change, a concrete block, a decision only the user can make, an irreversible action.
-- **Tool routing.** Tool descriptions carry the routing: say what each tool is for, when to use it, and when not to, and expose only task-relevant tools. A tool list without usage rules is routed unpredictably.
-- **Update cadence.** Progress updates respond to an explicit cadence (a brief preamble before the first tool call, then sparse outcome-based updates at phase changes); counted cadences work in this family. Unstated, the model narrates routine steps or falls silent.
-- **Instruction precedence.** When a prompt loads skills or agent-instruction files, say which wins on conflict — the vendor's guidance is that the user's instructions take precedence — or the model pauses on the contradiction.
-- **Per-run reading cost.** Blanket "read all the docs before starting" rules in agent-instruction files are paid on every run; make file references conditional on the task that needs them.
-
-## Gemini family
-
-- An agentic system instruction separates three things: the reasoning strategy (how deeply to analyze and plan before acting), execution rules (when to adapt the plan, how persistently to retry, which actions count as risky), and interaction rules (when to ask versus assume, how verbose to be while working).
