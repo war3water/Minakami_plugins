@@ -1,6 +1,6 @@
-# Gemini family — source detail
+# Google — source detail
 
-Read by `check-sources` when it compares the Gemini family. Each page section states what is distilled now and what is excluded; it is rewritten, never appended to, when the page changes (see "Keeping the registry bounded" in `SOURCES.md`).
+Read by `check-sources` when it compares Google's pages. Each page section states what is distilled now, at which scope, and what is excluded; it is rewritten, never appended to, when the page changes (see "Keeping the registry bounded" in `SOURCES.md`).
 
 ## Known matches at last discovery (2026-11-17)
 
@@ -12,10 +12,11 @@ Under `https://aistudio.google.com/docs/`: `prompting-strategies`. Skipped by th
 
 ## Gemini prompt design strategies
 
-The family-wide page. Archived copies of `aistudio.google.com` pages carry no text, so content is compared by reading the live page against this note, and the outline against the snapshot.
+The provider-wide page; its general sections apply to all Gemini models. Archived copies of `aistudio.google.com` pages carry no text, so content is compared by reading the live page against this note, and the outline against the snapshot.
 
-- **Distilled:** concise directives; end-of-context constraint repetition; explicit output schema; few-shot examples as a lever; one consistent delimiter style; define ambiguous parameters; verbosity is opt-in; chain-of-thought scaffolds are unnecessary while a short depth request remains a lever; the agentic system-instruction dimensions (reasoning strategy; execution, persistence, and risk; interaction and verbosity). Its "Gemini 3 › Core prompting principles" also carries precise instructions, verbosity opt-in, and question-after-context anchoring.
-- **Excluded:** Gemini 3 Flash temporal-context tactics, model parameters (Gemini 4 and 3.6+ ignore temperature, top_p, and top_k), the grounding and code-execution tool sections, fallback responses.
+- **Distilled (all models):** concise directives; end-of-context constraint repetition; explicit output schema; few-shot examples as a lever; one consistent delimiter style; define ambiguous parameters; verbosity is opt-in; chain-of-thought scaffolds are unnecessary while a short depth request remains a lever; the agentic system-instruction dimensions (reasoning strategy; execution, persistence, and risk; interaction and verbosity). Its "Gemini 3 › Core prompting principles" also carries precise instructions, verbosity opt-in, and question-after-context anchoring.
+- **Distilled (scoped, Gemini 3 Flash):** §Current date and grounding (current date and year for search queries, knowledge cutoff, the strict grounding clause).
+- **Excluded:** model parameters (Gemini 4 and 3.6+ ignore temperature, top_p, and top_k), the grounding and code-execution tool sections, fallback responses.
 - **Outline (H2 › H3):**
   - Topic-specific prompt guides
   - Clear and specific instructions › Input; Partial input completion; Constraints; Response format; Format responses with the completion strategy

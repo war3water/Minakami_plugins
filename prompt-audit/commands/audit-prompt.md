@@ -31,7 +31,7 @@ Note for the report header: the source, the line count, and the approximate word
 
 Establish from the request, or by asking:
 
-- **target** — model family (Claude / GPT–Codex / Gemini / other or unknown); a specific version only if the user states one
+- **target** — the model the prompt will run on, as exactly as the user names it: the provider (Anthropic, OpenAI, Google, or another publisher such as DeepSeek), and the series or model when known (Opus, Opus 5.5, GPT-6.2 Sol). The provider is who publishes the model, not who hosts or runs it.
 - **role** — system prompt; persistent agent instructions; slash command or skill runbook; one-shot task prompt; template with variables
 - **goal and success criteria** — if the user can't state a goal, work it out with them before analyzing; an audit needs a target
 - **usage context** — what else the model sees, which tools it has, how often the prompt runs
@@ -42,7 +42,11 @@ Weighting follows from the answers: a prompt that runs often weighs token cost (
 
 Show the contract only for the parts you inferred or defaulted, and ask the user to confirm those. When everything was stated, go straight on.
 
-As soon as the target family is known, read `general.md` and the family file (`claude-family.md`, `gpt-codex-family.md`, or `gemini-family.md`; none for other or unknown) together, as parallel file reads — plus `agentic.md` when the prompt drives a tool-using agent — and do the analysis once, with them in view. If a reference file can't be read, say so in the Basis field and tag the findings it would have backed `[hypothesis]`.
+As soon as the provider is known, read `general.md` and the provider's file (`providers/anthropic.md`, `providers/openai.md`, or `providers/google.md`) together, as parallel file reads — plus `agentic.md` when the prompt drives a tool-using agent, and the provider's model file (`providers/<provider>-models.md`) when the user named a specific model — and do the analysis once, with them in view. A publisher with no file there, or an unknown model, gets `general.md` and `agentic.md` only, and the Basis field says that no official prompting guide is registered for it.
+
+Guidance is used most-specific first: the model file's entries whose *Applies to* names the target, then the provider file, then the universal files; where they disagree, the more specific one wins for that model. A model the provider file's Models table doesn't list gets the provider file only, and the Basis field says no page for it is registered. When only the provider is named, the Basis field says so; model-specific guidance doesn't apply.
+
+If a reference file can't be read, say so in the Basis field and tag the findings it would have backed `[hypothesis]`.
 
 ## 3. Analyze
 
@@ -52,7 +56,7 @@ You are reading text. You can count what it shows — lines, words, duplicated b
 
 Every model-specific or effectiveness claim carries a basis tag:
 
-- `[ref: <file> §<section heading>]` — a loaded family or agentic reference file
+- `[ref: <file> §<section heading>]` — a loaded provider or agentic reference file; for a model-file entry, add the model: `[ref: providers/anthropic-models.md §Subagent delegation · Opus 5]`
 - `[general]` — `general.md`
 - `[user-stated]` — the user's own answers, including known pain
 - `[hypothesis]` — your own reasoning
@@ -65,7 +69,7 @@ A finding names a causal mechanism, not a preference of style. Zero findings is 
 
 ### Dimensions
 
-Check each dimension; common forms are listed in `general.md` and the family file.
+Check each dimension; common forms are listed in `general.md` and the provider file.
 
 - **D1 Goal clarity and achievement** — including whether each success criterion has a line in the prompt that asks for it; a criterion only the user states is a D1 gap.
 - **D2 Token efficiency** — duplication, filler, and obsolete guidance current models follow unprompted; also under-length that forces round trips.
@@ -88,7 +92,7 @@ Write in the conversation's language, as rendered markdown rather than inside a 
 
 ```markdown
 prompt-audit: report for <source>
-Target: <family, plus any user-stated version> | Role: <role> | Size: <n> lines / ~<n> words | Basis: <reference files read>
+Target: <provider › series › model, as far as stated> | Role: <role> | Size: <n> lines / ~<n> words | Basis: <reference files read; which model's entries applied, or why none did>
 
 ## Verdict: <verdict>
 

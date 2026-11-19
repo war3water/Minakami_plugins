@@ -1,15 +1,33 @@
-# Claude family — prompt guidance
+# Anthropic (Claude) — prompt guidance
 
-Family-level guidance, cited as `[ref: claude-family.md §<section>]`. Universal patterns are in `general.md`; guidance for tool-using agents is in `agentic.md`. Weight D4 and D5 up for this family: precise obedience makes over-constraint and unresolved collisions costly.
+Cite as `[ref: providers/anthropic.md §<section>]`. Universal patterns are in `general.md`; universal guidance for tool-using agents is in `agentic.md`. Guidance for individual models is in `providers/anthropic-models.md`.
 
-## Structure preferences
+**How to read this file.** The sections under "All Claude models" apply to every Claude model unless an entry names an exception. When the user named a model listed in the Models table, also read `providers/anthropic-models.md` and apply its entries that name that model. When the user named only "Claude", or a model the table doesn't list, this file is the whole provider-specific basis.
+
+Weight D4 and D5 up for these models: precise obedience makes over-constraint and unresolved collisions costly.
+
+## Models
+
+Match the user's words or model id against this table. A Claude model not listed (newer, older, or a fine-tune) gets the all-models sections; say in the report that no model page for it is registered.
+
+| Series | Models with a prompting page | Ids |
+|---|---|---|
+| Opus | Opus 4.8, Opus 5, Opus 5.5 | `claude-opus-4-8`, `claude-opus-5`, `claude-opus-5-5` |
+| Sonnet | Sonnet 5, Sonnet 5.5 | `claude-sonnet-5`, `claude-sonnet-5-5` |
+| Haiku | Haiku 5.5 | `claude-haiku-5-5` |
+| Fable | Fable 5, Fable 5.1, Fable 5.2 | `claude-fable-5`, `claude-fable-5-1`, `claude-fable-5-2` |
+| Mythos | Mythos 5.1, Mythos 5.2 (covered by the Fable 5.1 and 5.2 pages) | — |
+
+## All Claude models
+
+### Structure preferences
 
 - Clear sectioning pays off — markdown headings and XML-style tags both work; what matters is that instructions, context, and data are visibly distinct regions.
 - Role and standing constraints belong in the system prompt; the task and its data in the user turn.
 - In long prompts, put critical constraints early and restate the output contract near the end — the two positions the model attends to most reliably.
 - When the task depends on which model is running or on exact model identifiers (self-identification, a model string in generated code), state them in the prompt: the model doesn't reliably know its own version.
 
-## Instruction-following profile
+### Instruction-following profile
 
 - Instruction-following is strong and precise, which cuts both ways: the model obeys a bad rule rather than quietly ignoring it, so over-constraint backfires fast.
 - Colliding rules get over-complied with — the model may satisfy the letter of the wrong one. This applies only to a collision that passes the runbook's D5 test.
@@ -21,16 +39,21 @@ Family-level guidance, cited as `[ref: claude-family.md §<section>]`. Universal
 - Generic prohibitions ("avoid a generic look", "don't use that color") move the model to a different fixed default; name the pattern to avoid and the concrete alternative.
 - In conversational prompts, give the reason and the whole task up front; the same information spread over several turns costs tokens and quality.
 
-## Known no-op and harmful patterns
+### Known no-op and harmful patterns
 
-Family additions to the list in `general.md`:
+Additions to the list in `general.md`:
 
-- **Instructed re-verification** — generic re-check lines: "double-check your answer", "re-verify before responding", "add a final verification step", "verify with a subagent". Current Claude models verify and self-correct natively, so this compounds into over-verification: token cost with no quality gain. Removable; in high-frequency agentic prompts, actively harmful. Not this pattern: a concrete check definition — which check exercises the change (the project's tests, build, type-checker, or the changed command), that a syntax-only check or one that failed to start doesn't count, and what to report when no check can run. That is a completion criterion (`agentic.md` §Universal), and vendor guidance adds it for models that otherwise report a change done without running anything at low effort. Keep it.
+- **Instructed re-verification** (all models; Fable 5 has an exception in `anthropic-models.md` §Verification) — generic re-check lines: "double-check your answer", "re-verify before responding", "add a final verification step", "verify with a subagent". Current Claude models verify and self-correct natively, so this compounds into over-verification: token cost with no quality gain. Removable; in high-frequency agentic prompts, actively harmful. Not this pattern: a concrete check definition — which check exercises the change (the project's tests, build, type-checker, or the changed command), that a syntax-only check or one that failed to start doesn't count, and what to report when no check can run. That is a completion criterion (`agentic.md`): keep it.
 - **Forced narration scaffolding** — "after every N tool calls, summarize progress", "hold all findings for the final response", counted checkpoints. Current models calibrate updates on their own, so counted scaffolding forces noise or suppresses updates users want. Describe the cadence and content wanted, with one example.
 - **Reasoning-echo instructions** (harmful) — prompts that tell the model to write out, transcribe, or explain its internal reasoning in the response, usually standing in for a thinking mode. Safeguarded models can decline such a request outright as reasoning extraction, so the prompt fails rather than degrades. This includes chain-of-thought scaffolds that ask for the reasoning inside tags such as `<thinking>` in the response. Flag in any prompt role; the fix is to delete the instruction and read the runtime's summarized thinking instead. Not this pattern: a request for a short explanation of the answer or a summary of the actions taken — the vendor names these as the allowed replacement, so don't flag them.
 
-## Token-efficiency notes
+### Token-efficiency notes
 
 - Structure (headings, tags) is cheap and buys reliability; don't flag light structural markup as waste.
 - Length contracts should say what to leave out rather than demand terseness. Told to "be concise", current models compress prose into fragments, abbreviations, and arrow chains — shorter and harder to read. Naming what to drop (details that don't change what the reader does next) and asking for complete sentences gets brevity and readability together.
 - Mixed-language prompts (English instructions, native-language domain terms) are handled well and are often the practical optimum — a discussion option, not a prescription.
+
+### Agentic prompts
+
+- For long-running work, give the model a place to keep state — a checklist or notes file it updates — and say what must survive when context is summarized. An unattended run that ends a turn with open items resumes more reliably from a checklist than from prose.
+- **Text guides; tools enforce.** A rule in the prompt steers the model but enforces nothing. For actions that move money or cannot be undone, the gate belongs at the tool layer — a tool that queues the action for a person to release, or a person approving each call — not only a prohibition in text beside a tool that can do it. When such a rule narrows a permission granted earlier in the prompt, say that it overrides the earlier one.
