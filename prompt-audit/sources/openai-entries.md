@@ -1,10 +1,17 @@
-# OpenAI (GPT, Codex) — model-scoped guidance
+# OpenAI (GPT, Codex): model entries (source)
 
-Read this file only when the user named a specific model and it appears in the Models table of `providers/openai.md`. Each entry starts with *Applies to*; use an entry only when it names the target model. Where an entry here disagrees with `providers/openai.md` or `general.md`, this entry wins for the models it names. Cite as `[ref: providers/openai-models.md §<section> · <model>]`.
+The one place each model-specific entry is written. Audits never read this file. `scripts/build-model-files.py` copies every entry into the built file of each model its *Applies to* names (one file per model name, named by the rule in the script), under `references/providers/openai/`, and its check fails when a built file is out of date. Edit here, then rebuild; never edit a built file.
+
+An entry starts with `- *Applies to:* <model>, <model>.` using names from the table below, and says everything it needs on its own: a built file shows it without the other models' entries. Conditions such as an effort level go in the entry text, not in the *Applies to* list.
+
+## Models
+
+| Model | Also covers |
+|---|---|
+| GPT-6 Astra | GPT-6 Sol, GPT-6 Luna, GPT-6.1 Sol, GPT-6.1 Terra |
+| GPT-6.2 Astra | GPT-6.2 Sol |
 
 ## Writing style
-
-The two current generation pages point in opposite directions, so a style line can be right for one and wrong for the other.
 
 - *Applies to:* GPT-6 Astra, GPT-6 Sol, GPT-6 Luna, GPT-6.1 Sol, GPT-6.1 Terra. Tends toward detailed, formatted answers (lists, tables, Markdown) and recurring stock phrases. A product that needs prose, or a particular structure, must say so; a missing style spec is a D6 gap when the output is read by people.
 - *Applies to:* GPT-6.2 Astra, GPT-6.2 Sol. More concise and direct by default than earlier models. Revisit "be concise" lines written for earlier models: they push an already short default further. Ask instead for the reader's context to be kept (terminology, background an outside audience needs).

@@ -1,22 +1,30 @@
 # Anthropic (Claude) — prompt guidance
 
-Cite as `[ref: providers/anthropic.md §<section>]`. Universal patterns are in `general.md`; universal guidance for tool-using agents is in `agentic.md`. Guidance for individual models is in `providers/anthropic-models.md`.
+Cite as `[ref: providers/anthropic.md §<section>]`. Universal patterns are in `general.md`; universal guidance for tool-using agents is in `agentic.md`.
 
-**How to read this file.** The sections under "All Claude models" apply to every Claude model unless an entry names an exception. When the user named a model listed in the Models table, also read `providers/anthropic-models.md` and apply its entries that name that model. When the user named only "Claude", or a model the table doesn't list, this file is the whole provider-specific basis.
+**How to read this file.** The sections under "All Claude models" apply to every Claude model unless an entry names an exception. When the user named a model in the table below, also read its model file and apply it; it holds that model's own advice and nothing about other models. When the user named only "Claude", or a model the table doesn't list, this file is the whole provider-specific basis.
 
 Weight D4 and D5 up for these models: precise obedience makes over-constraint and unresolved collisions costly.
 
 ## Models
 
-Match the user's words or model id against this table. A Claude model not listed (newer, older, or a fine-tune) gets the all-models sections; say in the report that no model page for it is registered.
+Match the user's words or model id against this table. Status is the vendor's, checked on 2026-11-21; "newest" marks the newest model of its series. A model the vendor has retired is not listed.
 
-| Series | Models with a prompting page | Ids |
-|---|---|---|
-| Opus | Opus 4.8, Opus 5, Opus 5.5 | `claude-opus-4-8`, `claude-opus-5`, `claude-opus-5-5` |
-| Sonnet | Sonnet 5, Sonnet 5.5 | `claude-sonnet-5`, `claude-sonnet-5-5` |
-| Haiku | Haiku 5.5 | `claude-haiku-5-5` |
-| Fable | Fable 5, Fable 5.1, Fable 5.2 | `claude-fable-5`, `claude-fable-5-1`, `claude-fable-5-2` |
-| Mythos | Mythos 5.1, Mythos 5.2 (covered by the Fable 5.1 and 5.2 pages) | — |
+| Model | Id | Series | Model file | Status |
+|---|---|---|---|---|
+| Opus 5.5 | `claude-opus-5-5` | Opus | `providers/anthropic/opus-5-5.md` | Active, newest |
+| Opus 5 | `claude-opus-5` | Opus | `providers/anthropic/opus-5.md` | Active |
+| Opus 4.8 | `claude-opus-4-8` | Opus | `providers/anthropic/opus-4-8.md` | Active |
+| Sonnet 5.5 | `claude-sonnet-5-5` | Sonnet | `providers/anthropic/sonnet-5-5.md` | Active, newest |
+| Sonnet 5 | `claude-sonnet-5` | Sonnet | `providers/anthropic/sonnet-5.md` | Active |
+| Haiku 5.5 | `claude-haiku-5-5` | Haiku | `providers/anthropic/haiku-5-5.md` | Active, newest |
+| Fable 5.2 | `claude-fable-5-2` | Fable | `providers/anthropic/fable-5-2.md` | Active, newest |
+| Fable 5.1 | `claude-fable-5-1` | Fable | `providers/anthropic/fable-5-1.md` | Active |
+| Fable 5 | `claude-fable-5` | Fable | `providers/anthropic/fable-5.md` | Active |
+| Mythos 5.2 | `claude-mythos-5-2` | Mythos | `providers/anthropic/mythos-5-2.md` | Active, newest |
+| Mythos 5.1 | `claude-mythos-5-1` | Mythos | `providers/anthropic/mythos-5-1.md` | Active |
+
+Served, but with no prompting page of their own, so this file is their whole basis: Mythos 5, Opus 4.7, Opus 4.6, Opus 4.5, Sonnet 4.6, Sonnet 4.5 (deprecated, retires 2026-11-30), Haiku 4.5.
 
 ## All Claude models
 
@@ -43,7 +51,7 @@ Match the user's words or model id against this table. A Claude model not listed
 
 Additions to the list in `general.md`:
 
-- **Instructed re-verification** (all models; Fable 5 has an exception in `anthropic-models.md` §Verification) — generic re-check lines: "double-check your answer", "re-verify before responding", "add a final verification step", "verify with a subagent". Current Claude models verify and self-correct natively, so this compounds into over-verification: token cost with no quality gain. Removable; in high-frequency agentic prompts, actively harmful. Not this pattern: a concrete check definition — which check exercises the change (the project's tests, build, type-checker, or the changed command), that a syntax-only check or one that failed to start doesn't count, and what to report when no check can run. That is a completion criterion (`agentic.md`): keep it.
+- **Instructed re-verification** (all models; Fable 5 has an exception in its model file, `anthropic/fable-5.md` §Verification) — generic re-check lines: "double-check your answer", "re-verify before responding", "add a final verification step", "verify with a subagent". Current Claude models verify and self-correct natively, so this compounds into over-verification: token cost with no quality gain. Removable; in high-frequency agentic prompts, actively harmful. Not this pattern: a concrete check definition — which check exercises the change (the project's tests, build, type-checker, or the changed command), that a syntax-only check or one that failed to start doesn't count, and what to report when no check can run. That is a completion criterion (`agentic.md`): keep it.
 - **Forced narration scaffolding** — "after every N tool calls, summarize progress", "hold all findings for the final response", counted checkpoints. Current models calibrate updates on their own, so counted scaffolding forces noise or suppresses updates users want. Describe the cadence and content wanted, with one example.
 - **Reasoning-echo instructions** (harmful) — prompts that tell the model to write out, transcribe, or explain its internal reasoning in the response, usually standing in for a thinking mode. Safeguarded models can decline such a request outright as reasoning extraction, so the prompt fails rather than degrades. This includes chain-of-thought scaffolds that ask for the reasoning inside tags such as `<thinking>` in the response. Flag in any prompt role; the fix is to delete the instruction and read the runtime's summarized thinking instead. Not this pattern: a request for a short explanation of the answer or a summary of the actions taken — the vendor names these as the allowed replacement, so don't flag them.
 

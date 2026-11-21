@@ -1,26 +1,38 @@
-# Anthropic (Claude) — model-scoped guidance
+# Anthropic (Claude): model entries (source)
 
-Read this file only when the user named a specific model and it appears in the Models table of `providers/anthropic.md`. Each entry starts with *Applies to*; use an entry only when it names the target model. Where an entry here disagrees with `providers/anthropic.md` or `general.md`, this entry wins for the models it names. Cite as `[ref: providers/anthropic-models.md §<section> · <model>]`.
+The one place each model-specific entry is written. Audits never read this file. `scripts/build-model-files.py` copies every entry into the built file of each model its *Applies to* names (one file per model name, named by the rule in the script), under `references/providers/anthropic/`, and its check fails when a built file is out of date. Edit here, then rebuild; never edit a built file.
+
+An entry starts with `- *Applies to:* <model>, <model>.` using names from the table below, and says everything it needs on its own: a built file shows it without the other models' entries. Conditions such as an effort level go in the entry text, not in the *Applies to* list.
+
+## Models
+
+| Model | Also covers |
+|---|---|
+| Opus 4.8 | — |
+| Opus 5 | — |
+| Opus 5.5 | — |
+| Sonnet 5 | — |
+| Sonnet 5.5 | — |
+| Haiku 5.5 | — |
+| Fable 5 | — |
+| Fable 5.1 | Mythos 5.1 |
+| Fable 5.2 | Mythos 5.2 |
 
 ## Thinking-depth lines
-
-`general.md` treats "think carefully" and "answer directly" lines as no-ops because effort sets reasoning depth. Fable 5.2, Sonnet 5.5 (for think-less lines) and Haiku 5.5 agree: their pages say to lower effort instead. These models differ:
 
 - *Applies to:* Opus 4.8, Sonnet 5. How often the model thinks can be steered by the prompt. A line such as "Thinking adds latency … When in doubt, respond directly" reduces it, and at `low` effort a targeted line ("This task involves multistep reasoning. Think carefully through the problem before responding.") raises it. Effort is still the first lever. Don't flag such lines as no-ops; suggest measuring their effect.
 - *Applies to:* Opus 5.5. Lower effort first. After that, if time to first token still matters, "Answer directly without deliberating." can reduce thinking further; it can lower quality, so the prompt's owner should measure it. A rule telling the model not to think at all, carried over from a thinking-disabled setup, should be removed.
 - *Applies to:* Fable 5.1, Mythos 5.1. The model usually follows "answer directly without deliberating": the line works.
 - *Applies to:* Sonnet 5.5. For a JSON answer to a task that needs a few steps of working out, "Think the problem through before you answer." at the end of the system prompt makes the model think first more often and raises accuracy. Don't flag it as reasoning boilerplate in that use.
-- *Applies to:* Opus 5 with thinking disabled; Sonnet 5.5 with `between_tools` thinking. A rule telling the model not to think or reason makes it more likely to leak internal XML tags into its visible output: remove it.
+- *Applies to:* Opus 5, Sonnet 5.5. With thinking disabled on Opus 5, or `between_tools` thinking on Sonnet 5.5, a rule telling the model not to think or reason makes it more likely to leak internal XML tags into its visible output: remove it.
 
 ## Subagent delegation
-
-Flag a prompt only for the models named here; for the others, say nothing about how much to delegate.
 
 - *Applies to:* Opus 4.8. Spawns fewer subagents by default and the prompt can steer it: give explicit guidance on when subagents are desirable (for example, not for work it can finish in one response; several at once when fanning out across items).
 - *Applies to:* Opus 5. Delegates more readily than earlier models, which multiplies cost and time on small tasks. A prompt for a harness with subagents should say which scenarios warrant delegation, or the harness should cap spawns. Claude Code adds its own delegation instruction only with its `claude_code` system prompt preset, so a custom system prompt needs one.
 - *Applies to:* Fable 5. Dispatches parallel subagents readily; say when delegation is appropriate and let the lead keep working while subagents run rather than blocking on each one.
 - *Applies to:* Fable 5.2, Mythos 5.2. Leave the subagent tool's description alone unless the model starts more subagents than the task needs. If it does, look first for standing "delegate" lines in the system prompt, skills, and agent files, and make the tool description say what a subagent costs and when delegation is worth it.
-- *Applies to:* Sonnet 5.5 at `xhigh` or `max` effort. After finishing, the model can start its own review rounds, sometimes with reviewer subagents. Where that isn't wanted: "When the work the user asked for is done and its checks pass, stop and report. Don't start extra rounds of review or hardening on your own, and don't launch reviewer subagents unless the user asked for a review."
+- *Applies to:* Sonnet 5.5. At `xhigh` or `max` effort, after finishing, the model can start its own review rounds, sometimes with reviewer subagents. Where that isn't wanted: "When the work the user asked for is done and its checks pass, stop and report. Don't start extra rounds of review or hardening on your own, and don't launch reviewer subagents unless the user asked for a review."
 
 ## Verification
 
@@ -35,7 +47,7 @@ Flag a prompt only for the models named here; for the others, say nothing about 
 ## Chat prompts: earlier answers
 
 - *Applies to:* Opus 5.5. Optional: "Once you have answered something, treat that answer as done. On later turns, focus your thinking on what the user is asking now …" at the end of a chat system prompt cuts re-examination of earlier answers and the latency it adds. Not a defect when absent.
-- *Applies to:* Fable 5.2, Mythos 5.2. The same lines make the model far less likely to point out mistakes in its earlier answers. Flag them where the product needs the model to keep re-examining its answers; elsewhere, say to test that it still corrects itself.
+- *Applies to:* Fable 5.2, Mythos 5.2. Chat-prompt lines telling the model to treat an earlier answer as done and focus on the new message make it far less likely to point out mistakes in its earlier answers. Flag them where the product needs the model to keep re-examining its answers; elsewhere, say to test that it still corrects itself.
 
 ## Code ownership
 
@@ -56,7 +68,7 @@ Flag a prompt only for the models named here; for the others, say nothing about 
 - *Applies to:* Haiku 5.5. With a search tool, give the current date in the system prompt or the tool description. With a long system prompt or at `low` effort, add a nudge that training data ends well before that date, so changeable facts (records, office holders, prices, versions, rules, anything "latest") get searched; facts that can't change don't. Blanket "search for any present-day question" lines over-search without improving answers (the all-models tool-use entry).
 - *Applies to:* Fable 5.1, Mythos 5.1. At `low` effort it searches less and answers from memory more. A prompt nudge helps: a name it doesn't confidently recognize, or one from a fast-moving field, is the thing to verify, so search it as the user wrote it.
 - *Applies to:* Opus 5.5. In agents that work across several connected apps (email, documents, spreadsheets, CRM), one line telling the model to explore the relevant sources before acting, including ones the task doesn't mention, raises task success. Since it acts on what it finds, untrusted content must stay out of those sources (D8).
-- *Applies to:* Haiku 5.5 with thinking off. When structured JSON output and tool calls are both needed, add: "The JSON output format applies to your final answer only. When you need a tool, call it first … and write the JSON once you have the results."
+- *Applies to:* Haiku 5.5. With thinking off, when structured JSON output and tool calls are both needed, add: "The JSON output format applies to your final answer only. When you need a tool, call it first … and write the JSON once you have the results."
 
 ## Chatbots and safeguards
 

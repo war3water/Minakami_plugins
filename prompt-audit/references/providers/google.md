@@ -1,14 +1,20 @@
 # Google (Gemini) — prompt guidance
 
-Cite as `[ref: providers/google.md §<section>]`. Universal patterns are in `general.md`; universal guidance for tool-using agents is in `agentic.md`. Guidance for individual models is in `providers/google-models.md`.
+Cite as `[ref: providers/google.md §<section>]`. Universal patterns are in `general.md`; universal guidance for tool-using agents is in `agentic.md`.
 
-**How to read this file.** The sections under "All Gemini models" apply to every Gemini model unless an entry names an exception. When the user named a model listed in the Models table, also read `providers/google-models.md` and apply its entries that name that model. When the user named only "Gemini", or a model the table doesn't list, this file is the whole provider-specific basis.
+**How to read this file.** Google publishes one prompting page for all Gemini models, with a few model-specific sections. The sections under "All Gemini models" apply to every Gemini model. When the user named a model in the table below, also read its model file and apply it.
 
 Weight D6 up for these models: explicit output structure and end-of-prompt placement of constraints matter.
 
 ## Models
 
-No Gemini model has a prompting page of its own. Gemini 4 (Argon, Carbon, Hydrogen) and Gemini 3.x get the all-models sections; the only model-specific entry, in `google-models.md`, is for Gemini 3 Flash.
+Status is the vendor's, checked on 2026-11-21.
+
+| Model | Id | Series | Model file | Status |
+|---|---|---|---|---|
+| Gemini 3 Flash | `gemini-3-flash-preview` | Gemini 3 | `providers/google/gemini-3-flash.md` | Preview |
+
+Every other Gemini model (Gemini 4 Argon, Carbon, Hydrogen, Neon; Gemini 3.8, 3.6, 3.5 and 3.1 Flash models) has no model-specific guidance; this file is its whole basis.
 
 ## All Gemini models
 

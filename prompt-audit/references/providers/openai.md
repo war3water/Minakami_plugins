@@ -1,20 +1,26 @@
 # OpenAI (GPT, Codex) — prompt guidance
 
-Cite as `[ref: providers/openai.md §<section>]`. Universal patterns are in `general.md`; universal guidance for tool-using agents is in `agentic.md`. Guidance for individual models is in `providers/openai-models.md`.
+Cite as `[ref: providers/openai.md §<section>]`. Universal patterns are in `general.md`; universal guidance for tool-using agents is in `agentic.md`.
 
-**How to read this file.** The sections under "All OpenAI models" apply to every OpenAI model unless an entry names an exception. When the user named a model listed in the Models table, also read `providers/openai-models.md` and apply its entries that name that model. When the user named only "GPT" or "Codex", or a model the table doesn't list, this file is the whole provider-specific basis.
+**How to read this file.** The sections under "All OpenAI models" apply to every OpenAI model unless an entry names an exception. When the user named a model in the table below, also read its model file and apply it; it holds that model's own advice and nothing about other models. When the user named only "GPT" or "Codex", or a model the table doesn't list, this file is the whole provider-specific basis.
 
 Weight D1, D5, and D6 up for these models: explicit goals and defaults are load-bearing, contradictions degrade output disproportionately, and format specs are honored literally.
 
 ## Models
 
-OpenAI publishes prompting guidance per generation; each generation's page covers several series (Astra, Sol, Terra, Luna). A model not listed (newer, older, or a fine-tune) gets the all-models sections; say in the report that no model page for it is registered.
+OpenAI publishes prompting guidance per generation; one page covers several series (Astra, Sol, Terra, Luna), so models of one generation share a model file. Status is the vendor's, checked on 2026-11-21; "newest" marks the newest model of its series. A model the vendor has shut down is not listed.
 
-| Generation page | Models it covers | Series |
-|---|---|---|
-| Using GPT-6.2 | GPT-6.2 Astra, GPT-6.2 Sol (`gpt-6.2-astra`, `gpt-6.2-sol`) | Astra, Sol |
-| Using GPT-6 | GPT-6 Astra, GPT-6 Sol, GPT-6 Luna, GPT-6.1 Sol, GPT-6.1 Terra (`gpt-6-astra`, …) | Astra, Sol, Terra, Luna |
-| Earlier guides (GPT-5 to GPT-5.6 Sol, Codex) | GPT-5.x and GPT-5.x Codex models | — |
+| Model | Id | Series | Model file | Status |
+|---|---|---|---|---|
+| GPT-6.2 Astra | `gpt-6.2-astra` | Astra | `providers/openai/gpt-6-2-astra.md` | Active, newest |
+| GPT-6.2 Sol | `gpt-6.2-sol` | Sol | `providers/openai/gpt-6-2-sol.md` | Active, newest |
+| GPT-6.1 Sol | `gpt-6.1-sol` | Sol | `providers/openai/gpt-6-1-sol.md` | Active |
+| GPT-6.1 Terra | `gpt-6.1-terra` | Terra | `providers/openai/gpt-6-1-terra.md` | Active, newest |
+| GPT-6 Astra | `gpt-6-astra` | Astra | `providers/openai/gpt-6-astra.md` | Active |
+| GPT-6 Sol | `gpt-6-sol` | Sol | `providers/openai/gpt-6-sol.md` | Active |
+| GPT-6 Luna | `gpt-6-luna` | Luna | `providers/openai/gpt-6-luna.md` | Active, newest |
+
+GPT-5.x and GPT-5.x Codex models have no current per-model page; this file is their whole basis. Several are deprecated, with shutdowns between 2026-12-11 and 2027-04-01.
 
 ## All OpenAI models
 
