@@ -1,6 +1,6 @@
 # Anthropic — source detail
 
-Read by `check-sources` when it compares Anthropic's pages. Each page section states what is distilled now, at which scope, and what is excluded; it is rewritten, never appended to, when the page changes (see "Keeping the registry bounded" in `SOURCES.md`). "All models" means `references/providers/anthropic.md`; "scoped" means an entry in `references/providers/anthropic-models.md`, named by its section.
+Read by `check-sources` when it compares Anthropic's pages. Each page section states what is distilled now, at which scope, and what is excluded; it is rewritten, never appended to, when the page changes (see "Keeping the registry bounded" in `SOURCES.md`). "All models" means `references/providers/anthropic.md`; "scoped" means an entry in `sources/anthropic-entries.md`, named by its section; the build script copies it into the model file of each model it names.
 
 ## Known matches at last discovery (2026-11-17)
 

@@ -2,17 +2,18 @@
 
 Read by the `/prompt-audit:check-sources` command (`check-sources` skill in Codex). It records where each provider's official prompting guidance is **discovered**, meaning the vendor's machine-readable page index plus its hub page, so a newly published model page is found by listing rather than by memory. It also records which pages have been **distilled** into `references/providers/`. Audits never read these files. A provider is the company that publishes the models; a publisher with no official prompting guide has no row here and no provider file, and audits use the universal files for it.
 
-The registry has three parts, so a check loads only what it compares:
+The registry has four parts, so a check loads only what it compares:
 
-- **This file:** the lifecycle, the scope test, how the registry stays bounded, the discovery indexes, and one line per registered page.
-- **`sources/<provider>.md`** (`anthropic.md`, `openai.md`, `google.md`): the provider's known matches at the last discovery, the pages seen but not registered, and for each registered page its coverage note (what is distilled, at which scope, and what is excluded) and outline snapshot. Open a provider file when that provider is being compared.
+- **This file:** the lifecycle, the scope test, how the registry stays bounded, the model lists, the discovery indexes, and one line per registered page.
+- **`sources/<provider>-entries.md`:** the one place each model-specific entry is written, with the provider's Models table. `scripts/build-model-files.py` (repo root) copies each entry into the model file of every model it names, under `references/providers/<provider>/`; audits read only those built files.
+- **`sources/<provider>.md`**: the provider's known matches at the last discovery, the pages seen but not registered, and for each registered page its coverage note (what is distilled, at which scope, and what is excluded) and outline snapshot. Open a provider file when that provider is being compared.
 - **`sources/history/<date>.md`:** one file per check, holding that check's freshness report and anything the following release moved out of the registry. Read it only to trace why something changed. Checks before 2026-11-17 are recorded in the git history of this file.
 
 ## Lifecycle of a source
 
 1. **Found.** `check-sources` lists a provider's index and hub page, applies the match rule, and reports any page missing from the provider's known matches. Its report ends with a registry patch, which it offers to apply.
 2. **Registered.** Once the patch is applied, the page has a row below with status `found`, and its provider file lists it among the known matches and gives it a section with the first candidate claims. Nothing in `references/` changes yet.
-3. **Distilled.** A reference-refresh release reads the page and distills its prompt guidance at the scope the test below gives: advice for all of a provider's models into `references/providers/<provider>.md`, advice for named models into `references/providers/<provider>-models.md`, adding any new model to the Models table. It rewrites the page's coverage note and outline in the provider file, sets status `distilled` and the last-reviewed date, and runs the eval sweep.
+3. **Distilled.** A reference-refresh release reads the page and distills its prompt guidance at the scope the test below gives: advice for all of a provider's models into `references/providers/<provider>.md`, advice for named models into `sources/<provider>-entries.md`, adding any new model to both Models tables, then rebuilds the model files. It rewrites the page's coverage note and outline in the provider file, sets status `distilled` and the last-reviewed date, and runs the eval sweep.
 4. **Moved or retired.** When a page redirects or returns 404, the next check reports it. The release that follows either corrects the URL, or moves the page's row and section into that check's history file, so distilled claims stay traceable.
 
 A page whose guidance is all API or runtime settings, or which a later page supersedes, is not registered. Its provider file lists it under "Seen, not registered" with the reason, so the next check does not raise it again.
@@ -29,12 +30,31 @@ The registry describes the current state. Its size follows the number of guide p
 
 The reference files carry prompt guidance: what a prompt should add, remove, or change. API parameters, harness and runtime settings, pricing, and test numbers are excluded, and so is a verbatim snippet beyond the sentence an audit needs to point at. Every distilled claim gets a scope:
 
-- **A model's page** gives a claim scoped to the models that page covers, written as an entry with *Applies to* in `<provider>-models.md`. One page is enough.
+- **A model's page** gives a claim scoped to the models that page covers, written as an entry with *Applies to* in `sources/<provider>-entries.md`. One page is enough.
 - **All of a provider's models:** the provider-wide page states the claim, or two or more current model pages state it and no current page disagrees. A page that is silent on a topic doesn't disagree; its models inherit the all-models entry.
 - **Universal** (`general.md`, `agentic.md`): two or more providers state the claim.
 - **Pages that disagree** split the claim into one scoped entry per side, or a broader entry plus a named exception. Neither side is dropped.
 - **A new model page** adds the model to the Models table; each of its claims joins an existing entry's scope when it agrees, or gets its own entry when it differs.
 - **A retired model** leaves the Models table and every scope. An entry with no models left moves to the check's history file.
+
+## Models and their lifecycle
+
+Each check starts from the vendors' model lists, not only their prompting pages, so a served model is never missed.
+
+- **Listed:** every model the vendor serves appears either in the provider file's Models table (when it has a prompting page or an entry) or in that file's line of served models without a page.
+- **Retired:** a model the vendor has retired leaves both Models tables and every *Applies to* at the next release, and its model file is deleted. This is enforced; no setting keeps a retired model.
+- **Deprecated or superseded:** the model stays, with its status updated, because people still run it until it retires. The Status column marks the newest model of each series.
+- **User preferences:** `~/.prompt-audit/preferences.md`, on the user's machine, can narrow this at audit time: `until-deprecated` or `newest-per-series`, with an "Always keep" list. Releases and checks never overwrite it. When a check finds model changes, it reminds the user and offers to update the file.
+
+| Provider | Model list | Deprecations |
+|---|---|---|
+| anthropic | <https://platform.claude.com/docs/en/about-claude/models/overview.md> | <https://platform.claude.com/docs/en/about-claude/model-deprecations.md> |
+| openai | <https://developers.openai.com/api/docs/models> | <https://developers.openai.com/api/docs/deprecations.md> |
+| google | <https://aistudio.google.com/docs/models.md> (statuses in the table) | the same page |
+| deepseek | <https://api-docs.deepseek.com/quick_start/pricing.md> ("Models & Pricing") | its footnotes and <https://api-docs.deepseek.com/updates.md> |
+| moonshot | <https://platform.kimi.ai/docs/models.md> | its "Deprecated Models" section and <https://platform.kimi.ai/docs/platform-changelog.md> |
+| qwen | <https://www.alibabacloud.com/help/en/model-studio/text-generation-model.md> and `model-list-text-generation.md` | <https://www.alibabacloud.com/help/en/model-studio/model-depreciation.md> (batch notices render client-side; report what cannot be read) |
+| meta | <https://dev.meta.ai/docs/models.md> | none published; Llama is not in the current list |
 
 ## Discovery indexes
 
@@ -46,6 +66,10 @@ One row per index. `check-sources` fetches the index, applies the match rule, an
 | openai (Cookbook) | <https://raw.githubusercontent.com/openai/openai-cookbook/main/registry.yaml> — YAML, one entry per Cookbook article with `title`, `path`, `date`, `tags`, and optional `archived` / `redirects` | title contains "prompting guide"; skip image, video, audio, realtime, and ChatGPT-product guides — not coding models | <https://developers.openai.com/cookbook/llms.txt> (a partial listing), then the Cookbook site search | page URL is `https://developers.openai.com/cookbook/` + `path` without its extension; append `.md` for markdown |
 | openai (API docs) | <https://developers.openai.com/api/docs/llms.txt> — llms.txt of the API guides, entries end in `.md`, no dates; the per-model "Using GPT-x" guides and prompt-guidance pages live here, not in the Cookbook | path contains `guides/latest-model/`, `guides/prompt-guidance`, `guides/prompt-engineering`, or `guides/prompting`; skip live, voice, realtime, and frontend prompt pages and the caching, generation, and optimizer tool pages | <https://developers.openai.com/api/docs/guides/latest-model> — model selector listing the current generation | append `.md` to the page URL |
 | google | <https://aistudio.google.com/llms.txt> — llms.txt for the Gemini API docs; entries already end in `.md`, no dates | title contains "prompt", or names a model generation with "developer guide"; skip media prompt guides (image, video, music, speech), release-note "what's new" pages, and the "Latest Gemini models" overview | the "Topic-specific prompt guides" section of the prompt design strategies page, plus <https://aistudio.google.com/docs/models> | append `.md` to the page URL |
+| deepseek | <https://api-docs.deepseek.com/sitemap.xml> — `llms.txt` returns the site's HTML fallback page, not an index; use the sitemap's English `<loc>` entries | `/guides/*`, `/quick_start/pricing`, `/updates`, recent `/news/`; reject a response that starts with `<!doctype html` (the fallback page, served for any unknown path) | <https://api-docs.deepseek.com/quick_start/pricing.md> | append `.md` to the page path |
+| moonshot | <https://platform.kimi.ai/docs/llms.txt> — markdown list of every docs page | URL under `/docs/guide/` with a title matching prompt, best practice, JSON mode, partial mode, tool call, agent, or a model name; plus `/docs/models.md` | the index itself; human hub <https://platform.kimi.ai/docs/features.md> | append `.md`; strip the 3-line "Documentation Index" blockquote at the top |
+| qwen | <https://www.alibabacloud.com/help/en/model-studio/llms.txt> (Model Studio; `qwen.readthedocs.io` is stale and has no index) | slugs `prompt-engineering-guide`, `qwen-structured-output`, `deep-thinking`, `text-generation-model`, `model-list-text-generation`, `model-depreciation`; for open-weight models also the Hugging Face cards' "Best Practices" (`huggingface.co/Qwen/<model>/raw/main/README.md`) | <https://www.alibabacloud.com/help/en/model-studio/prompt-engineering-guide.md> | append `.md`; strip inline HTML before quoting |
+| meta | <https://dev.meta.ai/llms.txt> — Meta's current docs (Muse); the Llama docs return 404 or 500 | `/docs/<model>/prompting.md`, `/docs/models.md`, `/docs/media-understanding.md`, `/docs/computer-use.md`; for Llama 4, Meta's GitHub `meta-llama/llama-models` model card | <https://dev.meta.ai/docs/overview.md> | append `.md` to the docs path |
 
 ### Fetch notes
 
@@ -80,3 +104,19 @@ Coverage notes and outlines are in the provider file named in the last column.
 | openai | Prompt engineering (API docs, provider-wide) | <https://developers.openai.com/api/docs/guides/prompt-engineering> | distilled | 2026-11-17 | `sources/openai.md` |
 | openai | Rethinking skills and prompts for GPT-6 Astra (developer blog) | <https://developers.openai.com/blog/rethinking-skills-and-prompts-for-gpt-6-astra> | distilled | 2026-11-17 | `sources/openai.md` |
 | google | Gemini prompt design strategies | <https://aistudio.google.com/docs/prompting-strategies> | distilled | 2026-11-10 | `sources/google.md` |
+| deepseek | JSON Output | <https://api-docs.deepseek.com/guides/json_mode> | distilled | 2026-11-21 | `sources/deepseek.md` |
+| moonshot | Best Practices for Prompts | <https://platform.kimi.ai/docs/guide/prompt-best-practice> | distilled | 2026-11-21 | `sources/moonshot.md` |
+| moonshot | Use Kimi API's JSON Mode | <https://platform.kimi.ai/docs/guide/use-json-mode-feature-of-kimi-api> | distilled | 2026-11-21 | `sources/moonshot.md` |
+| moonshot | Use response_format to control model output format | <https://platform.kimi.ai/docs/guide/response_format> | distilled | 2026-11-21 | `sources/moonshot.md` |
+| moonshot | Build an Agent with Kimi K3 | <https://platform.kimi.ai/docs/guide/use-kimi-k3-to-setup-agent> | distilled | 2026-11-21 | `sources/moonshot.md` |
+| moonshot | Kimi K3 API Tool Calling Best Practices | <https://platform.kimi.ai/docs/guide/kimi-k3-tool-calling-best-practice> | distilled | 2026-11-21 | `sources/moonshot.md` |
+| moonshot | Use Kimi API's Partial Mode | <https://platform.kimi.ai/docs/guide/use-partial-mode-feature-of-kimi-api> | distilled | 2026-11-21 | `sources/moonshot.md` |
+| moonshot | Use Kimi API for File-Based Q&A | <https://platform.kimi.ai/docs/guide/use-kimi-api-for-file-based-qa> | distilled | 2026-11-21 | `sources/moonshot.md` |
+| qwen | Text-to-text prompt guide | <https://www.alibabacloud.com/help/en/model-studio/prompt-engineering-guide> | distilled | 2026-11-21 | `sources/qwen.md` |
+| qwen | Structured output | <https://www.alibabacloud.com/help/en/model-studio/qwen-structured-output> | distilled | 2026-11-21 | `sources/qwen.md` |
+| qwen | Qwen3.5 and Qwen3.6 model cards (Hugging Face) | <https://huggingface.co/Qwen/Qwen3.6-27B> | distilled | 2026-11-21 | `sources/qwen.md` |
+| meta | Muse Spark Open prompting guide | <https://dev.meta.ai/docs/muse-spark-open/prompting> | distilled | 2026-11-21 | `sources/meta.md` |
+| meta | Muse Glimmer prompting guide | <https://dev.meta.ai/docs/muse-glimmer/prompting> | distilled | 2026-11-21 | `sources/meta.md` |
+| meta | Image, video, and audio understanding | <https://dev.meta.ai/docs/media-understanding> | distilled | 2026-11-21 | `sources/meta.md` |
+| meta | Build a computer-use agent | <https://dev.meta.ai/docs/computer-use> | distilled | 2026-11-21 | `sources/meta.md` |
+| meta | Llama 4 model card (GitHub) | <https://github.com/meta-llama/llama-models/blob/main/models/llama4/MODEL_CARD.md> | distilled | 2026-11-21 | `sources/meta.md` |

@@ -79,4 +79,11 @@ done
 diff "$MARKETPLACE" .claude-plugin/marketplace.json
 bash -n install.sh
 
-echo "Manifest pairs are in sync; the installers list ${#PLUGINS[@]} plugins and ${#SKILLS[@]} skills."
+# 4. prompt-audit's per-model guidance files are built from its entries sources; rebuild, then verify.
+py=""
+for c in python3 python; do "$c" -c "" 2>/dev/null && { py=$c; break; }; done  # skips the Windows Store stub
+[ -n "$py" ] || { echo "python is needed to build prompt-audit's model files" >&2; exit 1; }
+"$py" scripts/build-model-files.py >/dev/null
+"$py" scripts/build-model-files.py --check
+
+echo "Manifest pairs are in sync; the installers list ${#PLUGINS[@]} plugins and ${#SKILLS[@]} skills; prompt-audit model files are current."

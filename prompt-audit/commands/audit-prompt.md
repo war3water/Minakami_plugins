@@ -42,9 +42,31 @@ Weighting follows from the answers: a prompt that runs often weighs token cost (
 
 Show the contract only for the parts you inferred or defaulted, and ask the user to confirm those. When everything was stated, go straight on.
 
-As soon as the provider is known, read `general.md` and the provider's file (`providers/anthropic.md`, `providers/openai.md`, or `providers/google.md`) together, as parallel file reads — plus `agentic.md` when the prompt drives a tool-using agent, and the provider's model file (`providers/<provider>-models.md`) when the user named a specific model — and do the analysis once, with them in view. A publisher with no file there, or an unknown model, gets `general.md` and `agentic.md` only, and the Basis field says that no official prompting guide is registered for it.
+Find the provider from the names and id prefixes below. The provider is the model's publisher, not the host or the tool that runs it.
 
-Guidance is used most-specific first: the model file's entries whose *Applies to* names the target, then the provider file, then the universal files; where they disagree, the more specific one wins for that model. A model the provider file's Models table doesn't list gets the provider file only, and the Basis field says no page for it is registered. When only the provider is named, the Basis field says so; model-specific guidance doesn't apply.
+| Provider file | Names and id prefixes |
+|---|---|
+| `providers/anthropic.md` | Claude, Opus, Sonnet, Haiku, Fable, Mythos; `claude-*` |
+| `providers/openai.md` | GPT, Codex, Astra, Sol, Terra, Luna; `gpt-*`, `codex-*` |
+| `providers/google.md` | Gemini; `gemini-*` |
+| `providers/deepseek.md` | DeepSeek; `deepseek-*` |
+| `providers/moonshot.md` | Kimi, Moonshot; `kimi-*`, `moonshot-*` |
+| `providers/qwen.md` | Qwen, QwQ (Alibaba); `qwen*`, `qwq*` |
+| `providers/meta.md` | Muse, Llama (Meta); `muse-*`, `llama-*`, `meta-llama/*`, `meta-models/*` |
+
+As soon as the provider is known, read `general.md` and the provider's file together, as parallel file reads, plus `agentic.md` when the prompt drives a tool-using agent. When the user named a specific model, add two reads to the same batch: its model file and the preferences file, both described below. A publisher with no file, or a model you can't place, gets `general.md` and `agentic.md` only, and the Basis field says no official prompting guide is registered for it.
+
+A model's file is `providers/<provider>/<model name>.md`, the name written in lowercase with spaces and dots turned into hyphens: Opus 5.5 is `providers/anthropic/opus-5-5.md`, GPT-6.2 Sol is `providers/openai/gpt-6-2-sol.md`. It holds only that model's advice. If that read fails, check the name against the provider file's Models table, which gives each listed model's file; a model it doesn't list has no file. There is no need to list the folder.
+
+The preferences file is `.prompt-audit/preferences.md` in the user's home directory. Read it with the file-read tool, writing the home directory out as an absolute path yourself (for example `C:/Users/<name>/.prompt-audit/preferences.md` or `/home/<name>/.prompt-audit/preferences.md`). A missing file is the normal case: it means the defaults apply, so don't search for it any other way. It can narrow which models' advice applies:
+
+- `until-deprecated`: skip the model file of a model whose status is Deprecated.
+- `newest-per-series`: skip it unless the model's status says newest.
+- Models under "Always keep" are never skipped.
+
+Without the file, every listed model's advice applies. A model the vendor has retired is never in the table, so it gets the provider file only, whatever the preferences say.
+
+Guidance is used most-specific first: the model file, then the provider file, then the universal files. Where they disagree, the more specific one wins. The Basis field says which model file applied, or why none did: no model named, a model the table doesn't list, or skipped by the user's preferences.
 
 If a reference file can't be read, say so in the Basis field and tag the findings it would have backed `[hypothesis]`.
 
@@ -56,7 +78,7 @@ You are reading text. You can count what it shows — lines, words, duplicated b
 
 Every model-specific or effectiveness claim carries a basis tag:
 
-- `[ref: <file> §<section heading>]` — a loaded provider or agentic reference file; for a model-file entry, add the model: `[ref: providers/anthropic-models.md §Subagent delegation · Opus 5]`
+- `[ref: <file> §<section heading>]` — a loaded provider or agentic reference file; a model file is cited by its own path: `[ref: providers/anthropic/opus-5.md §Subagent delegation]`
 - `[general]` — `general.md`
 - `[user-stated]` — the user's own answers, including known pain
 - `[hypothesis]` — your own reasoning
@@ -92,7 +114,7 @@ Write in the conversation's language, as rendered markdown rather than inside a 
 
 ```markdown
 prompt-audit: report for <source>
-Target: <provider › series › model, as far as stated> | Role: <role> | Size: <n> lines / ~<n> words | Basis: <reference files read; which model's entries applied, or why none did>
+Target: <provider › series › model, as far as stated> | Role: <role> | Size: <n> lines / ~<n> words | Basis: <reference files read; which model file applied, or why none did>
 
 ## Verdict: <verdict>
 
