@@ -17,8 +17,11 @@ The page has four tabs, so finished rounds never pile up above the new questions
   screenshots, or a live demo you can try. Each one reads without explanation: axes and marks say what they are, and
   the card gives the facts behind its numbers. Choosing an option highlights its part of the picture. Questions that
   a sentence makes clear stay words only. When
-  options look different, a switch shows each option's picture before you choose. New questions that came up during
-  the work sit under a heading that says where they came from.
+  options look different, a switch shows each option's picture before you choose. When each option has a live
+  demo, the card stays text: **Try it** on an option opens a floating window that switches between the demos and has
+  **Choose this**. The **Other** box, notes and comments grow as you type, up to about 8 lines for Other and 12
+  for the others, then scroll. New questions that came up during the work sit under a heading that says where they
+  came from.
 - **Work status**: what your earlier answers turned into, with before and after screenshots to check, and a
   count of the ones that need something from you.
 - **Decided**: the latest round, under its name, with what the agent did; you can still change an answer there.
@@ -360,14 +363,15 @@ change, every read-back did, and every total was right.
 The panel saw two runs per arm, so treat the exact numbers as indicative. The fixtures, the harness and every run
 are kept outside this repository.
 
-**The page and its helper.** A browser test (Chromium on Windows 11, Python 3.14: 86 checks, 77 more for pictures on
-cards, 21 for the picture viewer and 25 for the archive of earlier rounds) covers the following:
+**The page and its helper.** A browser test (Chromium on Windows 11, Python 3.14: 87 checks, 101 more for pictures on
+cards and option demos, 21 for the picture viewer and 25 for the archive of earlier rounds) covers the following:
 
 - the compact and detailed views, the switch, and the remembered pick; in the compact view, the example, pictures
   and tables behind one handle; sans-serif headings on Chinese pages;
 - drawings placed into the page in both themes, the part marked for an option standing out when it is chosen,
   live demos sealed in their frame, and a Comment on each picture;
-- answers, Other, Clear, Add a note, keyboard selection and reload;
+- answers, Other, Clear, Add a note, keyboard selection and reload; the text boxes growing with long answers;
+- option demos in the floating window: Try it, the switch, Choose this answering the card, Esc and the keyboard;
 - the glossary terms explained in place: by pointing, by keyboard focus and by tapping, without choosing the
   option a term sits in;
 - background folded under **More**, the example's source line, and the top bar's count;
