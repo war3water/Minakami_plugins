@@ -60,7 +60,7 @@ An option is `{"id": "...", "label": "...", "effect": "...", "recommended": true
 - `label`: the answer in a few words (inline markup);
 - `effect`: one line on what choosing it changes from today for the people it touches: its gain and its catch, with direction and rough size; not how it is built (inline markup);
 - `recommended`: `true` tags the option "Recommended"; a string also shows that string under it, such as why, or when another option fits better. At most one option per card;
-- `figure` (optional): one picture of what this option looks like (see "Figures"). When options have pictures, the card shows a switch to compare them, opening on the recommended one, and choosing an option shows its picture.
+- `figure` (optional): one picture of what this option looks like (see "Figures"). When options have pictures, the card shows a switch to compare them, opening on the recommended one, and choosing an option shows its picture. When every option's picture is a live demo, the card shows none of them: a button and a Try it link on each option open a floating window with one demo at a time, a switch over the options and Choose this, which answers the card.
 
 ## Progress report
 
@@ -88,7 +88,7 @@ A figure is `{"src": "shots/before.png", "alt": "...", "label": "Before", "capti
 - `caption` is the point the picture makes, in one line; `build` warns when a drawing or demo has none.
 - `height` (a demo only): its height in pixels until it loads (default 420).
 - Two or more figures sit side by side on a wide screen and stack on a phone. Each has its own Comment button where comments work.
-- Every image and drawing opens full size on a click (or Enter): the wheel or a pinch zooms, dragging pans, Esc closes. A demo has Open large.
+- Every image and drawing opens full size on a click (or Enter): the wheel or a pinch zooms, dragging pans, Esc closes. A demo in `figures` has Open large.
 
 ## Markup
 
