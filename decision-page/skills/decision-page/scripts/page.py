@@ -78,9 +78,7 @@ HERE = Path(__file__).resolve().parent
 TEMPLATE = HERE.parent / "assets" / "page.html"
 FONTS = HERE.parent / "assets" / "fonts"
 APP = "decision-page"
-OLD_APPS = ("decision-brief",)   # the name before 0.7.0: its servers and answer files are still ours
 TASK_DIR = ".decision-page"
-OLD_TASK_DIR = ".decision-brief"  # projects started before 0.7.0 keep their task folders here
 FORMAT = 2
 DEFAULT_PORT = 8377           # tried first; a busy port falls back to one the system picks
 MAX_BODY = 1_000_000          # a request larger than this is not an answer
@@ -179,10 +177,9 @@ def task_files(questions: Path, answers: str | None = None) -> dict:
 
 
 def project_root(questions: Path) -> Path:
-    """The project the task belongs to: the folder holding .decision-page/ (or .decision-brief/), else the task
-    folder itself."""
+    """The project the task belongs to: the folder holding .decision-page/, else the task folder itself."""
     for parent in questions.parents:
-        if parent.name in (TASK_DIR, OLD_TASK_DIR):
+        if parent.name == TASK_DIR:
             return parent.parent
     return questions.parent
 
@@ -731,7 +728,7 @@ def figure_list(data: dict) -> list:
 TEXT_FILES = {".md", ".txt", ".rst", ".adoc"}
 CODE_FILES = {".py", ".js", ".mjs", ".ts", ".tsx", ".jsx", ".go", ".rs", ".java", ".kt", ".rb", ".cs", ".php", ".swift",
               ".c", ".h", ".cpp", ".css", ".html", ".toml", ".yaml", ".yml", ".json", ".sql", ".sh", ".ps1"}
-SKIP_DIRS = {".git", ".decision-page", ".decision-brief", "node_modules", ".venv", "venv", "__pycache__", "dist", "build", "target", ".next"}
+SKIP_DIRS = {".git", ".decision-page", "node_modules", ".venv", "venv", "__pycache__", "dist", "build", "target", ".next"}
 
 
 def term_pattern(name: str):
@@ -840,14 +837,14 @@ def render(data: dict, config: dict, mode: str) -> str:
     """Fill the page template. Artifact mode keeps the fragment form claude.ai Artifacts take (the publisher adds
     the document skeleton); the others get a full document."""
     template = TEMPLATE.read_text(encoding="utf-8")
-    head, body = template.split("<!-- brief:body -->", 1)
+    head, body = template.split("<!-- page:body -->", 1)
 
     def blob(obj) -> str:  # JSON inside <script>: escape the characters that could end the element
         return json.dumps(obj, ensure_ascii=False).replace("<", "\\u003c").replace(">", "\\u003e").replace("&", "\\u0026")
 
-    head = head.replace("__BRIEF_TITLE__", html.escape(str(data.get("title", "Decisions")), quote=False))
-    head = head.replace("<!-- brief:fonts -->\n", fonts_for(data, mode))
-    body = body.replace("__BRIEF_DATA__", blob(data)).replace("__BRIEF_CONFIG__", blob(config))
+    head = head.replace("__PAGE_TITLE__", html.escape(str(data.get("title", "Decisions")), quote=False))
+    head = head.replace("<!-- page:fonts -->\n", fonts_for(data, mode))
+    body = body.replace("__PAGE_DATA__", blob(data)).replace("__PAGE_CONFIG__", blob(config))
     if mode == "artifact":
         return head + body
     lang = html.escape(str(data.get("lang") or "en"))
@@ -1690,7 +1687,7 @@ class Asker:
 
 # ---------------------------------------------------------------- local server
 
-class BriefServer(ThreadingHTTPServer):
+class PageServer(ThreadingHTTPServer):
     daemon_threads = True
     allow_reuse_address = os.name != "nt"  # on Windows, reuse would let two servers share a port
 
@@ -1736,7 +1733,7 @@ class Handler(BaseHTTPRequestHandler):
         return True
 
     def authed(self) -> bool:
-        ok = hmac.compare_digest(self.headers.get("X-Brief-Token", ""), self.ctx["token"])
+        ok = hmac.compare_digest(self.headers.get("X-Page-Token", ""), self.ctx["token"])
         if not ok:
             self.json(403, {"error": "missing or wrong token; reload the page"})
         return ok
@@ -1912,7 +1909,7 @@ def ping(port: int) -> dict | None:
         r = conn.getresponse()
         body = json.loads(r.read().decode("utf-8")) if r.status == 200 else None
         conn.close()
-        return body if body and body.get("app") in (APP, *OLD_APPS) else None
+        return body if body and body.get("app") == APP else None
     except (OSError, ValueError):
         return None
 
@@ -1939,9 +1936,9 @@ def serve_foreground(questions: Path, files: dict, port: int, ask) -> int:
     asker = Asker(ask[0], ask[1], files, questions) if ask else None
     Handler.ctx = {"questions": questions, "files": files, "token": secrets.token_urlsafe(24), "asker": asker}
     try:
-        httpd = BriefServer(("127.0.0.1", port), Handler)
+        httpd = PageServer(("127.0.0.1", port), Handler)
     except OSError:
-        httpd = BriefServer(("127.0.0.1", 0), Handler)  # the port is taken: let the system pick a free one
+        httpd = PageServer(("127.0.0.1", 0), Handler)  # the port is taken: let the system pick a free one
     actual = httpd.server_address[1]
     url = f"http://127.0.0.1:{actual}/"
     info = {"url": url, "port": actual, "pid": os.getpid(), "questions": str(questions),
@@ -2053,8 +2050,6 @@ def cmd_new(a) -> int:
         sys.exit("error: the task name must be lowercase letters, digits and dashes, such as lane-b-estimator")
     root = Path(a.root).resolve()
     base = root / TASK_DIR
-    if not base.exists() and (root / OLD_TASK_DIR).is_dir():
-        base = root / OLD_TASK_DIR  # a project begun before the rename keeps one folder for all its pages
     task = base / a.slug
     (task / "shots").mkdir(parents=True, exist_ok=True)
     if not (base / ".gitignore").exists():

@@ -13,8 +13,6 @@ $PiSource = 'git:github.com/war3water/Minakami_plugins'
 $Plugins = @('agent-coord-bootstrap', 'prompt-audit', 'code-map', 'code-cleanup', 'decision-page')
 $Skills = @('agent-coord-bootstrap:check-templates', 'agent-coord-bootstrap:init-agent-coord', 'agent-coord-bootstrap:review-readme', 'prompt-audit:audit-prompt', 'prompt-audit:check-sources', 'code-map:code-map', 'code-map:wiki', 'code-cleanup:code-cleanup', 'decision-page:decision-page')
 # <<< generated
-# Old names of renamed plugins: a copy still installed under one of them is removed after the install.
-$Renamed = @('decision-brief')
 
 Write-Host 'Minakami Plugins installer'
 Write-Host "  marketplace: $Marketplace"
@@ -58,10 +56,6 @@ if ($claude) {
         & $claude plugin update "$p@$MarketplaceName"
         if ($LASTEXITCODE -ne 0) { $Failures += "claude: update $p failed" }
     }
-    foreach ($old in $Renamed) {
-        $null = & $claude plugin uninstall "$old@$MarketplaceName" 2>&1
-        if ($LASTEXITCODE -eq 0) { Write-Host "[claude] removed $old, now installed under its new name" }
-    }
 }
 
 $codex = Get-Runtime 'codex' 'Codex CLI'
@@ -75,10 +69,6 @@ if ($codex) {
         Write-Host "[codex] installing $p"
         & $codex plugin add "$p@$MarketplaceName"
         if ($LASTEXITCODE -ne 0) { $Failures += "codex: add $p failed" }
-    }
-    foreach ($old in $Renamed) {
-        $null = & $codex plugin remove "$old@$MarketplaceName" 2>&1
-        if ($LASTEXITCODE -eq 0) { Write-Host "[codex] removed $old, now installed under its new name" }
     }
 }
 
@@ -111,12 +101,6 @@ if ($grok) {
                 Write-Host "[grok] installing $p"
                 & $grok plugin install "$Marketplace#$p" --trust
                 if ($LASTEXITCODE -ne 0) { $Failures += "grok: install $p failed" }
-            }
-        }
-        foreach ($old in $Renamed) {
-            if ($listed -match (': ' + [regex]::Escape($old) + ' \[')) {
-                & $grok plugin uninstall $old
-                if ($LASTEXITCODE -eq 0) { Write-Host "[grok] removed $old, now installed under its new name" }
             }
         }
     }

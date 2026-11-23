@@ -13,8 +13,6 @@ PI_SOURCE="git:github.com/war3water/Minakami_plugins"
 PLUGINS=("agent-coord-bootstrap" "prompt-audit" "code-map" "code-cleanup" "decision-page")
 SKILLS=("agent-coord-bootstrap:check-templates" "agent-coord-bootstrap:init-agent-coord" "agent-coord-bootstrap:review-readme" "prompt-audit:audit-prompt" "prompt-audit:check-sources" "code-map:code-map" "code-map:wiki" "code-cleanup:code-cleanup" "decision-page:decision-page")
 # <<< generated
-# Old names of renamed plugins: a copy still installed under one of them is removed after the install.
-RENAMED=("decision-brief")
 
 echo "Minakami Plugins installer"
 echo "  marketplace: ${MARKETPLACE}"
@@ -57,11 +55,6 @@ if use_runtime claude "Claude Code"; then
       FAILURES+=("claude: update ${p} failed")
     fi
   done
-  for old in "${RENAMED[@]}"; do
-    if claude plugin uninstall "${old}@${MARKETPLACE_NAME}" >/dev/null 2>&1; then
-      echo "[claude] removed ${old}, now installed under its new name"
-    fi
-  done
 fi
 
 if use_runtime codex "Codex CLI"; then
@@ -74,11 +67,6 @@ if use_runtime codex "Codex CLI"; then
     echo "[codex] installing ${p}"
     if ! codex plugin add "${p}@${MARKETPLACE_NAME}"; then
       FAILURES+=("codex: add ${p} failed")
-    fi
-  done
-  for old in "${RENAMED[@]}"; do
-    if codex plugin remove "${old}@${MARKETPLACE_NAME}" >/dev/null 2>&1; then
-      echo "[codex] removed ${old}, now installed under its new name"
     fi
   done
 fi
@@ -102,11 +90,6 @@ if use_runtime grok "Grok Build"; then
       else
         echo "[grok] installing ${p}"
         grok plugin install "${MARKETPLACE}#${p}" --trust || FAILURES+=("grok: install ${p} failed")
-      fi
-    done
-    for old in "${RENAMED[@]}"; do
-      if printf '%s\n' "${listed}" | grep -q ": ${old} \["; then
-        grok plugin uninstall "${old}" && echo "[grok] removed ${old}, now installed under its new name"
       fi
     done
   fi
