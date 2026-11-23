@@ -1,6 +1,6 @@
-<title>__BRIEF_TITLE__</title>
+<title>__PAGE_TITLE__</title>
 <meta name="claude:viewport-fit-sides" content="cover">
-<!-- brief:fonts -->
+<!-- page:fonts -->
 <style>
 /* Decision page. One reading column; the accent marks what needs the reader's answer.
    Light and dark follow the system; [data-theme] on the root element forces one. Four looks, picked by "style" in
@@ -286,18 +286,18 @@ footer { color: var(--muted); font-size: 0.85rem; }
 }
 @media (prefers-reduced-motion: no-preference) { .opt { transition: border-color .15s, background .15s; } html { scroll-behavior: smooth; } }
 </style>
-<!-- brief:body -->
-<div class="wrap" id="brief">
+<!-- page:body -->
+<div class="wrap" id="decision-page">
   <noscript><p>This page needs JavaScript to show the questions and save your answers. Please answer in the chat instead.</p></noscript>
 </div>
 <button type="button" class="sel-btn" id="sel-comment" hidden></button>
-<script type="application/json" id="brief-data">__BRIEF_DATA__</script>
-<script type="application/json" id="brief-config">__BRIEF_CONFIG__</script>
+<script type="application/json" id="page-data">__PAGE_DATA__</script>
+<script type="application/json" id="page-config">__PAGE_CONFIG__</script>
 <script>
 (function () {
   "use strict";
-  var DATA = JSON.parse(document.getElementById("brief-data").textContent);
-  var CONFIG = JSON.parse(document.getElementById("brief-config").textContent);
+  var DATA = JSON.parse(document.getElementById("page-data").textContent);
+  var CONFIG = JSON.parse(document.getElementById("page-config").textContent);
   document.documentElement.setAttribute("data-style", String(DATA.style || "notebook"));
   if (/^(zh|ja|ko)/i.test(String(DATA.lang || ""))) document.documentElement.setAttribute("data-script", "cjk");  // sans headings, full-width colon
   // Detailed or compact cards: the reader's last pick in this browser, else the page's "density", else detailed.
@@ -310,7 +310,7 @@ footer { color: var(--muted); font-size: 0.85rem; }
   }
   (function () {
     var d = null;
-    try { d = localStorage.getItem(densityKey) || localStorage.getItem("decision-brief-density"); } catch (e) { /* no stored pick */ }
+    try { d = localStorage.getItem(densityKey); } catch (e) { /* no stored pick */ }
     setDensity(d === "compact" || d === "detailed" ? d : DATA.density === "compact" ? "compact" : "detailed", false);
   })();
 
@@ -741,7 +741,7 @@ footer { color: var(--muted); font-size: 0.85rem; }
     var last = 0, root = document.documentElement;
     function size() {
       var h = Math.ceil(Math.max(root.getBoundingClientRect().height, document.body ? document.body.scrollHeight : 0));  // the content, not the frame
-      if (Math.abs(h - last) > 1) { last = h; parent.postMessage({ brief: "height", h: h }, "*"); }
+      if (Math.abs(h - last) > 1) { last = h; parent.postMessage({ decisionPage: "height", h: h }, "*"); }
     }
     addEventListener("load", size);
     addEventListener("resize", size);
@@ -749,13 +749,13 @@ footer { color: var(--muted); font-size: 0.85rem; }
     addEventListener("message", function (e) {
       var d = e.data;
       if (e.source !== parent || !d) return;
-      if (d.brief === "theme") {
+      if (d.decisionPage === "theme") {
         Object.keys(d.vars).forEach(function (k) { root.style.setProperty(k, d.vars[k]); });
         root.style.colorScheme = d.scheme;
         root.setAttribute("data-theme", d.scheme);
-      } else if (d.brief === "choice") {
+      } else if (d.decisionPage === "choice") {
         root.setAttribute("data-choice", d.option || "");
-        dispatchEvent(new CustomEvent("brief-choice", { detail: d.option || null }));
+        dispatchEvent(new CustomEvent("decision-page-choice", { detail: d.option || null }));
       }
     });
   }
@@ -771,16 +771,16 @@ footer { color: var(--muted); font-size: 0.85rem; }
     if (!frame.contentWindow) return;
     var cs = getComputedStyle(document.documentElement), vars = {};
     PIC_VARS.forEach(function (k) { vars[k] = cs.getPropertyValue(k).trim(); });
-    frame.contentWindow.postMessage({ brief: "theme", vars: vars, scheme: /dark/.test(cs.colorScheme) ? "dark" : "light" }, "*");
+    frame.contentWindow.postMessage({ decisionPage: "theme", vars: vars, scheme: /dark/.test(cs.colorScheme) ? "dark" : "light" }, "*");
     if (choice === undefined) {
       var card = frame.closest("[data-q]"), host = frame.closest("[data-read]");
       choice = card && cards[card.getAttribute("data-q")] ? current(card.getAttribute("data-q")).choice : host ? host.getAttribute("data-read") : null;
     }
-    frame.contentWindow.postMessage({ brief: "choice", option: choice || null }, "*");
+    frame.contentWindow.postMessage({ decisionPage: "choice", option: choice || null }, "*");
   }
   window.addEventListener("message", function (e) {
     var d = e.data;
-    if (!d || d.brief !== "height") return;
+    if (!d || d.decisionPage !== "height") return;
     frames.forEach(function (f) { if (f.contentWindow === e.source) f.style.height = Math.max(80, Math.min(2000, Math.ceil(+d.h || 0))) + "px"; });
     fitted.forEach(function (f) {  // the demo's height plus the frame's border; the window scrolls past its own height
       if (f.contentWindow === e.source) f.style.height = Math.max(120, Math.ceil(+d.h || 0)) + f.offsetHeight - f.clientHeight + "px";
@@ -1240,7 +1240,7 @@ footer { color: var(--muted); font-size: 0.85rem; }
   document.addEventListener("keydown", function (e) { if (e.key === "Escape" && pop) hideTerm(); });
 
   function render() {
-    var app = document.getElementById("brief");
+    var app = document.getElementById("decision-page");
     app.textContent = "";
     ui.status = el("span", { role: "status", text: T.status_connecting });
     ui.conn = el("span", { class: "conn", hidden: true, "aria-live": "polite" });
@@ -1376,7 +1376,7 @@ footer { color: var(--muted); font-size: 0.85rem; }
       });
     });
     var saved = null;
-    try { saved = localStorage.getItem(tabKey) || localStorage.getItem("decision-brief-tab:" + DATA.page_id); } catch (e) { /* no stored tab */ }
+    try { saved = localStorage.getItem(tabKey); } catch (e) { /* no stored tab */ }
     selectTab(ui.panels[saved] ? saved : "open", false);
   }
   document.addEventListener("click", function (e) {
@@ -1745,7 +1745,7 @@ footer { color: var(--muted); font-size: 0.85rem; }
     if (!store || !store.canComment || !sel || sel.isCollapsed || !sel.rangeCount) return hideSel();
     var r = sel.getRangeAt(0), host = r.commonAncestorContainer;
     host = host.nodeType === 1 ? host : host.parentElement;
-    if (!host || !document.getElementById("brief").contains(host) || host.closest("textarea, input, form, .threads, button")) return hideSel();
+    if (!host || !document.getElementById("decision-page").contains(host) || host.closest("textarea, input, form, .threads, button")) return hideSel();
     if (!sel.toString().trim()) return hideSel();
     selRange = r.cloneRange();
     var box = r.getBoundingClientRect();
@@ -1854,7 +1854,7 @@ footer { color: var(--muted); font-size: 0.85rem; }
     function api(path, opts) {
       opts = opts || {};
       opts.cache = "no-store";
-      opts.headers = { "Content-Type": "application/json", "X-Brief-Token": CONFIG.token };
+      opts.headers = { "Content-Type": "application/json", "X-Page-Token": CONFIG.token };
       return fetch(CONFIG.api + path, opts).then(function (r) {
         return r.json().catch(function () { return {}; }).then(function (body) {
           if (!r.ok) throw { code: body.error || "HTTP " + r.status };
@@ -1901,7 +1901,7 @@ footer { color: var(--muted); font-size: 0.85rem; }
   }
   function staticStore() {
     var key = "decision-page:" + DATA.page_id, kept = { answers: {} }, lasting = true;
-    try { kept = JSON.parse(localStorage.getItem(key) || localStorage.getItem("decision-brief:" + DATA.page_id) || "null") || kept; } catch (e) { lasting = false; }
+    try { kept = JSON.parse(localStorage.getItem(key) || "null") || kept; } catch (e) { lasting = false; }
     return {
       status: lasting ? T.status_static : T.status_static_volatile,
       canComment: false,

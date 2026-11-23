@@ -67,11 +67,6 @@ repository as a package, which brings every plugin in it: `pi install git:github
 The page's helper needs Python 3.8 or later on the computer that runs the agent. It uses only the standard
 library.
 
-**Renamed from decision-brief in 0.7.0.** Running the installer again installs decision-page and removes
-decision-brief. By hand, remove the old copy with `claude plugin uninstall decision-brief@minakami-plugins` or
-`codex plugin remove decision-brief@minakami-plugins`. Pages you already made keep working: a project that has a
-`.decision-brief/` folder keeps its pages there, and a page you saved as a file keeps your answers.
-
 ## Start it
 
 The skill never loads by itself: it runs only when you name it. Claude Code, Grok Build and pi honor
@@ -107,11 +102,11 @@ a made-up shopping-list app with three questions and one progress report. Answer
 Without an agent, from a checkout of this repository:
 
 ```bash
-python decision-page/skills/decision-page/scripts/page.py example ../brief-try
-python decision-page/skills/decision-page/scripts/page.py serve ../brief-try/questions.json --open
-python decision-page/skills/decision-page/scripts/page.py reply ../brief-try/questions.json q-storage "A note from the agent"
-python decision-page/skills/decision-page/scripts/page.py read ../brief-try/questions.json
-python decision-page/skills/decision-page/scripts/page.py stop ../brief-try/questions.json
+python decision-page/skills/decision-page/scripts/page.py example ../page-try
+python decision-page/skills/decision-page/scripts/page.py serve ../page-try/questions.json --open
+python decision-page/skills/decision-page/scripts/page.py reply ../page-try/questions.json q-storage "A note from the agent"
+python decision-page/skills/decision-page/scripts/page.py read ../page-try/questions.json
+python decision-page/skills/decision-page/scripts/page.py stop ../page-try/questions.json
 ```
 
 ## Where the page runs

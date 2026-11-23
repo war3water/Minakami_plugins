@@ -76,7 +76,7 @@ A picture is a file in the task folder, next to `shots/`, and a card refers to i
 
 - It runs in a sealed frame, with no network, no browser storage and no access to the page or its answers. Put its scripts, styles, data and images (as `data:` URIs) in the file.
 - The page sets the same colour variables inside it.
-- The page also tells it the reader's choice: `addEventListener("brief-choice", e => ...)`, where `e.detail` is the option id or null, and the same id on `document.documentElement.dataset.choice`.
+- The page also tells it the reader's choice: `addEventListener("decision-page-choice", e => ...)`, where `e.detail` is the option id or null, and the same id on `document.documentElement.dataset.choice`.
 - The frame grows to fit the demo; `height` sets its size until it loads.
 - Given as each option's `figure`, the demos stay off the card and open in a floating window, one at a time: use that for a working mockup of each option, so the card stays as short as a text card.
 - Keep it small, since it travels with the page.
